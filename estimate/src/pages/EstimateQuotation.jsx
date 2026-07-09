@@ -5,57 +5,6 @@ import EstimateFormModal from '../components/EstimateFormModal'
 import SEO from '../components/SEO'
 import Skeleton, { TableSkeleton, StatsSkeleton, RFPHeaderSkeleton } from '../components/Skeleton'
 
-const STORAGE_KEY = 'zuna-estimate-items'
-const DEFAULT_ITEMS = [
-  {
-    id: 'init-frontend-pages',
-    feature: 'Build basic client pages',
-    description: 'Home, ProductList, ProductDetail, Cart, Checkout, OrderHistory',
-    complexity: 'Medium',
-    estimatedHours: 40,
-    hourlyRate: 500000,
-    totalCost: 20000000,
-    estimatedDays: 5,
-  },
-  {
-    id: 'init-admin-dashboard',
-    feature: 'Build admin dashboard',
-    description: 'Dashboard, product management, categories, orders',
-    complexity: 'High',
-    estimatedHours: 56,
-    hourlyRate: 550000,
-    totalCost: 30800000,
-    estimatedDays: 7,
-  },
-  {
-    id: 'backend-api',
-    feature: 'Build backend API',
-    description: 'Auth, products, categories, orders with MongoDB',
-    complexity: 'High',
-    estimatedHours: 48,
-    hourlyRate: 500000,
-    totalCost: 24000000,
-    estimatedDays: 6,
-  },
-  {
-    id: 'testing-deploy',
-    feature: 'Testing & deployment',
-    description: 'Integration testing, bug fixing, deployment guide',
-    complexity: 'Medium',
-    estimatedHours: 24,
-    hourlyRate: 450000,
-    totalCost: 10800000,
-    estimatedDays: 3,
-  },
-]
-
-function generateId() {
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID()
-  }
-  return `item-${Date.now()}-${Math.random().toString(16).slice(2)}`
-}
-
 function EstimateQuotation() {
   const [items, setItems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -73,7 +22,7 @@ function EstimateQuotation() {
       const response = await fetch('/api/estimates')
       if (response.ok) {
         const result = await response.json()
-        if (result.data && result.data.length > 0) {
+        if (result.data) {
           setItems(result.data.map((item) => ({ ...item, id: item._id })))
         }
       }
@@ -83,12 +32,6 @@ function EstimateQuotation() {
       setLoading(false)
     }
   }
-
-  useEffect(() => {
-    if (!loading) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(items))
-    }
-  }, [items, loading])
 
   const totals = useMemo(() => {
     const totalCost = items.reduce((sum, item) => sum + (Number(item.totalCost) || 0), 0)
@@ -106,20 +49,69 @@ function EstimateQuotation() {
     setModalOpen(true)
   }
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
+    const previousItems = items
     const next = items.filter((item) => item.id !== id)
     setItems(next)
+
+    const isServerId = typeof id === 'string' && /^[a-f0-9]{24}$/i.test(id)
+    if (!isServerId) return
+
+    try {
+      const response = await fetch(`/api/estimates/item/${id}`, {
+        method: 'DELETE',
+      })
+      if (!response.ok) {
+        throw new Error('Failed to delete on server')
+      }
+      setSaveMessage('Deleted successfully')
+    } catch (error) {
+      console.error('Delete on server failed, rolling back:', error)
+      setSaveMessage(error.message || 'Failed to delete on server')
+      setItems(previousItems)
+    }
   }
 
-  const handleSubmit = (values) => {
-    setItems((prev) => {
-      if (values.id) {
-        return prev.map((item) => (item.id === values.id ? { ...item, ...values } : item))
-      }
-      return [...prev, { ...values, id: generateId() }]
-    })
+  const handleSubmit = async (values) => {
+    const isEdit = Boolean(values.id && /^[a-f0-9]{24}$/i.test(values.id))
+    const previousItems = items
     setModalOpen(false)
     setEditingItem(null)
+
+    try {
+      if (isEdit) {
+        const response = await fetch(`/api/estimates/item/${values.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+        })
+        if (!response.ok) throw new Error('Failed to update on server')
+        const result = await response.json()
+        setItems((prev) =>
+          prev.map((item) =>
+            item.id === values.id ? { ...item, ...values, _id: result.data._id } : item
+          )
+        )
+        setSaveMessage('Updated successfully')
+      } else {
+        const response = await fetch('/api/estimates/item', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(values),
+        })
+        if (!response.ok) throw new Error('Failed to create on server')
+        const result = await response.json()
+        setItems((prev) => [
+          ...prev,
+          { ...values, id: result.data._id, _id: result.data._id },
+        ])
+        setSaveMessage('Added successfully')
+      }
+    } catch (error) {
+      console.error('Save on server failed:', error)
+      setSaveMessage(error.message || 'Failed to save on server')
+      setItems(previousItems)
+    }
   }
 
   const handleReset = () => {
@@ -159,7 +151,7 @@ function EstimateQuotation() {
     URL.revokeObjectURL(url)
   }
 
-  const handleSaveToServer = async () => {
+  const handleSaveAll = async () => {
     setSaving(true)
     setSaveMessage('')
     try {
@@ -176,7 +168,7 @@ function EstimateQuotation() {
         throw new Error(error.message || 'Failed to save estimate')
       }
 
-      setSaveMessage('Saved to server successfully')
+      setSaveMessage('Saved successfully')
       fetchItems()
     } catch (error) {
       setSaveMessage(error.message)
@@ -207,9 +199,9 @@ function EstimateQuotation() {
                 <FiPlus className="mr-2" />
                 Add Row
               </button>
-              <button onClick={handleSaveToServer} className="btn btn-secondary" disabled={saving || items.length === 0}>
+              <button onClick={handleSaveAll} className="btn btn-secondary" disabled={saving || items.length === 0}>
                 <FiSave className="mr-2" />
-                {saving ? 'Saving...' : 'Save to Server'}
+                {saving ? 'Saving...' : 'Save'}
               </button>
               <button onClick={handleExport} className="btn btn-secondary">
                 <FiDownload className="mr-2" />
@@ -311,11 +303,8 @@ function EstimateQuotation() {
 
         <div className="mt-4 flex items-center justify-between">
           <p className="text-xs text-gray-500">
-            Data is saved in your browser. You can add, edit, or delete any row.
+            Data is synced with the server. You can add, edit, or delete any row.
           </p>
-          <button onClick={() => localStorage.removeItem(STORAGE_KEY)} className="text-xs text-gray-500 underline">
-            Clear saved data
-          </button>
         </div>
       </main>
 
