@@ -1,8 +1,6 @@
 {
   "rewrites": [
+    { "source": "/api/(.*)", "destination": "https://tungviet.fun/api/$1" },
     { "source": "/(.*)", "destination": "/index.html" }
-  ],
-  "env": {
-    "VITE_API_URL": "https://tungviet.fun/api"
-  }
+  ]
 }
