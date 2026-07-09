@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-primary-50 text-gray-900 font-sans antialiased;
+  }
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center px-4 py-2 rounded-md text-sm font-medium transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-primary text-white hover:bg-primary-light focus:ring-primary;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-primary;
+  }
+
+  .btn-danger {
+    @apply bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+  }
+
+  .card {
+    @apply bg-white rounded-lg border border-gray-200 shadow-sm;
+  }
+
+  .input {
+    @apply block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary sm:text-sm;
+  }
+}
+
+.ql-container {
+  font-family: inherit !important;
+  font-size: 14px !important;
+}
+
+.ql-toolbar {
+  border-radius: 6px 6px 0 0 !important;
+  border-color: #d1d5db !important;
+}
+
+.ql-editor {
+  min-height: 60px;
+  border-radius: 0 0 6px 6px !important;
+  border-color: #d1d5db !important;
+  border-top: none !important;
+}
+
+.ql-toolbar.ql-snow + .ql-container.ql-snow {
+  border-radius: 0 0 6px 6px !important;
+}
+
+.ql-content p {
+  margin-bottom: 0.25rem;
+}
+
+.ql-content ul,
+.ql-content ol {
+  margin-left: 1rem;
+  margin-bottom: 0.25rem;
+}
