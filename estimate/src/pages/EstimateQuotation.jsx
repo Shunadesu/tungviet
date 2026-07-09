@@ -199,10 +199,6 @@ function EstimateQuotation() {
                 <FiPlus className="mr-2" />
                 Add Row
               </button>
-              <button onClick={handleSaveAll} className="btn btn-secondary" disabled={saving || items.length === 0}>
-                <FiSave className="mr-2" />
-                {saving ? 'Saving...' : 'Save'}
-              </button>
               <button onClick={handleExport} className="btn btn-secondary">
                 <FiDownload className="mr-2" />
                 Export CSV
@@ -301,10 +297,18 @@ function EstimateQuotation() {
         </div>
         )}
 
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-xs text-gray-500">
+        <div className="mt-6 flex items-center justify-end gap-3">
+          <p className="text-xs text-gray-500 mr-auto">
             Data is synced with the server. You can add, edit, or delete any row.
           </p>
+          <button
+            onClick={handleSaveAll}
+            className="btn btn-primary"
+            disabled={saving || items.length === 0}
+          >
+            <FiSave className="mr-2" />
+            {saving ? 'Saving...' : 'Save All Changes'}
+          </button>
         </div>
       </main>
 
