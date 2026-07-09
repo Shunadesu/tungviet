@@ -4,6 +4,7 @@ import { FiPackage, FiShoppingBag, FiDollarSign, FiTrendingUp } from 'react-icon
 import { GiPlantRoots } from 'react-icons/gi';
 import Header from '../components/Header';
 import StatCard from '../components/StatCard';
+import SEO from '../components/SEO';
 import adminApi from '../api/adminApi';
 
 const Dashboard = () => {
@@ -41,7 +42,9 @@ const Dashboard = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
     >
+      <SEO title="Dashboard" description="Admin dashboard overview" url="/" />
       <Header title="Dashboard" />
 
       <div className="p-4">

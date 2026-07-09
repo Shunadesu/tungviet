@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiLogIn } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import SEO from '../components/SEO';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -38,8 +39,10 @@ const Login = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white px-2"
     >
+      <SEO title="Login" description="Sign in to your Zuna Tungviet account to access your orders and wishlist." url="/login" noindex />
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-6">

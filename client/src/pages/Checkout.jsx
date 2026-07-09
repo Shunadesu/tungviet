@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiCheckCircle } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
+import SEO from '../components/SEO';
 import clientApi from '../api/clientApi';
 import { useAuth } from '../context/AuthContext';
 
@@ -61,19 +62,19 @@ const Checkout = () => {
         animate={{ opacity: 1, scale: 1 }}
         className="min-h-screen flex items-center justify-center"
       >
-        <div className="text-center max-w-md mx-auto px-2">
-          <FiCheckCircle size={80} className="mx-auto text-green-500 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Đặt hàng thành công!</h2>
-          <p className="text-sm text-gray-600 mb-2">
-            Cảm ơn bạn đã đặt hàng. Mã đơn hàng của bạn là:
-          </p>
-          <p className="text-base font-mono text-primary mb-4">{orderId}</p>
-          <p className="text-xs text-gray-500 mb-4">
-            Chúng tôi sẽ liên hệ với bạn sớm nhất để xác nhận đơn hàng.
-          </p>
-          <button onClick={() => navigate('/products')} className="btn-primary">
-            Tiếp tục mua sắm
-          </button>
+      <div className="text-center max-w-md mx-auto px-2">
+        <FiCheckCircle size={80} className="mx-auto text-green-500 mb-4" />
+        <h2 className="text-xl font-semibold text-gray-900 mb-2">Order placed successfully!</h2>
+        <p className="text-sm text-gray-600 mb-2">
+          Thank you for your order. Your order ID is:
+        </p>
+        <p className="text-base font-mono text-primary mb-4">{orderId}</p>
+        <p className="text-xs text-gray-500 mb-4">
+          We will contact you soon to confirm your order.
+        </p>
+        <button onClick={() => navigate('/products')} className="btn-primary">
+          Continue shopping
+        </button>
         </div>
       </motion.div>
     );
@@ -88,8 +89,10 @@ const Checkout = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen pb-8"
     >
+      <SEO title="Checkout" description="Complete your order by providing shipping and payment details." url="/checkout" noindex />
       {/* Header */}
       <div className="bg-primary text-white py-4">
         <div className="max-w-7xl mx-auto px-2">

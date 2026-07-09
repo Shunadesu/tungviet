@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FiPlus, FiEdit2, FiTrash2 } from 'react-icons/fi';
 import Header from '../../components/Header';
 import Modal from '../../components/Modal';
+import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -80,7 +81,8 @@ const CategoryList = () => {
   };
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <SEO title="Categories" description="Manage product categories" url="/categories" />
       <Header title="Quản lý danh mục" />
       
       <div className="p-4">

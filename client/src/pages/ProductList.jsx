@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiFilter, FiGrid, FiList } from 'react-icons/fi';
 import ProductCard from '../components/ProductCard';
+import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 
 const ProductList = () => {
@@ -62,8 +63,15 @@ const ProductList = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen pb-8"
     >
+      <SEO
+        title={getCategoryName() || 'All Products'}
+        description={`Browse our collection of ${getCategoryName() || 'premium plants'}. Quality ornamental plants for home, office, and garden decoration.`}
+        keywords="plants, ornamental plants, garden, indoor plants, outdoor plants"
+        url={categoryId ? `/products?category=${categoryId}` : '/products'}
+      />
       {/* Header */}
       <div className="bg-primary text-white py-4">
         <div className="max-w-7xl mx-auto px-2">

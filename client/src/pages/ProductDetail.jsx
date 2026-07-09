@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiMinus, FiPlus, FiShoppingCart, FiChevronRight } from 'react-icons/fi';
 import { GiTreeBranch } from 'react-icons/gi';
+import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 import { useCart } from '../context/CartContext';
 
@@ -55,8 +56,19 @@ const ProductDetail = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen pb-8"
     >
+      {product && (
+        <SEO
+          title={product.name}
+          description={product.description || `Buy ${product.name} at Zuna Tungviet. Premium ornamental plant for home, office, or garden decoration.`}
+          keywords={`${product.name}, ${product.categoryId?.name || 'plants'}, ornamental plants, garden`}
+          image={product.images?.[0]}
+          url={`/products/${product._id}`}
+          type="product"
+        />
+      )}
       {/* Breadcrumb */}
       <div className="bg-white border-b">
         <div className="max-w-7xl mx-auto px-2 py-2">

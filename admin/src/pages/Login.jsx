@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiLogIn } from 'react-icons/fi';
+import SEO from '../components/SEO';
 import { useAuth } from '../context/AuthContext';
 
 const Login = () => {
@@ -38,8 +39,10 @@ const Login = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white px-2"
     >
+      <SEO title="Admin Login" description="Sign in to manage Zuna Tungviet platform." url="/login" />
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-6">

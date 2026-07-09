@@ -4,6 +4,7 @@ import { FiPlus, FiEdit2, FiTrash2, FiSearch } from 'react-icons/fi';
 import Header from '../components/Header';
 import Modal from '../components/Modal';
 import RichEditor from '../components/RichEditor';
+import SEO from '../components/SEO';
 import adminApi from '../api/adminApi';
 import { useNotification } from '../context/NotificationContext';
 
@@ -96,7 +97,8 @@ const ProductList = () => {
   const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+      <SEO title="Products" description="Manage products" url="/products" />
       <Header title="Quản lý sản phẩm" />
       
       <div className="p-4">

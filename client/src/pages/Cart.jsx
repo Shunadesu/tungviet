@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiTrash2, FiMinus, FiPlus, FiShoppingBag } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
+import SEO from '../components/SEO';
 
 const Cart = () => {
   const { cart, totalPrice, updateQuantity, removeFromCart } = useCart();
@@ -15,14 +16,16 @@ const Cart = () => {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
         className="min-h-screen flex items-center justify-center"
       >
+        <SEO title="Shopping Cart" description="Your shopping cart is currently empty." url="/cart" />
         <div className="text-center">
           <FiShoppingBag size={64} className="mx-auto text-gray-300 mb-4" />
-          <h2 className="text-lg font-semibold text-gray-700 mb-2">Giỏ hàng trống</h2>
-          <p className="text-sm text-gray-500 mb-4">Hãy thêm sản phẩm vào giỏ hàng</p>
+          <h2 className="text-lg font-semibold text-gray-700 mb-2">Your cart is empty</h2>
+          <p className="text-sm text-gray-500 mb-4">Add some products to your cart</p>
           <Link to="/products" className="btn-primary inline-block">
-            Tiếp tục mua sắm
+            Continue shopping
           </Link>
         </div>
       </motion.div>
@@ -33,8 +36,14 @@ const Cart = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen pb-8"
     >
+      <SEO
+        title="Shopping Cart"
+        description={`Review items in your shopping cart. ${cart.length} products ready for checkout.`}
+        url="/cart"
+      />
       {/* Header */}
       <div className="bg-primary text-white py-4">
         <div className="max-w-7xl mx-auto px-2">

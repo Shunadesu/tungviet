@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { FiPlus, FiSave, FiDownload, FiTrash2 } from 'react-icons/fi'
 import EstimateTable from '../components/EstimateTable'
 import EstimateFormModal from '../components/EstimateFormModal'
+import SEO from '../components/SEO'
 import Skeleton, { TableSkeleton, StatsSkeleton, RFPHeaderSkeleton } from '../components/Skeleton'
 
 const STORAGE_KEY = 'zuna-estimate-items'
@@ -186,6 +187,12 @@ function EstimateQuotation() {
 
   return (
     <div className="min-h-screen bg-primary-50">
+      <SEO
+        title="Project Estimate & Quote"
+        description="Professional cost and timeline estimation tool for Tung Viet website development project."
+        keywords="estimate, quote, web development, project cost, RFP, Tung Viet"
+        url="/estimate"
+      />
       <header className="border-b border-primary-100 bg-white/80 backdrop-blur">
         <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

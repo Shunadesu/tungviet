@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPackage, FiChevronRight } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import SEO from '../components/SEO';
 import clientApi from '../api/clientApi';
 
 const OrderHistory = () => {
@@ -57,9 +58,10 @@ const OrderHistory = () => {
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
+        <SEO title="Order History" description="View your order history at Zuna Tungviet." url="/orders" noindex />
         <div className="text-center">
-          <p className="text-sm text-gray-600 mb-4">Vui lòng đăng nhập để xem đơn hàng</p>
-          <Link to="/login" className="btn-primary inline-block">Đăng nhập</Link>
+          <p className="text-sm text-gray-600 mb-4">Please log in to view your orders</p>
+          <Link to="/login" className="btn-primary inline-block">Login</Link>
         </div>
       </div>
     );
@@ -69,8 +71,15 @@ const OrderHistory = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen pb-8"
     >
+      <SEO
+        title="Order History"
+        description="View and track all your orders at Zuna Tungviet."
+        url="/orders"
+        noindex
+      />
       {/* Header */}
       <div className="bg-primary text-white py-4">
         <div className="max-w-7xl mx-auto px-2">

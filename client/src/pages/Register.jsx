@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiUserPlus } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
+import SEO from '../components/SEO';
 
 const Register = () => {
   const navigate = useNavigate();
@@ -51,8 +52,10 @@ const Register = () => {
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
       className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white px-2 py-8"
     >
+      <SEO title="Create Account" description="Create your Zuna Tungviet account to start shopping for premium plants." url="/register" noindex />
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-6">

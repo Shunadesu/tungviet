@@ -4,6 +4,7 @@ import { GiTreeBranch } from 'react-icons/gi';
 import Banner from '../components/Banner';
 import ProductSwiper from '../components/ProductSwiper';
 import SectionHeader from '../components/SectionHeader';
+import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 
 const Home = () => {
@@ -42,6 +43,12 @@ const Home = () => {
       exit={{ opacity: 0 }}
       className="min-h-screen"
     >
+      <SEO
+        title="Premium Green Plants & Landscaping"
+        description="Discover premium ornamental plants and landscaping services for home, office, and garden at Zuna Tungviet."
+        keywords="plants, ornamental plants, landscaping, garden, bonsai, indoor plants, outdoor plants"
+        url="/"
+      />
       {/* Hero Banner */}
       <Banner />
 
