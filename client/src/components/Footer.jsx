@@ -22,11 +22,11 @@ const Footer = () => {
           <div>
             <div className="mb-3">
               {displayLogo ? (
-                <img src={displayLogo} alt="Zuna Tungviet" className="h-10 w-auto max-w-[180px]" />
+                <img src={displayLogo} alt=" Tungviet" className="h-10 w-auto max-w-[180px]" />
               ) : (
                 <div className="flex items-center gap-2">
                   <GiFactory size={24} />
-                  <span className="text-base font-semibold">Zuna Tungviet</span>
+                  <span className="text-base font-semibold"> Tungviet</span>
                 </div>
               )}
             </div>

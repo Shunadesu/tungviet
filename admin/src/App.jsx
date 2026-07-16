@@ -9,6 +9,7 @@ import Sidebar from './components/Sidebar';
 import Dashboard from './pages/Dashboard';
 import ProductList from './pages/products/ProductList';
 import ProductForm from './pages/products/ProductForm';
+import ProductColumnsSettings from './pages/products/ProductColumnsSettings';
 import MarketList from './pages/markets/MarketList';
 import MarketForm from './pages/markets/MarketForm';
 import MemberList from './pages/members/MemberList';
@@ -84,6 +85,11 @@ function App() {
               <Route path="/products/:id/edit" element={
                 <ProtectedRoute>
                   <ProductForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/products/columns" element={
+                <ProtectedRoute>
+                  <ProductColumnsSettings />
                 </ProtectedRoute>
               } />
               <Route path="/markets" element={

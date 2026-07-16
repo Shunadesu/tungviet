@@ -16,6 +16,7 @@ const emptyForm = {
   softeningPoint: '',
   acidValue: '',
   color: '',
+  attributes: {},
   benefits: [],
   applications: [],
   tdsUrl: '',
@@ -34,14 +35,26 @@ const ProductForm = () => {
   const [uploadingTDS, setUploadingTDS] = useState(false);
 
   const [formData, setFormData] = useState({ ...emptyForm });
+  const [columns, setColumns] = useState([]);
   const [newBenefit, setNewBenefit] = useState('');
   const [newApplication, setNewApplication] = useState('');
 
   useEffect(() => {
+    fetchColumns();
     if (isEditing) {
       fetchProduct();
     }
   }, [id]);
+
+  const fetchColumns = async () => {
+    try {
+      const res = await adminApi.getProductColumns();
+      const items = Array.isArray(res.data?.data) ? res.data.data : [];
+      setColumns(items.filter((column) => column.isActive !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));
+    } catch (error) {
+      console.error('Error loading product columns:', error);
+    }
+  };
 
   const fetchProduct = async () => {
     try {
@@ -56,6 +69,7 @@ const ProductForm = () => {
         softeningPoint: product.softeningPoint || '',
         acidValue: product.acidValue || '',
         color: product.color || '',
+        attributes: product.attributes && typeof product.attributes === 'object' ? product.attributes : {},
         benefits: product.benefits || [],
         applications: product.applications || [],
         tdsUrl: product.tdsUrl || '',
@@ -75,6 +89,7 @@ const ProductForm = () => {
     try {
       const data = {
         ...formData,
+        attributes: { ...formData.attributes },
         benefits: formData.benefits.filter((b) => b.trim()),
         applications: formData.applications.filter((a) => a.trim()),
       };
@@ -218,43 +233,60 @@ const ProductForm = () => {
             </div>
 
             {/* Thông số kỹ thuật */}
-            <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium mb-1 text-gray-700">
-                  Điểm làm mềm
-                </label>
-                <input
-                  type="text"
-                  value={formData.softeningPoint}
-                  onChange={(e) => setFormData({ ...formData, softeningPoint: e.target.value })}
-                  className="input-field"
-                  placeholder="VD: 85-95°C"
-                />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h3 className="text-xs font-semibold text-gray-700">Thông số kỹ thuật</h3>
+                  <p className="text-[10px] text-gray-400">Các trường được cấu hình tại mục Cột thuộc tính.</p>
+                </div>
+                <button type="button" onClick={() => navigate('/products/columns')} className="text-[10px] text-primary hover:underline">
+                  Quản lý cột
+                </button>
               </div>
-              <div>
-                <label className="block text-xs font-medium mb-1 text-gray-700">
-                  Chỉ số axit
-                </label>
-                <input
-                  type="text"
-                  value={formData.acidValue}
-                  onChange={(e) => setFormData({ ...formData, acidValue: e.target.value })}
-                  className="input-field"
-                  placeholder="VD: ≤ 0.1 mg/g"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1 text-gray-700">
-                  Màu sắc
-                </label>
-                <input
-                  type="text"
-                  value={formData.color}
-                  onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                  className="input-field"
-                  placeholder="VD: Vàng nhạt"
-                />
-              </div>
+              {columns.length > 0 ? (
+                <div className="grid md:grid-cols-3 gap-4">
+                  {columns.map((column) => (
+                    <div key={column._id || column.key}>
+                      <label className="block text-xs font-medium mb-1 text-gray-700">
+                        {column.name}
+                        {column.nameEn && <span className="text-[10px] text-gray-400 ml-1">({column.nameEn})</span>}
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
+                        onChange={(event) => setFormData((previous) => ({
+                          ...previous,
+                          attributes: { ...previous.attributes, [column.key]: event.target.value },
+                          ...(column.key in previous ? { [column.key]: event.target.value } : {}),
+                        }))}
+                        className="input-field"
+                        placeholder="Nhập thông số"
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-lg border border-dashed border-gray-300 px-4 py-5 text-xs text-gray-500">
+                  Chưa có cột động. Các trường cũ vẫn có thể nhập bên dưới.
+                </div>
+              )}
+              <details className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+                <summary className="cursor-pointer text-xs text-gray-600">Hiện trường thông số cũ (tương thích dữ liệu trước đây)</summary>
+                <div className="grid md:grid-cols-3 gap-4 pt-3">
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700">Điểm làm mềm</label>
+                    <input type="text" value={formData.softeningPoint} onChange={(e) => setFormData({ ...formData, softeningPoint: e.target.value })} className="input-field" placeholder="VD: 85-95°C" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700">Chỉ số axit</label>
+                    <input type="text" value={formData.acidValue} onChange={(e) => setFormData({ ...formData, acidValue: e.target.value })} className="input-field" placeholder="VD: ≤ 0.1 mg/g" />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-medium mb-1 text-gray-700">Màu sắc</label>
+                    <input type="text" value={formData.color} onChange={(e) => setFormData({ ...formData, color: e.target.value })} className="input-field" placeholder="VD: Vàng nhạt" />
+                  </div>
+                </div>
+              </details>
             </div>
 
             {/* Ảnh sản phẩm */}

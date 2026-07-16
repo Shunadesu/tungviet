@@ -9,6 +9,7 @@ import { logger, requestLogger } from './utils/logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import { apiResponse } from './utils/apiResponse.js';
 import { swaggerSpec } from './config/swagger.js';
+import { productColumnService } from './services/productColumn.service.js';
 
 import publicRoutes from './routes/public/product.routes.js';
 import publicCategoryRoutes from './routes/public/category.routes.js';
@@ -17,11 +18,13 @@ import publicMarketRoutes from './routes/public/market.routes.js';
 import publicMemberRoutes from './routes/public/member.routes.js';
 import publicLocationRoutes from './routes/public/location.routes.js';
 import publicLeadershipRoutes from './routes/public/leadership.routes.js';
+import publicProductColumnRoutes from './routes/public/productColumn.routes.js';
 import clientOrderRoutes from './routes/client/order.routes.js';
 import adminProductRoutes from './routes/admin/product.routes.js';
 import adminCategoryRoutes from './routes/admin/category.routes.js';
 import adminOrderRoutes from './routes/admin/order.routes.js';
 import adminUploadRoutes from './routes/admin/upload.routes.js';
+import adminProductColumnRoutes from './routes/admin/productColumn.routes.js';
 import adminSiteConfigRoutes from './routes/admin/siteConfig.routes.js';
 import adminMarketRoutes from './routes/admin/market.routes.js';
 import adminMemberRoutes from './routes/admin/member.routes.js';
@@ -52,6 +55,7 @@ import Market from './models/Market.js';
 import Member from './models/Member.js';
 import Location from './models/Location.js';
 import Leadership from './models/Leadership.js';
+import ProductColumn from './models/ProductColumn.js';
 
 dotenv.config();
 
@@ -79,10 +83,17 @@ connectDB()
         QuoteSubmission.syncIndexes(),
         Partner.syncIndexes(),
         Post.syncIndexes(),
+        ProductColumn.syncIndexes(),
       ]);
       logger.info('MongoDB indexes synced');
+
+      const seed = await productColumnService.seedDefaults();
+      logger.info(
+        { skipped: seed.skipped, total: seed.total },
+        'ProductColumn seed done'
+      );
     } catch (err) {
-      logger.warn({ err: err.message }, 'Index sync failed (continuing)');
+      logger.warn({ err: err.message }, 'Index sync / seed failed (continuing)');
     }
   })
   .catch((err) => {
@@ -107,6 +118,7 @@ app.use('/api/public/markets', publicMarketRoutes);
 app.use('/api/public/members', publicMemberRoutes);
 app.use('/api/public/locations', publicLocationRoutes);
 app.use('/api/public/leadership', publicLeadershipRoutes);
+app.use('/api/public/product-columns', publicProductColumnRoutes);
 app.use('/api/public/quote-section', publicQuoteSectionRoutes);
 app.use('/api/public/partners', publicPartnerRoutes);
 app.use('/api/public/posts', publicPostRoutes);
@@ -116,6 +128,7 @@ app.use('/api/admin/products', adminProductRoutes);
 app.use('/api/admin/categories', adminCategoryRoutes);
 app.use('/api/admin/orders', adminOrderRoutes);
 app.use('/api/admin/upload', adminUploadRoutes);
+app.use('/api/admin/product-columns', adminProductColumnRoutes);
 app.use('/api/admin/site-config', adminSiteConfigRoutes);
 app.use('/api/admin/markets', adminMarketRoutes);
 app.use('/api/admin/members', adminMemberRoutes);

@@ -18,6 +18,7 @@ export const publicApi = {
     return axiosClient.get('/public/products', { params: { lang: resolveLang(lang), ...rest } });
   },
   getProduct: (id, lang) => axiosClient.get(`/public/products/${id}`, { params: { lang: resolveLang(lang) } }),
+  getProductColumns: (lang) => axiosClient.get('/public/product-columns', { params: { lang: resolveLang(lang) } }),
   getCategories: (lang) => axiosClient.get('/public/categories', { params: { lang: resolveLang(lang) } }),
   getCategory: (id, lang) => axiosClient.get(`/public/categories/${id}`, { params: { lang: resolveLang(lang) } }),
   getMarkets: (params) => {

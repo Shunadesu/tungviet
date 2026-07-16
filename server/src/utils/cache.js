@@ -10,6 +10,7 @@ export const cacheKeys = {
   publicProducts: (query) => `public:products:${JSON.stringify(query || {})}`,
   publicSiteConfig: () => 'public:site-config:singleton',
   publicMarkets: (query) => `public:markets:${JSON.stringify(query || {})}`,
+  publicProductColumns: (locale = 'vi') => `public:product-columns:${locale}`,
 };
 
 export const cacheStore = {
@@ -33,8 +34,13 @@ export const TTL = {
   PUBLIC_CATEGORIES: 300,
   PUBLIC_PRODUCTS: 60,
   PUBLIC_MARKETS: 120,
+  PUBLIC_PRODUCT_COLUMNS: 300,
 };
 
 export const invalidatePublicCache = () => {
   cacheStore.delByPrefix('public:');
+};
+
+export const invalidateProductColumnsCache = () => {
+  cacheStore.delByPrefix('public:product-columns:');
 };

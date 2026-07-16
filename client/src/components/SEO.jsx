@@ -18,7 +18,7 @@ const SEO = ({
   const { lang: urlLang } = useParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
 
-  const siteName = 'Zuna Tungviet';
+  const siteName = ' Tungviet';
   const defaultTitle = t('seo.defaultTitle');
   const defaultDescription = t('seo.defaultDescription');
   const siteUrl = import.meta.env.VITE_SITE_URL || 'https://tungviet.fun';

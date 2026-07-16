@@ -94,6 +94,7 @@
     "breadcrumbHome": "Home",
     "breadcrumbProducts": "Products",
     "specifications": "Specifications",
+    "noAttributes": "No specifications available",
     "softeningPoint": "Softening Point",
     "acidValue": "Acid Value",
     "color": "Color",
@@ -176,11 +177,11 @@
     }
   },
   "seo": {
-    "defaultTitle": "Zuna Tungviet - Industrial Rosin & Resin",
+    "defaultTitle": " Tungviet - Industrial Rosin & Resin",
     "defaultDescription": "Supplier of premium rosin, resin and industrial raw materials for construction, road, packaging industries.",
-    "defaultKeywords": "rosin, resin, hot melt, industrial, construction, road, packaging, Zuna Tungviet",
+    "defaultKeywords": "rosin, resin, hot melt, industrial, construction, road, packaging,  Tungviet",
     "home": {
-      "title": "Industrial Rosin & Resin | Zuna Tungviet",
+      "title": "Industrial Rosin & Resin |  Tungviet",
       "description": "Premium rosin, resin and industrial raw materials for construction, road, packaging industries.",
       "keywords": "rosin, resin, hot melt, industrial, construction, road, packaging"
     }
@@ -222,7 +223,7 @@
   },
   "about": {
     "title": "About us",
-    "companyIntro": "Zuna Tungviet is a leading supplier of rosin, resin and industrial raw materials.",
+    "companyIntro": " Tungviet is a leading supplier of rosin, resin and industrial raw materials.",
     "mission": "Our mission",
     "missionText": "Delivering high-quality rosin products that meet the strictest technical standards of industrial customers.",
     "values": "Core values",
@@ -237,7 +238,7 @@
     "founded": "Founded",
     "foundedYear": "Est. {{year}}",
     "fastFacts": "Fast Facts",
-    "fastFactsTitle": "Zuna Tungviet at a glance",
+    "fastFactsTitle": " Tungviet at a glance",
     "coreValues": "Core Values",
     "valuesIntro": "The principles that guide everything we do",
     "historyMilestone": "Our journey",
@@ -247,7 +248,7 @@
   "boardOfDirectors": {
     "title": "Ban lanh dao",
     "titleEn": "Board of Directors",
-    "description": "Doi ngu lanh dao Zuna Tungviet",
+    "description": "Doi ngu lanh dao  Tungviet",
     "readBio": "Xem tieu su",
     "noMembers": "Chua co thong tin ban lanh dao.",
     "heroTitle": "Board of Directors",
@@ -264,7 +265,7 @@
   "leadership": {
     "title": "Leadership",
     "titleEn": "Leadership",
-    "description": "Senior leadership team of Zuna Tungviet",
+    "description": "Senior leadership team of  Tungviet",
     "noMembers": "No leadership information available.",
     "readBio": "Read bio"
   },

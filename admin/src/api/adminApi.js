@@ -57,6 +57,15 @@ export const adminApi = {
   },
   getProductsForSelect: () => axiosClient.get('/admin/products/select'),
 
+  // Product columns
+  getProductColumns: () => axiosClient.get('/admin/product-columns'),
+  getProductColumn: (id) => axiosClient.get(`/admin/product-columns/${id}`),
+  createProductColumn: (data) => axiosClient.post('/admin/product-columns', data),
+  updateProductColumn: (id, data) => axiosClient.put(`/admin/product-columns/${id}`, data),
+  deleteProductColumn: (id) => axiosClient.delete(`/admin/product-columns/${id}`),
+  restoreProductColumn: (id) => axiosClient.post(`/admin/product-columns/${id}/restore`),
+  reorderProductColumns: (order) => axiosClient.post('/admin/product-columns/reorder', { order }),
+
   // Categories
   getCategories: () => axiosClient.get('/admin/categories'),
   getCategory: (id) => axiosClient.get(`/admin/categories/${id}`),

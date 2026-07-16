@@ -4,7 +4,7 @@ const SeoMeta = ({ seo, faviconUrl }) => {
   useEffect(() => {
     if (!seo) return;
 
-    const title = seo.defaultTitle || 'Zuna Tungviet';
+    const title = seo.defaultTitle || ' Tungviet';
     document.title = title;
 
     const setMeta = (name, content, isProperty = false) => {

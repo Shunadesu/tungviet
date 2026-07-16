@@ -9,8 +9,8 @@ const SEO = ({
   type = 'website',
   noindex = false,
 }) => {
-  const siteName = 'Zuna Estimate';
-  const defaultTitle = 'Project Estimate & Quote - Tung Viet Website RFP | Zuna';
+  const siteName = ' Estimate';
+  const defaultTitle = 'Project Estimate & Quote - Tung Viet Website RFP | ';
   const defaultDescription =
     'Professional cost and timeline estimation tool for Tung Viet website development project.';
   const siteUrl = 'https://tungviet.fun';

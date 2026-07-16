@@ -7,9 +7,9 @@ const buildDefaults = () => ({
   footer: {
     about: '',
     phone: '0123 456 789',
-    email: 'contact@zuna.vn',
+    email: 'contact@.vn',
     address: 'KCN Tân Bình, TP.HCM',
-    copyright: '© 2024 Zuna Tungviet. All rights reserved.',
+    copyright: '© 2024  Tungviet. All rights reserved.',
     logoUrl: '',
     mapEmbed: '',
   },

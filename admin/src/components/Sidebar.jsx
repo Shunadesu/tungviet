@@ -24,13 +24,15 @@ const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [productsOpen, setProductsOpen] = useState(
+    location.pathname.startsWith('/products')
+  );
   const [settingsOpen, setSettingsOpen] = useState(
     location.pathname.startsWith('/settings/appearance')
   );
 
   const navItems = [
     { path: '/', icon: <FiHome size={18} />, label: 'Dashboard' },
-    { path: '/products', icon: <FiPackage size={18} />, label: 'Sản phẩm' },
     { path: '/markets', icon: <FiGlobe size={18} />, label: 'Thị trường' },
     { path: '/members', icon: <FiUsers size={18} />, label: 'Ban lãnh đạo' },
     { path: '/locations', icon: <FiMapPin size={18} />, label: 'Địa điểm' },
@@ -89,6 +91,78 @@ const Sidebar = () => {
 
       {/* Nav */}
       <nav className="p-2 space-y-1">
+        {/* Products dropdown */}
+        {!collapsed && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setProductsOpen((value) => !value)}
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors ${
+                isActive('/products')
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-primary-50 hover:text-primary'
+              }`}
+            >
+              <FiPackage size={18} />
+              <span className="flex-1 text-left">Sản phẩm</span>
+              <motion.span
+                animate={{ rotate: productsOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <FiChevronDown size={14} />
+              </motion.span>
+            </button>
+            <AnimatePresence initial={false}>
+              {productsOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-gray-200 pl-2">
+                    <Link
+                      to="/products"
+                      className={`block px-2 py-1.5 rounded-md text-xs transition-colors ${
+                        location.pathname === '/products'
+                          ? 'bg-primary-50 text-primary font-medium'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-primary'
+                      }`}
+                    >
+                      Danh sách sản phẩm
+                    </Link>
+                    <Link
+                      to="/products/columns"
+                      className={`block px-2 py-1.5 rounded-md text-xs transition-colors ${
+                        location.pathname === '/products/columns'
+                          ? 'bg-primary-50 text-primary font-medium'
+                          : 'text-gray-600 hover:bg-gray-50 hover:text-primary'
+                      }`}
+                    >
+                      Cột thuộc tính
+                    </Link>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {collapsed && (
+          <Link
+            to="/products"
+            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors ${
+              isActive('/products')
+                ? 'bg-primary text-white'
+                : 'text-gray-600 hover:bg-primary-50 hover:text-primary'
+            }`}
+            title="Sản phẩm"
+          >
+            <FiPackage size={18} />
+          </Link>
+        )}
+
         {navItems.map((item) => (
           <Link
             key={item.path}

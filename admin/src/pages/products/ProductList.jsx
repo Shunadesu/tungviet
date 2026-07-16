@@ -7,8 +7,15 @@ import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
+const LEGACY_COLUMNS = [
+  { key: 'softeningPoint', name: 'Điểm làm mềm', nameEn: 'Softening Point', order: 1 },
+  { key: 'acidValue', name: 'Chỉ số axit', nameEn: 'Acid Value', order: 2 },
+  { key: 'color', name: 'Màu sắc', nameEn: 'Color', order: 3 },
+];
+
 const ProductList = () => {
   const [products, setProducts] = useState([]);
+  const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selected, setSelected] = useState([]);
   const [deleting, setDeleting] = useState(false);
@@ -17,12 +24,29 @@ const ProductList = () => {
 
   useEffect(() => {
     fetchProducts();
+    fetchColumns();
   }, []);
+
+  const fetchColumns = async () => {
+    try {
+      const res = await adminApi.getProductColumns();
+      const items = Array.isArray(res.data?.data) ? res.data.data : [];
+      setColumns(
+        items.length > 0
+          ? items.filter((column) => column.isActive !== false).sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          : []
+      );
+    } catch (error) {
+      console.error('Error loading product columns:', error);
+      setColumns(LEGACY_COLUMNS);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
       const res = await adminApi.getProducts();
-      setProducts(res.data.data);
+      const data = res.data?.data;
+      setProducts(Array.isArray(data) ? data : data?.items || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -138,8 +162,9 @@ const ProductList = () => {
                     </th>
                     <th className="px-2 py-2 text-left text-xs">Ảnh</th>
                     <th className="px-2 py-2 text-left text-xs">Tên</th>
-                    <th className="px-2 py-2 text-left text-xs">Điểm làm mềm</th>
-                    <th className="px-2 py-2 text-left text-xs">Màu sắc</th>
+                    {columns.map((column) => (
+                      <th key={column._id || column.key} className="px-2 py-2 text-left text-xs whitespace-nowrap">{column.name}</th>
+                    ))}
                     <th className="px-2 py-2 text-left text-xs">Lợi ích</th>
                     <th className="px-2 py-2 text-left text-xs">TDS</th>
                     <th className="px-2 py-2 text-right text-xs">Thao tác</th>
@@ -172,8 +197,14 @@ const ProductList = () => {
                           <div className="text-[10px] text-gray-400">{product.nameEn}</div>
                         )}
                       </td>
-                      <td className="px-2 py-2 text-xs">{product.softeningPoint || '—'}</td>
-                      <td className="px-2 py-2 text-xs">{product.color || '—'}</td>
+                      {columns.map((column) => {
+                        const value = product.attributes?.[column.key] ?? product[column.key];
+                        return (
+                          <td key={column._id || column.key} className="px-2 py-2 text-xs whitespace-nowrap">
+                            {value || '—'}
+                          </td>
+                        );
+                      })}
                       <td className="px-2 py-2">
                         <div className="flex flex-wrap gap-1 max-w-[150px]">
                           {product.benefits && product.benefits.length > 0 ? (

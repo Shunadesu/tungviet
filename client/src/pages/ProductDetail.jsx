@@ -10,12 +10,19 @@ import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { sanitizeHtml } from '../utils/sanitize';
 
+const LEGACY_COLUMNS = [
+  { key: 'softeningPoint', name: 'Điểm làm mềm', nameEn: 'Softening Point', order: 1 },
+  { key: 'acidValue', name: 'Chỉ số axit', nameEn: 'Acid Value', order: 2 },
+  { key: 'color', name: 'Màu sắc', nameEn: 'Color', order: 3 },
+];
+
 const ProductDetail = () => {
   const { t, i18n } = useTranslation();
   const { id } = useParams();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
 
   const [product, setProduct] = useState(null);
+  const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [added, setAdded] = useState(false);
@@ -31,16 +38,35 @@ const ProductDetail = () => {
     setLoading(true);
     setNotFound(false);
     try {
-      const res = await publicApi.getProduct(id, lang);
-      const data = res.data?.data;
+      const [productResult, columnsResult] = await Promise.allSettled([
+        publicApi.getProduct(id, lang),
+        publicApi.getProductColumns(lang),
+      ]);
+
+      if (productResult.status === 'rejected') {
+        const error = productResult.reason;
+        console.error('Error loading product:', error);
+        if (error.response?.status === 404) setNotFound(true);
+        return;
+      }
+
+      const data = productResult.value.data?.data;
       if (!data) {
         setNotFound(true);
       } else {
         setProduct(data);
       }
-    } catch (error) {
-      console.error('Error:', error);
-      if (error.response?.status === 404) setNotFound(true);
+
+      if (columnsResult.status === 'fulfilled') {
+        setColumns(
+          Array.isArray(columnsResult.value.data?.data)
+            ? columnsResult.value.data.data
+            : LEGACY_COLUMNS
+        );
+      } else {
+        console.warn('Product columns could not be loaded; rendering product without dynamic specifications.');
+        setColumns(LEGACY_COLUMNS);
+      }
     } finally {
       setLoading(false);
     }
@@ -73,6 +99,14 @@ const ProductDetail = () => {
   }
 
   const safeDescription = product.description ? sanitizeHtml(product.description) : '';
+  const dynamicAttributes = columns
+    .filter((column) => column.isActive !== false)
+    .map((column) => {
+      const value = product.attributes?.[column.key]
+        ?? product[column.key];
+      return { column, value: value === null || value === undefined ? '' : String(value).trim() };
+    })
+    .filter(({ value }) => value);
 
   return (
     <motion.div
@@ -83,8 +117,8 @@ const ProductDetail = () => {
     >
       <SEO
         title={product.name}
-        description={(product.description || `${product.name} - Zuna Tungviet`).replace(/<[^>]*>/g, '').slice(0, 200)}
-        keywords={`${product.name}, rosin, resin, industrial, Zuna Tungviet`}
+        description={(product.description || `${product.name} -  Tungviet`).replace(/<[^>]*>/g, '').slice(0, 200)}
+        keywords={`${product.name}, rosin, resin, industrial,  Tungviet`}
         url={`/${lang}/products/${product._id}`}
         type="product"
       />
@@ -131,30 +165,20 @@ const ProductDetail = () => {
               <h1 className="text-2xl font-semibold text-gray-900 mb-1">{product.name}</h1>
 
               {/* Specifications */}
-              {(product.softeningPoint || product.acidValue || product.color) && (
+              {dynamicAttributes.length > 0 && (
                 <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                   <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
                     {t('product.specifications')}
                   </h3>
-                  <div className="grid grid-cols-3 gap-2">
-                    {product.softeningPoint && (
-                      <div>
-                        <p className="text-[10px] text-gray-400">{t('product.softeningPoint')}</p>
-                        <p className="text-sm font-medium">{product.softeningPoint}</p>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {dynamicAttributes.map(({ column, value }) => (
+                      <div key={column._id || column.key}>
+                        <p className="text-[10px] text-gray-400">
+                          {lang === 'en' ? (column.nameEn || column.name) : column.name}
+                        </p>
+                        <p className="text-sm font-medium">{value}</p>
                       </div>
-                    )}
-                    {product.acidValue && (
-                      <div>
-                        <p className="text-[10px] text-gray-400">{t('product.acidValue')}</p>
-                        <p className="text-sm font-medium">{product.acidValue}</p>
-                      </div>
-                    )}
-                    {product.color && (
-                      <div>
-                        <p className="text-[10px] text-gray-400">{t('product.color')}</p>
-                        <p className="text-sm font-medium">{product.color}</p>
-                      </div>
-                    )}
+                    ))}
                   </div>
                 </div>
               )}

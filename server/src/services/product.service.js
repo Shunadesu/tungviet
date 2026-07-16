@@ -72,8 +72,14 @@ export const productService = {
       benefits = [],
       applications = [],
       tdsUrl = '',
+      attributes = {},
       isActive = true
     } = payload;
+
+    const sanitizedAttributes =
+      attributes && typeof attributes === 'object' && !Array.isArray(attributes)
+        ? attributes
+        : {};
 
     const product = new Product({
       name,
@@ -87,6 +93,7 @@ export const productService = {
       benefits,
       applications,
       tdsUrl,
+      attributes: sanitizedAttributes,
       isActive
     });
     await product.save();
@@ -97,12 +104,18 @@ export const productService = {
   async update(id, payload) {
     const allowedFields = [
       'name', 'nameEn', 'description', 'descriptionEn', 'imageUrl',
-      'softeningPoint', 'acidValue', 'color', 'benefits', 'applications', 'tdsUrl', 'isActive'
+      'softeningPoint', 'acidValue', 'color', 'benefits', 'applications', 'tdsUrl', 'attributes', 'isActive'
     ];
     const updateData = {};
     allowedFields.forEach(field => {
       if (payload[field] !== undefined) {
-        updateData[field] = payload[field];
+        if (field === 'attributes') {
+          if (payload.attributes && typeof payload.attributes === 'object' && !Array.isArray(payload.attributes)) {
+            updateData.attributes = payload.attributes;
+          }
+        } else {
+          updateData[field] = payload[field];
+        }
       }
     });
 

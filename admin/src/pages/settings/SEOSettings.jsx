@@ -166,7 +166,7 @@ export default function SEOSettings() {
                 value={seo.defaultTitle}
                 onChange={(e) => set('defaultTitle', e.target.value)}
                 className="input-field"
-                placeholder="Zuna Tungviet"
+                placeholder=" Tungviet"
                 maxLength={200}
               />
               <p className="text-xs text-gray-400 mt-1 text-right">{seo.defaultTitle.length}/200</p>

@@ -94,6 +94,7 @@
     "breadcrumbHome": "Trang chủ",
     "breadcrumbProducts": "Sản phẩm",
     "specifications": "Thông số kỹ thuật",
+    "noAttributes": "Chưa có thông số kỹ thuật",
     "softeningPoint": "Điểm làm mềm",
     "acidValue": "Chỉ số axit",
     "color": "Màu sắc",
@@ -247,7 +248,7 @@
   "boardOfDirectors": {
     "title": "Ban lanh dao",
     "titleEn": "Board of Directors",
-    "description": "Doi ngu lanh dao Zuna Tungviet",
+    "description": "Doi ngu lanh dao  Tungviet",
     "readBio": "Xem tieu su",
     "noMembers": "Chua co thong tin ban lanh dao.",
     "heroTitle": "Ban lanh dao",
@@ -264,7 +265,7 @@
   "leadership": {
     "title": "Leadership",
     "titleEn": "Leadership",
-    "description": "Doi ngu lanh dao cap cao Zuna Tungviet",
+    "description": "Doi ngu lanh dao cap cao  Tungviet",
     "noMembers": "Chua co thong tin leadership.",
     "readBio": "Xem tieu su"
   },

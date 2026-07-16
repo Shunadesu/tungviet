@@ -48,6 +48,10 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  attributes: {
+    type: mongoose.Schema.Types.Mixed,
+    default: {}
+  },
   isActive: {
     type: Boolean,
     default: true
