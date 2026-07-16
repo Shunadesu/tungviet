@@ -42,9 +42,19 @@ const FooterSettings = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const cleanForm = {
+      about: typeof form.about === 'string' ? form.about : '',
+      phone: typeof form.phone === 'string' ? form.phone : '',
+      email: typeof form.email === 'string' ? form.email : '',
+      address: typeof form.address === 'string' ? form.address : '',
+      copyright: typeof form.copyright === 'string' ? form.copyright : '',
+      logoUrl: typeof form.logoUrl === 'string' ? form.logoUrl : '',
+      mapEmbed: typeof form.mapEmbed === 'string' ? form.mapEmbed : '',
+    };
     setSaving(true);
     try {
-      await adminApi.updateFooter(form);
+      await adminApi.updateFooter(cleanForm);
+      setForm(cleanForm);
       addNotification('Cập nhật footer thành công');
     } catch (err) {
       addNotification(err.response?.data?.message || 'Cập nhật thất bại', 'error');
@@ -116,10 +126,10 @@ const FooterSettings = () => {
               <label className="block text-xs font-medium mb-1">Mô tả công ty</label>
               <textarea
                 rows={3}
-                value={form.about || ''}
+                value={typeof form.about === 'string' ? form.about : ''}
                 onChange={(e) => setForm({ ...form, about: e.target.value })}
                 className="input-field"
-                maxLength={500}
+                maxLength={1000}
               />
             </div>
 
@@ -153,7 +163,7 @@ const FooterSettings = () => {
                 value={form.address || ''}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 className="input-field"
-                maxLength={300}
+                maxLength={500}
               />
             </div>
 
@@ -238,7 +248,7 @@ const FooterSettings = () => {
                 onChange={(e) => setForm({ ...form, mapEmbed: e.target.value })}
                 className="input-field"
                 placeholder="https://www.google.com/maps/embed?pb=..."
-                maxLength={500}
+                maxLength={2000}
               />
               <p className="text-[10px] text-gray-400 mt-0.5">Dán link embed từ Google Maps (Share → Embed a map)</p>
             </div>

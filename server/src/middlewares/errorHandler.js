@@ -12,6 +12,14 @@ export const errorHandler = (err, req, res, next) => {
     });
   }
 
+  if (err && (err.type === 'entity.too.large' || err.status === 413)) {
+    return res.status(413).json({
+      success: false,
+      message: 'Payload quá lớn (tối đa 5MB)',
+      code: 'PAYLOAD_TOO_LARGE',
+    });
+  }
+
   if (err instanceof mongoose.Error.ValidationError) {
     const messages = Object.values(err.errors).map((e) => e.message).join(', ');
     return res.status(400).json({

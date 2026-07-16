@@ -5,6 +5,7 @@ import { apiResponse } from '../utils/apiResponse.js';
 import { AppError } from '../utils/AppError.js';
 import { resolveLocale } from '../utils/i18n.js';
 import { toAbsoluteUploadUrls } from '../utils/imageUrl.js';
+import { logger } from '../utils/logger.js';
 
 const requireString = (value, field) => {
   if (typeof value !== 'string') {
@@ -94,21 +95,25 @@ export const clearLogo = async (req, res, next) => {
 };
 
 const sanitizeFooter = (body = {}) => ({
-  about: typeof body.about === 'string' ? body.about.slice(0, 500) : '',
+  about: typeof body.about === 'string' ? body.about.slice(0, 1000) : '',
   phone: typeof body.phone === 'string' ? body.phone.slice(0, 50) : '',
   email: typeof body.email === 'string' ? body.email.slice(0, 120) : '',
-  address: typeof body.address === 'string' ? body.address.slice(0, 300) : '',
+  address: typeof body.address === 'string' ? body.address.slice(0, 500) : '',
   copyright: typeof body.copyright === 'string' ? body.copyright.slice(0, 200) : '',
   logoUrl: typeof body.logoUrl === 'string' ? body.logoUrl.slice(0, 500) : '',
-  mapEmbed: typeof body.mapEmbed === 'string' ? body.mapEmbed.slice(0, 500) : '',
+  mapEmbed: typeof body.mapEmbed === 'string' ? body.mapEmbed.slice(0, 2000) : '',
 });
 
 export const updateFooter = async (req, res, next) => {
   try {
     const footer = sanitizeFooter(req.body);
     const config = await siteConfigService.updateFooter(footer);
-    return apiResponse.ok(res, toAbsoluteUploadUrls(config.footer), 'Cập nhật footer thành công');
+    const result = config.footer
+      ? toAbsoluteUploadUrls(config.footer.toObject ? config.footer.toObject() : config.footer)
+      : footer;
+    return apiResponse.ok(res, result, 'Cập nhật footer thành công');
   } catch (err) {
+    logger.error({ err: err.message, stack: err.stack, url: req.originalUrl, body: req.body }, 'updateFooter error');
     next(err);
   }
 };
