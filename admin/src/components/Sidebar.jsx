@@ -1,12 +1,20 @@
 import { Link, useLocation } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { 
-  FiHome, 
-  FiPackage, 
-  FiGrid, 
-  FiShoppingBag, 
+import { motion, AnimatePresence } from 'framer-motion';
+import {
+  FiHome,
+  FiPackage,
+  FiGrid,
+  FiShoppingBag,
+  FiGlobe,
+  FiSettings,
   FiLogOut,
-  FiMenu
+  FiMenu,
+  FiChevronDown,
+  FiUsers,
+  FiMapPin,
+  FiAward,
+  FiMessageSquare,
+  FiFileText,
 } from 'react-icons/fi';
 import { GiPlantRoots } from 'react-icons/gi';
 import { useState } from 'react';
@@ -16,14 +24,34 @@ const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(
+    location.pathname.startsWith('/settings/appearance')
+  );
 
   const navItems = [
     { path: '/', icon: <FiHome size={18} />, label: 'Dashboard' },
     { path: '/products', icon: <FiPackage size={18} />, label: 'Sản phẩm' },
+    { path: '/markets', icon: <FiGlobe size={18} />, label: 'Thị trường' },
+    { path: '/members', icon: <FiUsers size={18} />, label: 'Ban lãnh đạo' },
+    { path: '/locations', icon: <FiMapPin size={18} />, label: 'Địa điểm' },
+    { path: '/leadership', icon: <FiAward size={18} />, label: 'Leadership' },
+    { path: '/quote-section', icon: <FiMessageSquare size={18} />, label: 'Bao gia' },
+    { path: '/partners', icon: <FiUsers size={18} />, label: 'Doi tac / Khach hang' },
+    { path: '/posts', icon: <FiFileText size={18} />, label: 'Bai viet' },
     { path: '/categories', icon: <FiGrid size={18} />, label: 'Danh mục' },
     { path: '/orders', icon: <FiShoppingBag size={18} />, label: 'Đơn hàng' },
   ];
 
+  const settingsChildren = [
+    { path: '/settings/appearance', label: 'Tổng quan' },
+    { path: '/settings/appearance/logo', label: 'Logo' },
+    { path: '/settings/appearance/hero', label: 'Hero slider (Trang chủ)' },
+    { path: '/settings/appearance/about', label: 'Giới thiệu' },
+    { path: '/settings/appearance/footer', label: 'Liên hệ & Footer' },
+    { path: '/settings/appearance/floating-contacts', label: 'Thanh liên hệ' },
+  ];
+
+  const isSettingsActive = location.pathname.startsWith('/settings/appearance');
   const isActive = (path) => {
     if (path === '/') return location.pathname === '/';
     return location.pathname.startsWith(path);
@@ -75,18 +103,74 @@ const Sidebar = () => {
             {!collapsed && <span>{item.label}</span>}
           </Link>
         ))}
-      </nav>
 
-      {/* Logout */}
-      <div className="absolute bottom-0 left-0 right-0 p-2 border-t">
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 w-full px-2 py-2 rounded-lg text-sm text-red-500 hover:bg-red-50 transition-colors"
-        >
-          <FiLogOut size={18} />
-          {!collapsed && <span>Đăng xuất</span>}
-        </button>
-      </div>
+        {/* Settings dropdown */}
+        {!collapsed && (
+          <div>
+            <button
+              type="button"
+              onClick={() => setSettingsOpen((v) => !v)}
+              className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors ${
+                isSettingsActive
+                  ? 'bg-primary text-white'
+                  : 'text-gray-600 hover:bg-primary-50 hover:text-primary'
+              }`}
+            >
+              <FiSettings size={18} />
+              <span className="flex-1 text-left">Cài đặt giao diện</span>
+              <motion.span
+                animate={{ rotate: settingsOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <FiChevronDown size={14} />
+              </motion.span>
+            </button>
+
+            <AnimatePresence initial={false}>
+              {settingsOpen && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: 'auto', opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <div className="ml-4 mt-1 space-y-0.5 border-l border-gray-200 pl-2">
+                    {settingsChildren.map((child) => (
+                      <Link
+                        key={child.path}
+                        to={child.path}
+                        className={`block px-2 py-1.5 rounded-md text-xs transition-colors ${
+                          location.pathname === child.path
+                            ? 'bg-primary-50 text-primary font-medium'
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-primary'
+                        }`}
+                      >
+                        {child.label}
+                      </Link>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
+
+        {/* Collapsed: still allow click on Settings icon to go to overview */}
+        {collapsed && (
+          <Link
+            to="/settings/appearance"
+            className={`flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors ${
+              isSettingsActive
+                ? 'bg-primary text-white'
+                : 'text-gray-600 hover:bg-primary-50 hover:text-primary'
+            }`}
+            title="Cài đặt giao diện"
+          >
+            <FiSettings size={18} />
+          </Link>
+        )}
+      </nav>
     </motion.aside>
   );
 };

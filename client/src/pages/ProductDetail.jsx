@@ -1,45 +1,56 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiMinus, FiPlus, FiShoppingCart, FiChevronRight } from 'react-icons/fi';
-import { GiTreeBranch } from 'react-icons/gi';
+import { FiChevronRight, FiFile, FiDownload, FiFileText, FiCheck } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import placeholderProduct from '../assets/placeholder-product.svg';
+import { useQuoteBag } from '../context/QuoteBagContext';
 import publicApi from '../api/publicApi';
-import { useCart } from '../context/CartContext';
+import { SUPPORTED_LOCALES } from '../i18n';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const ProductDetail = () => {
+  const { t, i18n } = useTranslation();
   const { id } = useParams();
-  const navigate = useNavigate();
-  const { addToCart } = useCart();
+  const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
+
   const [product, setProduct] = useState(null);
-  const [quantity, setQuantity] = useState(1);
   const [loading, setLoading] = useState(true);
+  const [notFound, setNotFound] = useState(false);
+  const [added, setAdded] = useState(false);
+
+  const { addToQuoteBag } = useQuoteBag();
 
   useEffect(() => {
     fetchProduct();
-  }, [id]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, lang]);
 
   const fetchProduct = async () => {
+    setLoading(true);
+    setNotFound(false);
     try {
-      const res = await publicApi.getProduct(id);
-      setProduct(res.data.data);
+      const res = await publicApi.getProduct(id, lang);
+      const data = res.data?.data;
+      if (!data) {
+        setNotFound(true);
+      } else {
+        setProduct(data);
+      }
     } catch (error) {
       console.error('Error:', error);
-      navigate('/products');
+      if (error.response?.status === 404) setNotFound(true);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleAddToCart = () => {
-    if (product && product.stock > 0) {
-      addToCart(product, quantity);
-      navigate('/cart');
-    }
-  };
-
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+  const handleAddToQuote = () => {
+    if (!product) return;
+    addToQuoteBag(product);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2200);
   };
 
   if (loading) {
@@ -50,7 +61,18 @@ const ProductDetail = () => {
     );
   }
 
-  if (!product) return null;
+  if (notFound || !product) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
+        <h1 className="text-xl font-semibold text-gray-800 mb-2">{t('product.notFound')}</h1>
+        <Link to={`/${lang}/products`} className="btn-primary text-sm">
+          {t('quote.browseProducts')}
+        </Link>
+      </div>
+    );
+  }
+
+  const safeDescription = product.description ? sanitizeHtml(product.description) : '';
 
   return (
     <motion.div
@@ -59,109 +81,165 @@ const ProductDetail = () => {
       exit={{ opacity: 0 }}
       className="min-h-screen pb-8"
     >
-      {product && (
-        <SEO
-          title={product.name}
-          description={product.description || `Buy ${product.name} at Zuna Tungviet. Premium ornamental plant for home, office, or garden decoration.`}
-          keywords={`${product.name}, ${product.categoryId?.name || 'plants'}, ornamental plants, garden`}
-          image={product.images?.[0]}
-          url={`/products/${product._id}`}
-          type="product"
-        />
-      )}
+      <SEO
+        title={product.name}
+        description={(product.description || `${product.name} - Zuna Tungviet`).replace(/<[^>]*>/g, '').slice(0, 200)}
+        keywords={`${product.name}, rosin, resin, industrial, Zuna Tungviet`}
+        url={`/${lang}/products/${product._id}`}
+        type="product"
+      />
+
       {/* Breadcrumb */}
-      <div className="bg-white border-b">
+      <div className="bg-gray-50 border-b">
         <div className="max-w-7xl mx-auto px-2 py-2">
           <div className="flex items-center gap-1 text-xs text-gray-500">
-            <a href="/" className="hover:text-primary">Trang chủ</a>
+            <Link to={`/${lang}`} className="hover:text-primary">{t('product.breadcrumbHome')}</Link>
             <FiChevronRight size={12} />
-            <a href="/products" className="hover:text-primary">Sản phẩm</a>
+            <Link to={`/${lang}/products`} className="hover:text-primary">{t('product.breadcrumbProducts')}</Link>
             <FiChevronRight size={12} />
-            <span className="text-primary">{product.name}</span>
+            <span className="text-primary truncate max-w-[200px]">{product.name}</span>
           </div>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-2 py-4">
-        <div className="bg-white rounded-lg overflow-hidden">
-          <div className="grid md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+          <div className="grid md:grid-cols-2 gap-6">
             {/* Image */}
             <div className="relative">
               <img
-                src={product.imageUrl || 'https://via.placeholder.com/500'}
+                src={product.imageUrl || placeholderProduct}
                 alt={product.name}
-                className="w-full h-64 md:h-96 object-cover"
+                className="w-full h-64 md:h-80 lg:h-96 object-cover bg-gray-100"
+                onError={(e) => { e.currentTarget.src = placeholderProduct; }}
               />
-              {product.stock === 0 && (
-                <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-                  <span className="text-white text-lg font-medium">Hết hàng</span>
-                </div>
+              {product.tdsUrl && (
+                <a
+                  href={product.tdsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-accent text-white text-xs px-3 py-1.5 rounded-lg hover:bg-accent-dark transition-colors"
+                >
+                  <FiDownload size={14} />
+                  {t('product.downloadTds')}
+                </a>
               )}
             </div>
 
             {/* Info */}
-            <div className="p-4">
-              <div className="flex items-center gap-1 text-xs text-primary mb-2">
-                <GiTreeBranch size={14} />
-                <span>{product.categoryId?.name || 'Danh mục'}</span>
-              </div>
+            <div className="p-4 md:p-6">
+              <h1 className="text-2xl font-semibold text-gray-900 mb-1">{product.name}</h1>
 
-              <h1 className="text-xl font-semibold text-gray-900 mb-2">{product.name}</h1>
-              
-              <p className="text-2xl font-bold text-primary mb-3">
-                {formatPrice(product.price)}
-              </p>
+              {/* Specifications */}
+              {(product.softeningPoint || product.acidValue || product.color) && (
+                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    {t('product.specifications')}
+                  </h3>
+                  <div className="grid grid-cols-3 gap-2">
+                    {product.softeningPoint && (
+                      <div>
+                        <p className="text-[10px] text-gray-400">{t('product.softeningPoint')}</p>
+                        <p className="text-sm font-medium">{product.softeningPoint}</p>
+                      </div>
+                    )}
+                    {product.acidValue && (
+                      <div>
+                        <p className="text-[10px] text-gray-400">{t('product.acidValue')}</p>
+                        <p className="text-sm font-medium">{product.acidValue}</p>
+                      </div>
+                    )}
+                    {product.color && (
+                      <div>
+                        <p className="text-[10px] text-gray-400">{t('product.color')}</p>
+                        <p className="text-sm font-medium">{product.color}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
-              <div className="flex items-center gap-2 mb-3">
-                <span className="text-xs text-gray-500">Kho:</span>
-                <span className={`text-xs font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                  {product.stock > 0 ? `${product.stock} sản phẩm` : 'Hết hàng'}
-                </span>
-              </div>
+              {/* Benefits */}
+              {product.benefits && product.benefits.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    {t('product.benefits')}
+                  </h3>
+                  <ul className="space-y-1">
+                    {product.benefits.map((benefit, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm">
+                        <FiCheck size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Applications */}
+              {product.applications && product.applications.length > 0 && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    {t('product.applications')}
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.applications.map((app, i) => (
+                      <span
+                        key={i}
+                        className="text-xs px-2.5 py-1 bg-primary-50 text-primary rounded-full"
+                      >
+                        {app}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Description */}
-              <div className="mb-4">
-                <h3 className="text-xs font-semibold text-gray-700 mb-1">Mô tả</h3>
-                <p className="text-xs text-gray-600 leading-relaxed">
-                  {product.description || 'Không có mô tả'}
-                </p>
-              </div>
-
-              {/* Quantity */}
-              <div className="mb-4">
-                <h3 className="text-xs font-semibold text-gray-700 mb-1">Số lượng</h3>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                    className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50"
-                  >
-                    <FiMinus size={14} />
-                  </button>
-                  <input
-                    type="number"
-                    value={quantity}
-                    onChange={(e) => setQuantity(Math.max(1, Math.min(product.stock, parseInt(e.target.value) || 1)))}
-                    className="w-16 h-8 text-center border rounded text-sm"
+              {safeDescription && (
+                <div className="mb-4">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
+                    {t('product.description')}
+                  </h3>
+                  <div
+                    className="text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: safeDescription }}
                   />
-                  <button
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    className="w-8 h-8 flex items-center justify-center border rounded hover:bg-gray-50"
-                  >
-                    <FiPlus size={14} />
-                  </button>
                 </div>
-              </div>
+              )}
 
               {/* Actions */}
-              <div className="flex gap-2">
+              <div className="pt-4 border-t flex flex-wrap gap-2">
                 <button
-                  onClick={handleAddToCart}
-                  disabled={product.stock === 0}
-                  className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50"
+                  type="button"
+                  onClick={handleAddToQuote}
+                  className={`flex-1 min-w-[160px] flex items-center justify-center gap-2 text-sm py-2.5 rounded-lg transition-colors ${
+                    added ? 'bg-green-600 text-white' : 'btn-primary'
+                  }`}
                 >
-                  <FiShoppingCart size={16} />
-                  Thêm vào giỏ
+                  {added ? (
+                    <>
+                      <FiCheck size={16} />
+                      {t('product.addedToQuote')}
+                    </>
+                  ) : (
+                    <>
+                      <FiFileText size={16} />
+                      {t('product.requestQuote')}
+                    </>
+                  )}
                 </button>
+                {product.tdsUrl && (
+                  <a
+                    href={product.tdsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 min-w-[160px] flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm py-2.5 rounded-lg transition-colors"
+                  >
+                    <FiFile size={16} />
+                    {t('product.downloadTds')} (PDF)
+                  </a>
+                )}
               </div>
             </div>
           </div>

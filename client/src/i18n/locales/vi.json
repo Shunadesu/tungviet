@@ -1,0 +1,307 @@
+{
+  "common": {
+    "search": "Tìm sản phẩm...",
+    "viewAll": "Xem tất cả",
+    "contactUs": "Liên hệ tư vấn",
+    "loading": "Đang tải..."
+  },
+  "nav": {
+    "home": "Trang chủ",
+    "products": "Sản phẩm",
+    "markets": "Thị trường",
+    "about": "Giới thiệu",
+    "contact": "Liên hệ",
+    "quote": "Yêu cầu báo giá",
+    "account": "Tài khoản"
+  },
+  "header": {
+    "login": "Đăng nhập",
+    "logout": "Đăng xuất",
+    "orders": "Yêu cầu báo giá",
+    "openMenu": "Mở menu",
+    "switchLanguage": "Chuyển ngôn ngữ"
+  },
+  "footer": {
+    "quickLinks": "Liên kết nhanh",
+    "categories": "Danh mục sản phẩm",
+    "allProducts": "Tất cả sản phẩm",
+    "applications": "Thị trường ứng dụng",
+    "contactInfo": "Thông tin liên hệ"
+  },
+  "whyUs": {
+    "title": "Vì sao chọn Tùng Việt?",
+    "subtitle": "Hơn 25 năm đồng hành cùng các doanh nghiệp công nghiệp hàng đầu",
+    "quality": {
+      "title": "Chất lượng quốc tế",
+      "desc": "Sản phẩm đạt chuẩn ISO, nguồn gốc rõ ràng, lô hàng đồng nhất."
+    },
+    "team": {
+      "title": "Đội ngũ chuyên gia",
+      "desc": "Kỹ sư hóa chất giàu kinh nghiệm thực tiễn tại nhà máy."
+    },
+    "logistics": {
+      "title": "Giao hàng toàn quốc",
+      "desc": "Logistics chuyên nghiệp, đóng gói theo tiêu chuẩn công nghiệp."
+    },
+    "support": {
+      "title": "Hỗ trợ 24/7",
+      "desc": "Tư vấn kỹ thuật miễn phí, phản hồi nhanh chóng."
+    }
+  },
+  "stats": {
+    "title": "Tùng Việt trong số liệu",
+    "experience": "Năm kinh nghiệm",
+    "clients": "Khách hàng B2B",
+    "capacity": "Tấn sản phẩm/năm",
+    "countries": "Quốc gia xuất khẩu"
+  },
+  "testimonials": {
+    "title": "Khách hàng nói gì về chúng tôi",
+    "subtitle": "Đánh giá từ các đối tác chiến lược trên toàn cầu"
+  },
+  "marketsGrid": {
+    "title": "Thị trường ứng dụng",
+    "subtitle": "Giải pháp nhựa thông cho mọi ngành công nghiệp"
+  },
+  "certificates": {
+    "title": "Chứng chỉ & Tiêu chuẩn",
+    "subtitle": "Cam kết chất lượng đạt chuẩn quốc tế"
+  },
+  "home": {
+    "featuredProducts": "Sản phẩm nổi bật",
+    "featuredProductsSubtitle": "Những sản phẩm nhựa thông được quan tâm nhiều nhất",
+    "newProducts": "Sản phẩm mới",
+    "newProductsSubtitle": "Những sản phẩm nhựa thông mới nhất",
+    "marketsTitle": "Thị trường ứng dụng",
+    "marketsSubtitle": "Khám phá giải pháp nhựa thông theo từng ngành",
+    "ctaTitle": "Bạn cần báo giá?",
+    "ctaSubtitle": "Đội ngũ tư vấn kỹ thuật sẽ phản hồi trong vòng 24 giờ"
+  },
+  "product": {
+    "description": "Mô tả",
+    "noDescription": "Chưa có mô tả",
+    "allProducts": "Tất cả sản phẩm",
+    "productsCount": "{{n}} sản phẩm",
+    "filter": "Bộ lọc",
+    "sort": {
+      "label": "Sắp xếp",
+      "default": "Mặc định",
+      "nameAsc": "Tên: A-Z",
+      "newest": "Mới nhất"
+    },
+    "noResults": "Không tìm thấy sản phẩm nào",
+    "searchResultsFor": "Kết quả cho: {{q}}",
+    "breadcrumbHome": "Trang chủ",
+    "breadcrumbProducts": "Sản phẩm",
+    "specifications": "Thông số kỹ thuật",
+    "softeningPoint": "Điểm làm mềm",
+    "acidValue": "Chỉ số axit",
+    "color": "Màu sắc",
+    "benefits": "Lợi ích",
+    "applications": "Ứng dụng",
+    "downloadTds": "Tải TDS",
+    "requestQuote": "Yêu cầu báo giá",
+    "addedToQuote": "Đã thêm vào yêu cầu",
+    "notFound": "Không tìm thấy sản phẩm"
+  },
+  "quote": {
+    "title": "Yêu cầu báo giá",
+    "subtitle": "Gửi thông tin để nhận báo giá chi tiết từ đội ngũ tư vấn",
+    "bag": "Danh sách sản phẩm",
+    "bagEmpty": "Chưa chọn sản phẩm nào",
+    "bagEmptyHint": "Hãy thêm sản phẩm vào danh sách để yêu cầu báo giá",
+    "browseProducts": "Xem sản phẩm",
+    "remove": "Bỏ",
+    "clear": "Xóa tất cả",
+    "info": "Thông tin liên hệ",
+    "fullName": "Họ tên",
+    "email": "Email",
+    "phone": "Số điện thoại",
+    "company": "Công ty",
+    "companyPlaceholder": "Tên công ty (không bắt buộc)",
+    "message": "Nội dung yêu cầu",
+    "messagePlaceholder": "Mô tả nhu cầu, số lượng dự kiến, ứng dụng...",
+    "preferredContact": "Cách liên hệ",
+    "preferredEmail": "Qua email",
+    "preferredPhone": "Qua điện thoại",
+    "submit": "Gửi yêu cầu",
+    "submitting": "Đang gửi...",
+    "success": "Yêu cầu đã được gửi!",
+    "successSubtitle": "Chúng tôi sẽ phản hồi trong vòng 24 giờ qua",
+    "sendAnother": "Gửi yêu cầu khác",
+    "sendViaEmail": "Mở ứng dụng email",
+    "itemsCount": "{{n}} sản phẩm"
+  },
+  "auth": {
+    "loginTitle": "Đăng nhập",
+    "loginWelcome": "Chào mừng bạn quay trở lại",
+    "registerTitle": "Đăng ký",
+    "registerSubtitle": "Tạo tài khoản để quản lý yêu cầu báo giá",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "confirmPassword": "Xác nhận mật khẩu",
+    "name": "Họ tên",
+    "login": "Đăng nhập",
+    "loggingIn": "Đang đăng nhập...",
+    "register": "Đăng ký",
+    "registering": "Đang đăng ký...",
+    "noAccount": "Chưa có tài khoản?",
+    "hasAccount": "Đã có tài khoản?",
+    "backToHome": "← Quay về trang chủ",
+    "passwordMismatch": "Mật khẩu xác nhận không khớp",
+    "passwordTooShort": "Mật khẩu phải có ít nhất 6 ký tự",
+    "loginFailed": "Đăng nhập thất bại",
+    "registerFailed": "Đăng ký thất bại",
+    "passwordPlaceholder": "••••••••",
+    "namePlaceholder": "Nguyễn Văn A",
+    "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
+    "passwordHint": "Ít nhất 6 ký tự",
+    "fullNamePlaceholder": "Nhập họ tên",
+    "phonePlaceholder": "0123 456 789"
+  },
+  "history": {
+    "title": "Yêu cầu báo giá của tôi",
+    "count": "{{n}} yêu cầu",
+    "empty": "Chưa có yêu cầu báo giá",
+    "emptyHint": "Gửi yêu cầu đầu tiên của bạn",
+    "createQuote": "Tạo yêu cầu báo giá",
+    "loginRequired": "Vui lòng đăng nhập để xem yêu cầu báo giá",
+    "comingSoon": "Lịch sử yêu cầu sẽ hiển thị khi hệ thống backend sẵn sàng",
+    "status": {
+      "Pending": "Chờ xử lý",
+      "Processing": "Đang xử lý",
+      "Shipped": "Đang giao",
+      "Delivered": "Hoàn thành",
+      "Cancelled": "Đã hủy"
+    }
+  },
+  "seo": {
+    "defaultTitle": "Tùng Việt - Nhựa thông công nghiệp",
+    "defaultDescription": "Nhà cung cấp nhựa thông, rosin và nguyên liệu công nghiệp chất lượng cao cho xây dựng, đường bộ, bao bì.",
+    "defaultKeywords": "nhựa thông, rosin, resin, hot melt, công nghiệp, xây dựng, đường bộ, bao bì, Tùng Việt",
+    "home": {
+      "title": "Nhựa thông công nghiệp | Tùng Việt",
+      "description": "Nhựa thông, rosin và nguyên liệu công nghiệp chất lượng cao cho xây dựng, đường bộ, bao bì.",
+      "keywords": "nhựa thông, rosin, resin, hot melt, công nghiệp, xây dựng, đường bộ, bao bì"
+    }
+  },
+  "banner": {
+    "fallbackHeading": "Nhựa thông công nghiệp — Chất lượng quốc tế",
+    "fallbackSubtitle": "Cung cấp rosin, nhựa thông tinh chế và nguyên liệu cho ngành xây dựng, đường bộ, bao bì và nhiều ngành công nghiệp khác.",
+    "fallbackCta": "Yêu cầu báo giá",
+    "fallbackFeatures": {
+      "title1": "Chất lượng ổn định",
+      "desc1": "Sản phẩm đạt chuẩn quốc tế, nguồn gốc rõ ràng",
+      "title2": "Tư vấn kỹ thuật",
+      "desc2": "Đội ngũ kỹ sư hỗ trợ chọn sản phẩm phù hợp",
+      "title3": "Giao hàng toàn quốc",
+      "desc3": "Vận chuyển nhanh, đóng gói theo tiêu chuẩn công nghiệp"
+    }
+  },
+  "siteConfig": {
+    "defaultAbout": "Chuyên cung cấp nhựa thông, rosin và nguyên liệu công nghiệp phục vụ xây dựng, đường bộ, bao bì và nhiều ngành công nghiệp khác."
+  },
+  "market": {
+    "title": "Thị trường ứng dụng",
+    "subtitle": "Giải pháp nhựa thông theo từng ngành",
+    "technologies": "Công nghệ",
+    "products": "Sản phẩm",
+    "noProducts": "Chưa có sản phẩm",
+    "viewProduct": "Xem sản phẩm",
+    "downloadTds": "Tải TDS",
+    "benefits": "Lợi ích",
+    "applications": "Ứng dụng",
+    "specifications": "Thông số kỹ thuật",
+    "softeningPoint": "Điểm làm mềm",
+    "acidValue": "Chỉ số axit",
+    "color": "Màu sắc",
+    "noMarkets": "Chưa có thị trường nào",
+    "productCount": "{{count}} sản phẩm",
+    "breadcrumbHome": "Trang chủ",
+    "breadcrumbMarkets": "Thị trường"
+  },
+  "about": {
+    "title": "Giới thiệu",
+    "companyIntro": "Tùng Việt là nhà cung cấp nhựa thông, rosin và nguyên liệu công nghiệp hàng đầu.",
+    "mission": "Sứ mệnh",
+    "missionText": "Mang đến các sản phẩm nhựa thông chất lượng cao, đáp ứng tiêu chuẩn kỹ thuật khắt khe của khách hàng công nghiệp.",
+    "values": "Giá trị cốt lõi",
+    "quality": "Chất lượng",
+    "qualityText": "Cam kết chất lượng đồng nhất qua từng lô hàng.",
+    "reliability": "Đáng tin cậy",
+    "reliabilityText": "Giao hàng đúng hẹn, hỗ trợ kỹ thuật 24/7.",
+    "innovation": "Đổi mới",
+    "innovationText": "Liên tục nghiên cứu và phát triển sản phẩm mới.",
+    "description": "Mô tả",
+    "history": "Lịch sử",
+    "founded": "Thành lập",
+    "foundedYear": "năm {{year}}",
+    "fastFacts": "Số liệu nhanh",
+    "fastFactsTitle": "Tùng Việt tính đến nay",
+    "coreValues": "Giá trị cốt lõi",
+    "valuesIntro": "Những nguyên tắc định hướng mọi hoạt động của chúng tôi",
+    "historyMilestone": "Hành trình phát triển",
+    "noFacts": "Chưa có số liệu nào được cấu hình.",
+    "noValues": "Chưa có giá trị cốt lõi nào được cấu hình."
+  },
+  "boardOfDirectors": {
+    "title": "Ban lanh dao",
+    "titleEn": "Board of Directors",
+    "description": "Doi ngu lanh dao Zuna Tungviet",
+    "readBio": "Xem tieu su",
+    "noMembers": "Chua co thong tin ban lanh dao.",
+    "heroTitle": "Ban lanh dao",
+    "heroSubtitle": "Doi ngu lanh dao tan tam va giau kinh nghiem"
+  },
+  "locations": {
+    "title": "Dia diem",
+    "titleEn": "Our Locations",
+    "description": "He thong co so phan phoi tren toan quoc",
+    "noLocations": "Chua co thong tin dia diem.",
+    "phone": "Dien thoai",
+    "email": "Email"
+  },
+  "leadership": {
+    "title": "Leadership",
+    "titleEn": "Leadership",
+    "description": "Doi ngu lanh dao cap cao Zuna Tungviet",
+    "noMembers": "Chua co thong tin leadership.",
+    "readBio": "Xem tieu su"
+  },
+  "contact": {
+    "title": "Liên he",
+    "subtitle": "Chung toi san sang ho tro ban",
+    "phone": "Dien thoai",
+    "email": "Email",
+    "address": "Dia chi",
+    "workingHours": "Gio lam viec",
+    "workingHoursText": "Thu 2 - Thu 7: 8:00 - 17:30",
+    "sendMessage": "Gui tin nhan"
+  },
+  "errors": {
+    "generic": "Đã có lỗi xảy ra, vui lòng thử lại",
+    "networkError": "Không thể kết nối đến máy chủ",
+    "notFound": "Không tìm thấy"
+  },
+  "quoteSection": {
+    "title": "Nhận báo giá",
+    "subtitle": "Liên hệ với chúng tôi để nhận báo giá chi tiết và tư vấn phù hợp nhất cho nhu cầu của bạn",
+    "form": {
+      "name": "Họ và tên",
+      "namePlaceholder": "Nhập họ và tên của bạn",
+      "email": "Email",
+      "emailPlaceholder": "Nhập địa chỉ email",
+      "phone": "Số điện thoại",
+      "phonePlaceholder": "Nhập số điện thoại",
+      "productType": "Loại sản phẩm",
+      "productTypePlaceholder": "Chọn loại sản phẩm",
+      "market": "Địa điểm / Thị trường",
+      "marketPlaceholder": "Chọn địa điểm",
+      "submit": "Gửi yêu cầu",
+      "sending": "Đang gửi..."
+    },
+    "success": "Cảm ơn bạn! Yêu cầu của bạn đã được gửi thành công.",
+    "error": "Gửi thất bại. Vui lòng thử lại.",
+    "hotline": "Hotline"
+  }
+}

@@ -1,73 +1,51 @@
-import Product from '../../models/Product.js';
+import { productService } from '../../services/product.service.js';
+import { apiResponse } from '../../utils/apiResponse.js';
+import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
+import { localizeFields, resolveLocale } from '../../utils/i18n.js';
 
-export const getAllProducts = async (req, res) => {
+const LOCALIZABLE_FIELDS = ['name', 'description'];
+
+export const getAllProducts = async (req, res, next) => {
   try {
-    const { category, search, sort, limit = 20, page = 1 } = req.query;
-    
-    const query = { isActive: true };
-    
-    if (category) {
-      query.categoryId = category;
-    }
-    
-    if (search) {
-      query.name = { $regex: search, $options: 'i' };
-    }
-    
-    const skip = (page - 1) * limit;
-    
-    let sortOption = { createdAt: -1 };
-    if (sort === 'price_asc') sortOption = { price: 1 };
-    if (sort === 'price_desc') sortOption = { price: -1 };
-    if (sort === 'name_asc') sortOption = { name: 1 };
-    
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .populate('categoryId', 'name')
-        .sort(sortOption)
-        .skip(skip)
-        .limit(parseInt(limit)),
-      Product.countDocuments(query)
-    ]);
-    
-    res.json({
-      success: true,
-      data: products,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
+    const locale = resolveLocale(req);
+    const params = {
+      search: req.query.search,
+      page: req.query.page,
+      limit: req.query.limit,
+    };
+
+    if (!params.search) {
+      const key = cacheKeys.publicProducts({ ...params, locale });
+      const cached = cacheStore.get(key);
+      if (cached) {
+        const items = cached.items.map(item => localizeFields(item, locale, LOCALIZABLE_FIELDS));
+        return apiResponse.paginated(res, items, cached.pagination);
       }
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    }
+
+    const result = await productService.listPublic(params);
+    const items = result.items.map(item => localizeFields(item, locale, LOCALIZABLE_FIELDS));
+
+    const payload = { items, pagination: result.pagination };
+    
+    if (!params.search) {
+      const key = cacheKeys.publicProducts({ ...params, locale });
+      cacheStore.set(key, payload, TTL.PUBLIC_PRODUCTS);
+    }
+    
+    return apiResponse.paginated(res, payload.items, payload.pagination);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const getProductById = async (req, res) => {
+export const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate('categoryId', 'name');
-    
-    if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Sản phẩm không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: product
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const locale = resolveLocale(req);
+    const product = await productService.getByIdLean(req.params.id, { onlyActive: true });
+    const localized = localizeFields(product, locale, LOCALIZABLE_FIELDS);
+    return apiResponse.ok(res, localized);
+  } catch (err) {
+    next(err);
   }
 };

@@ -1,118 +1,76 @@
+import { categoryService } from '../../services/category.service.js';
 import Category from '../../models/Category.js';
+import { apiResponse } from '../../utils/apiResponse.js';
 
-export const getAllCategories = async (req, res) => {
+export const getAllCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find().sort({ name: 1 });
-    
-    res.json({
-      success: true,
-      data: categories
+    const { sort, page, limit } = req.query;
+    const { items, pagination } = await categoryService.listPaginated({
+      includeInactive: true,
+      sort,
+      page,
+      limit,
     });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    return apiResponse.paginated(res, items, pagination);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const getCategoryById = async (req, res) => {
+export const getCategoryById = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id);
-    
-    if (!category) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Danh mục không tồn tại' 
-      });
+    const category = await categoryService.getById(req.params.id);
+    return apiResponse.ok(res, category);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const createCategory = async (req, res, next) => {
+  try {
+    const category = await categoryService.create(req.body);
+    return apiResponse.created(res, category, 'Tạo danh mục thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const updateCategory = async (req, res, next) => {
+  try {
+    const category = await categoryService.update(req.params.id, req.body);
+    return apiResponse.ok(res, category, 'Cập nhật danh mục thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const deleteCategory = async (req, res, next) => {
+  try {
+    await categoryService.delete(req.params.id);
+    return apiResponse.ok(res, null, 'Xóa danh mục thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const restoreCategory = async (req, res, next) => {
+  try {
+    const category = await categoryService.restore(req.params.id);
+    return apiResponse.ok(res, category, 'Khôi phục danh mục thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const batchDeleteCategories = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return apiResponse.badRequest(res, 'Danh sách id không hợp lệ');
     }
-    
-    res.json({
-      success: true,
-      data: category
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
-  }
-};
-
-export const createCategory = async (req, res) => {
-  try {
-    const { name, description, imageUrl } = req.body;
-    
-    const category = new Category({
-      name,
-      description,
-      imageUrl
-    });
-    
-    await category.save();
-    
-    res.status(201).json({
-      success: true,
-      message: 'Tạo danh mục thành công',
-      data: category
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
-  }
-};
-
-export const updateCategory = async (req, res) => {
-  try {
-    const { name, description, imageUrl, isActive } = req.body;
-    
-    const category = await Category.findByIdAndUpdate(
-      req.params.id,
-      { name, description, imageUrl, isActive },
-      { new: true, runValidators: true }
-    );
-    
-    if (!category) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Danh mục không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Cập nhật danh mục thành công',
-      data: category
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
-  }
-};
-
-export const deleteCategory = async (req, res) => {
-  try {
-    const category = await Category.findByIdAndDelete(req.params.id);
-    
-    if (!category) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Danh mục không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Xóa danh mục thành công'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const result = await categoryService.batchDelete(ids);
+    return apiResponse.ok(res, result, `Đã xóa ${result.deletedCount} danh mục`);
+  } catch (err) {
+    next(err);
   }
 };

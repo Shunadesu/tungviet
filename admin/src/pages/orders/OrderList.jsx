@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { FiEye, FiTrash2 } from 'react-icons/fi';
-import Header from '../components/Header';
-import Modal from '../components/Modal';
-import SEO from '../components/SEO';
-import adminApi from '../api/adminApi';
-import { useNotification } from '../context/NotificationContext';
+import Header from '../../components/Header';
+import Modal from '../../components/Modal';
+import SEO from '../../components/SEO';
+import adminApi from '../../api/adminApi';
+import { useNotification } from '../../context/NotificationContext';
 
 const OrderList = () => {
   const [orders, setOrders] = useState([]);

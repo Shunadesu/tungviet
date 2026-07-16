@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import mongooseDelete from 'mongoose-delete';
 
 const productSchema = new mongoose.Schema({
   name: {
@@ -6,27 +7,44 @@ const productSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  nameEn: {
+    type: String,
+    default: '',
+    trim: true
+  },
   description: {
     type: String,
     default: ''
   },
-  price: {
-    type: Number,
-    required: true,
-    min: 0
-  },
-  stock: {
-    type: Number,
-    required: true,
-    min: 0,
-    default: 0
-  },
-  categoryId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'Category',
-    required: true
+  descriptionEn: {
+    type: String,
+    default: ''
   },
   imageUrl: {
+    type: String,
+    default: ''
+  },
+  softeningPoint: {
+    type: String,
+    default: ''
+  },
+  acidValue: {
+    type: String,
+    default: ''
+  },
+  color: {
+    type: String,
+    default: ''
+  },
+  benefits: {
+    type: [String],
+    default: []
+  },
+  applications: {
+    type: [String],
+    default: []
+  },
+  tdsUrl: {
     type: String,
     default: ''
   },
@@ -37,6 +55,11 @@ const productSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+productSchema.plugin(mongooseDelete, { deletedAt: true, overrideMethods: 'all' });
+productSchema.index({ name: 'text', description: 'text' });
+productSchema.index({ isActive: 1 });
+productSchema.index({ createdAt: -1 });
 
 const Product = mongoose.model('Product', productSchema);
 

@@ -1,0 +1,307 @@
+{
+  "common": {
+    "search": "Search products...",
+    "viewAll": "View all",
+    "contactUs": "Contact us",
+    "loading": "Loading..."
+  },
+  "nav": {
+    "home": "Home",
+    "products": "Products",
+    "markets": "Markets",
+    "about": "About",
+    "contact": "Contact",
+    "quote": "Request quote",
+    "account": "Account"
+  },
+  "header": {
+    "login": "Sign in",
+    "logout": "Sign out",
+    "orders": "Quote requests",
+    "openMenu": "Open menu",
+    "switchLanguage": "Switch language"
+  },
+  "footer": {
+    "quickLinks": "Quick Links",
+    "categories": "Product categories",
+    "allProducts": "All products",
+    "applications": "Application markets",
+    "contactInfo": "Contact information"
+  },
+  "whyUs": {
+    "title": "Why choose Tung Viet?",
+    "subtitle": "Over 25 years partnering with leading industrial companies worldwide",
+    "quality": {
+      "title": "International Quality",
+      "desc": "ISO-certified products with verified origin and consistent batches."
+    },
+    "team": {
+      "title": "Expert Team",
+      "desc": "Experienced chemical engineers with real-world factory experience."
+    },
+    "logistics": {
+      "title": "Nationwide Delivery",
+      "desc": "Professional logistics with industrial-grade packaging standards."
+    },
+    "support": {
+      "title": "24/7 Support",
+      "desc": "Free technical consultation and fast response times."
+    }
+  },
+  "stats": {
+    "title": "Tung Viet in numbers",
+    "experience": "Years of experience",
+    "clients": "B2B clients",
+    "capacity": "Tons per year",
+    "countries": "Export countries"
+  },
+  "testimonials": {
+    "title": "What our clients say",
+    "subtitle": "Feedback from our strategic partners worldwide"
+  },
+  "marketsGrid": {
+    "title": "Application markets",
+    "subtitle": "Rosin solutions for every industry"
+  },
+  "certificates": {
+    "title": "Certificates & Standards",
+    "subtitle": "Quality commitment meeting international standards"
+  },
+  "home": {
+    "featuredProducts": "Featured Products",
+    "featuredProductsSubtitle": "Our most popular rosin and resin products",
+    "newProducts": "New Products",
+    "newProductsSubtitle": "Our latest rosin and resin products",
+    "marketsTitle": "Application Markets",
+    "marketsSubtitle": "Explore rosin solutions by industry",
+    "ctaTitle": "Need a quote?",
+    "ctaSubtitle": "Our technical team will respond within 24 hours"
+  },
+  "product": {
+    "description": "Description",
+    "noDescription": "No description",
+    "allProducts": "All products",
+    "productsCount": "{{n}} products",
+    "filter": "Filter",
+    "sort": {
+      "label": "Sort",
+      "default": "Default",
+      "nameAsc": "Name: A-Z",
+      "newest": "Newest"
+    },
+    "noResults": "No products found",
+    "searchResultsFor": "Results for: {{q}}",
+    "breadcrumbHome": "Home",
+    "breadcrumbProducts": "Products",
+    "specifications": "Specifications",
+    "softeningPoint": "Softening Point",
+    "acidValue": "Acid Value",
+    "color": "Color",
+    "benefits": "Benefits",
+    "applications": "Applications",
+    "downloadTds": "Download TDS",
+    "requestQuote": "Request quote",
+    "addedToQuote": "Added to your list",
+    "notFound": "Product not found"
+  },
+  "quote": {
+    "title": "Request a quote",
+    "subtitle": "Send us your requirements and our team will get back to you with a detailed quotation",
+    "bag": "Selected products",
+    "bagEmpty": "No products selected",
+    "bagEmptyHint": "Add products to your list to request a quote",
+    "browseProducts": "Browse products",
+    "remove": "Remove",
+    "clear": "Clear all",
+    "info": "Contact information",
+    "fullName": "Full name",
+    "email": "Email",
+    "phone": "Phone",
+    "company": "Company",
+    "companyPlaceholder": "Company name (optional)",
+    "message": "Requirements",
+    "messagePlaceholder": "Describe your needs, expected quantity, applications...",
+    "preferredContact": "Preferred contact method",
+    "preferredEmail": "By email",
+    "preferredPhone": "By phone",
+    "submit": "Send request",
+    "submitting": "Sending...",
+    "success": "Request sent successfully!",
+    "successSubtitle": "We will respond within 24 hours via",
+    "sendAnother": "Send another request",
+    "sendViaEmail": "Open email app",
+    "itemsCount": "{{n}} products"
+  },
+  "auth": {
+    "loginTitle": "Sign in",
+    "loginWelcome": "Welcome back",
+    "registerTitle": "Create account",
+    "registerSubtitle": "Create an account to manage your quote requests",
+    "email": "Email",
+    "password": "Password",
+    "confirmPassword": "Confirm password",
+    "name": "Full name",
+    "login": "Sign in",
+    "loggingIn": "Signing in...",
+    "register": "Sign up",
+    "registering": "Signing up...",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "backToHome": "← Back to home",
+    "passwordMismatch": "Password confirmation does not match",
+    "passwordTooShort": "Password must be at least 6 characters",
+    "loginFailed": "Sign in failed",
+    "registerFailed": "Sign up failed",
+    "passwordPlaceholder": "••••••••",
+    "namePlaceholder": "John Doe",
+    "confirmPasswordPlaceholder": "Re-enter your password",
+    "passwordHint": "At least 6 characters",
+    "fullNamePlaceholder": "Enter your name",
+    "phonePlaceholder": "0123 456 789"
+  },
+  "history": {
+    "title": "My quote requests",
+    "count": "{{n}} requests",
+    "empty": "No quote requests yet",
+    "emptyHint": "Send your first quote request",
+    "createQuote": "Create a quote request",
+    "loginRequired": "Please log in to view your quote requests",
+    "comingSoon": "Request history will be available once the backend is ready",
+    "status": {
+      "Pending": "Pending",
+      "Processing": "Processing",
+      "Shipped": "Shipped",
+      "Delivered": "Delivered",
+      "Cancelled": "Cancelled"
+    }
+  },
+  "seo": {
+    "defaultTitle": "Zuna Tungviet - Industrial Rosin & Resin",
+    "defaultDescription": "Supplier of premium rosin, resin and industrial raw materials for construction, road, packaging industries.",
+    "defaultKeywords": "rosin, resin, hot melt, industrial, construction, road, packaging, Zuna Tungviet",
+    "home": {
+      "title": "Industrial Rosin & Resin | Zuna Tungviet",
+      "description": "Premium rosin, resin and industrial raw materials for construction, road, packaging industries.",
+      "keywords": "rosin, resin, hot melt, industrial, construction, road, packaging"
+    }
+  },
+  "banner": {
+    "fallbackHeading": "Industrial Rosin — International Quality",
+    "fallbackSubtitle": "Supplying refined rosin, resin and industrial raw materials for construction, road, packaging and many other industries.",
+    "fallbackCta": "Request a quote",
+    "fallbackFeatures": {
+      "title1": "Stable quality",
+      "desc1": "International-grade products with verified origin",
+      "title2": "Technical consulting",
+      "desc2": "Engineers help you choose the right product",
+      "title3": "Nationwide delivery",
+      "desc3": "Fast shipping with industrial-grade packaging"
+    }
+  },
+  "siteConfig": {
+    "defaultAbout": "We specialize in supplying rosin, resin and industrial raw materials for construction, road, packaging and many other industries."
+  },
+  "market": {
+    "title": "Application Markets",
+    "subtitle": "Rosin solutions by industry",
+    "technologies": "Technologies",
+    "products": "Products",
+    "noProducts": "No products yet",
+    "viewProduct": "View product",
+    "downloadTds": "Download TDS",
+    "benefits": "Benefits",
+    "applications": "Applications",
+    "specifications": "Specifications",
+    "softeningPoint": "Softening Point",
+    "acidValue": "Acid Value",
+    "color": "Color",
+    "noMarkets": "No markets available",
+    "productCount": "{{count}} products",
+    "breadcrumbHome": "Home",
+    "breadcrumbMarkets": "Markets"
+  },
+  "about": {
+    "title": "About us",
+    "companyIntro": "Zuna Tungviet is a leading supplier of rosin, resin and industrial raw materials.",
+    "mission": "Our mission",
+    "missionText": "Delivering high-quality rosin products that meet the strictest technical standards of industrial customers.",
+    "values": "Core values",
+    "quality": "Quality",
+    "qualityText": "Consistent quality across every shipment.",
+    "reliability": "Reliability",
+    "reliabilityText": "On-time delivery, 24/7 technical support.",
+    "innovation": "Innovation",
+    "innovationText": "Continuously researching and developing new products.",
+    "description": "Description",
+    "history": "History",
+    "founded": "Founded",
+    "foundedYear": "Est. {{year}}",
+    "fastFacts": "Fast Facts",
+    "fastFactsTitle": "Zuna Tungviet at a glance",
+    "coreValues": "Core Values",
+    "valuesIntro": "The principles that guide everything we do",
+    "historyMilestone": "Our journey",
+    "noFacts": "No facts have been configured yet.",
+    "noValues": "No core values have been configured yet."
+  },
+  "boardOfDirectors": {
+    "title": "Ban lanh dao",
+    "titleEn": "Board of Directors",
+    "description": "Doi ngu lanh dao Zuna Tungviet",
+    "readBio": "Xem tieu su",
+    "noMembers": "Chua co thong tin ban lanh dao.",
+    "heroTitle": "Board of Directors",
+    "heroSubtitle": "Leadership team with dedication and experience"
+  },
+  "locations": {
+    "title": "Our Locations",
+    "titleEn": "Our Locations",
+    "description": "Distribution network across the country",
+    "noLocations": "No location information available.",
+    "phone": "Phone",
+    "email": "Email"
+  },
+  "leadership": {
+    "title": "Leadership",
+    "titleEn": "Leadership",
+    "description": "Senior leadership team of Zuna Tungviet",
+    "noMembers": "No leadership information available.",
+    "readBio": "Read bio"
+  },
+  "contact": {
+    "title": "Contact",
+    "subtitle": "We are ready to support you",
+    "phone": "Phone",
+    "email": "Email",
+    "address": "Address",
+    "workingHours": "Working hours",
+    "workingHoursText": "Mon - Sat: 8:00 - 17:30",
+    "sendMessage": "Send message"
+  },
+  "errors": {
+    "generic": "Something went wrong, please try again",
+    "networkError": "Cannot connect to server",
+    "notFound": "Not found"
+  },
+  "quoteSection": {
+    "title": "Get a Quote",
+    "subtitle": "Contact us to receive a detailed quote and the best advice for your needs",
+    "form": {
+      "name": "Full Name",
+      "namePlaceholder": "Enter your full name",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email address",
+      "phone": "Phone Number",
+      "phonePlaceholder": "Enter your phone number",
+      "productType": "Product Type",
+      "productTypePlaceholder": "Select product type",
+      "market": "Location / Market",
+      "marketPlaceholder": "Select location",
+      "submit": "Submit Request",
+      "sending": "Sending..."
+    },
+    "success": "Thank you! Your request has been sent successfully.",
+    "error": "Failed to send. Please try again.",
+    "hotline": "Hotline"
+  }
+}

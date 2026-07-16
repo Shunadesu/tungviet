@@ -1,177 +1,58 @@
+import { orderService } from '../../services/order.service.js';
 import Order from '../../models/Order.js';
-import OrderDetail from '../../models/OrderDetail.js';
-import Product from '../../models/Product.js';
+import { apiResponse } from '../../utils/apiResponse.js';
 
-export const getAllOrders = async (req, res) => {
+export const getAllOrders = async (req, res, next) => {
   try {
-    const { status, search, sort, limit = 50, page = 1 } = req.query;
-    
-    const query = {};
-    
-    if (status) {
-      query.status = status;
-    }
-    
-    if (search) {
-      query.$or = [
-        { userName: { $regex: search, $options: 'i' } },
-        { userEmail: { $regex: search, $options: 'i' } },
-        { userPhone: { $regex: search, $options: 'i' } }
-      ];
-    }
-    
-    const skip = (page - 1) * limit;
-    
-    const [orders, total] = await Promise.all([
-      Order.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(parseInt(limit)),
-      Order.countDocuments(query)
-    ]);
-    
-    res.json({
-      success: true,
-      data: orders,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const { status, search, sort, page, limit } = req.query;
+    const { items, pagination } = await orderService.listAdmin({ status, search, sort, page, limit });
+    return apiResponse.paginated(res, items, pagination);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const getOrderById = async (req, res) => {
+export const getOrderById = async (req, res, next) => {
   try {
-    const order = await Order.findById(req.params.id);
-    
-    if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Đơn hàng không tồn tại' 
-      });
-    }
-    
-    const details = await OrderDetail.find({ orderId: order._id });
-    
-    res.json({
-      success: true,
-      data: { ...order.toObject(), details }
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const order = await orderService.getById(req.params.id);
+    return apiResponse.ok(res, order);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const updateOrderStatus = async (req, res) => {
+export const updateOrderStatus = async (req, res, next) => {
   try {
-    const { status } = req.body;
-    
-    const validStatuses = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
-    
-    if (!validStatuses.includes(status)) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Trạng thái không hợp lệ' 
-      });
-    }
-    
-    const order = await Order.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true, runValidators: true }
-    );
-    
-    if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Đơn hàng không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Cập nhật trạng thái thành công',
-      data: order
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const order = await orderService.updateStatus(req.params.id, req.body.status);
+    return apiResponse.ok(res, order, 'Cập nhật trạng thái thành công');
+  } catch (err) {
+    next(err);
   }
 };
 
-export const deleteOrder = async (req, res) => {
+export const deleteOrder = async (req, res, next) => {
   try {
-    // Delete order details first
-    await OrderDetail.deleteMany({ orderId: req.params.id });
-    
-    // Then delete order
-    const order = await Order.findByIdAndDelete(req.params.id);
-    
-    if (!order) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Đơn hàng không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Xóa đơn hàng thành công'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    await orderService.delete(req.params.id);
+    return apiResponse.ok(res, null, 'Xóa đơn hàng thành công');
+  } catch (err) {
+    next(err);
   }
 };
 
-export const getStats = async (req, res) => {
+export const restoreOrder = async (req, res, next) => {
   try {
-    const [totalOrders, totalProducts, totalRevenue, recentOrders] = await Promise.all([
-      Order.countDocuments(),
-      Product.countDocuments(),
-      Order.aggregate([
-        { $match: { status: { $ne: 'Cancelled' } } },
-        { $group: { _id: null, total: { $sum: '$totalAmount' } } }
-      ]),
-      Order.find().sort({ createdAt: -1 }).limit(5)
-    ]);
-    
-    const revenue = totalRevenue[0]?.total || 0;
-    
-    // Stats by status
-    const statusStats = await Order.aggregate([
-      { $group: { _id: '$status', count: { $sum: 1 } } }
-    ]);
-    
-    res.json({
-      success: true,
-      data: {
-        totalOrders,
-        totalProducts,
-        totalRevenue: revenue,
-        recentOrders,
-        statusStats
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const order = await orderService.restore(req.params.id);
+    return apiResponse.ok(res, order, 'Khôi phục đơn hàng thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getStats = async (req, res, next) => {
+  try {
+    const stats = await orderService.getStats();
+    return apiResponse.ok(res, stats);
+  } catch (err) {
+    next(err);
   }
 };

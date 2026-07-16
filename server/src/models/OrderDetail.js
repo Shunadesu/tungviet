@@ -38,6 +38,8 @@ const orderDetailSchema = new mongoose.Schema({
   timestamps: true
 });
 
+orderDetailSchema.index({ orderId: 1 });
+
 const OrderDetail = mongoose.model('OrderDetail', orderDetailSchema);
 
 export default OrderDetail;

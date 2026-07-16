@@ -1,41 +1,39 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiFilter, FiGrid, FiList } from 'react-icons/fi';
+import { FiGrid, FiList, FiSearch } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import ProductCard from '../components/ProductCard';
 import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
+import { SUPPORTED_LOCALES } from '../i18n';
 
 const ProductList = () => {
+  const { t, i18n } = useTranslation();
+  const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
+
   const [searchParams, setSearchParams] = useSearchParams();
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('grid');
-  const [showFilters, setShowFilters] = useState(false);
 
-  const categoryId = searchParams.get('category') || '';
-  const search = searchParams.get('search') || '';
+  const search = searchParams.get('search') || searchParams.get('q') || '';
   const sort = searchParams.get('sort') || '';
 
   useEffect(() => {
-    fetchData();
-  }, [categoryId, search, sort]);
+    setLoading(true);
+    fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search, sort, lang]);
 
-  const fetchData = async () => {
+  const fetchProducts = async () => {
     try {
-      const params = {};
-      if (categoryId) params.category = categoryId;
+      const params = { lang };
       if (search) params.search = search;
       if (sort) params.sort = sort;
 
-      const [productsRes, categoriesRes] = await Promise.all([
-        publicApi.getProducts(params),
-        publicApi.getCategories()
-      ]);
-      
-      setProducts(productsRes.data.data);
-      setCategories(categoriesRes.data.data);
+      const res = await publicApi.getProducts(params);
+      setProducts(res.data.data || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -53,12 +51,6 @@ const ProductList = () => {
     setSearchParams(newParams);
   };
 
-  const getCategoryName = () => {
-    if (!categoryId) return 'Tất cả sản phẩm';
-    const cat = categories.find(c => c._id === categoryId);
-    return cat?.name || 'Sản phẩm';
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -67,102 +59,100 @@ const ProductList = () => {
       className="min-h-screen pb-8"
     >
       <SEO
-        title={getCategoryName() || 'All Products'}
-        description={`Browse our collection of ${getCategoryName() || 'premium plants'}. Quality ornamental plants for home, office, and garden decoration.`}
-        keywords="plants, ornamental plants, garden, indoor plants, outdoor plants"
-        url={categoryId ? `/products?category=${categoryId}` : '/products'}
+        title={search ? t('product.searchResultsFor', { q: search }) : t('nav.products')}
+        description={t('seo.defaultDescription')}
+        keywords={t('seo.defaultKeywords')}
+        url={`/${lang}/products`}
       />
-      {/* Header */}
       <div className="bg-primary text-white py-4">
         <div className="max-w-7xl mx-auto px-2">
-          <h1 className="text-lg font-semibold">{getCategoryName()}</h1>
-          <p className="text-xs text-white/70">{products.length} sản phẩm</p>
+          <h1 className="text-lg font-semibold">{t('nav.products')}</h1>
+          <p className="text-xs text-white/70">{t('product.productsCount', { n: products.length })}</p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-2 py-4">
+        {/* Search Bar */}
+        <div className="mb-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const q = e.target.search.value.trim();
+              handleFilterChange('q', q);
+            }}
+            className="flex gap-2"
+          >
+            <div className="relative flex-1">
+              <FiSearch size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                name="search"
+                defaultValue={search}
+                placeholder={t('common.search')}
+                className="w-full pl-9 pr-4 py-2 border rounded-lg text-sm focus:outline-none focus:border-primary"
+              />
+            </div>
+            <button type="submit" className="btn-primary px-4">
+              {t('common.search')}
+            </button>
+          </form>
+        </div>
+
         {/* Toolbar */}
         <div className="flex items-center justify-between mb-4 gap-2">
-          <button
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-1 text-xs text-gray-600 md:hidden"
-          >
-            <FiFilter size={16} />
-            Bộ lọc
-          </button>
+          <div className="flex items-center gap-2">
+            {search && (
+              <span className="text-xs text-gray-500">
+                {t('product.searchResultsFor', { q: search })}
+              </span>
+            )}
+          </div>
 
-          {/* Sort */}
           <select
             value={sort}
             onChange={(e) => handleFilterChange('sort', e.target.value)}
             className="text-xs border rounded-lg px-2 py-1.5 focus:outline-none focus:border-primary"
           >
-            <option value="">Mặc định</option>
-            <option value="price_asc">Giá: Thấp đến cao</option>
-            <option value="price_desc">Giá: Cao đến thấp</option>
-            <option value="name_asc">Tên: A-Z</option>
+            <option value="">{t('product.sort.default')}</option>
+            <option value="name_asc">{t('product.sort.nameAsc')}</option>
+            <option value="newest">{t('product.sort.newest')}</option>
           </select>
 
-          {/* View Mode */}
           <div className="hidden md:flex items-center gap-1">
             <button
               onClick={() => setViewMode('grid')}
               className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-primary text-white' : 'bg-gray-100'}`}
+              aria-label="Grid view"
             >
               <FiGrid size={16} />
             </button>
             <button
               onClick={() => setViewMode('list')}
               className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-primary text-white' : 'bg-gray-100'}`}
+              aria-label="List view"
             >
               <FiList size={16} />
             </button>
           </div>
         </div>
 
-        <div className="flex gap-4">
-          {/* Sidebar Filters */}
-          <aside className={`${showFilters ? 'block' : 'hidden'} md:block w-48 flex-shrink-0`}>
-            <div className="bg-white rounded-lg p-3 sticky top-16">
-              <h3 className="text-xs font-semibold text-primary mb-2">Danh mục</h3>
-              <div className="space-y-1">
-                <button
-                  onClick={() => handleFilterChange('category', '')}
-                  className={`w-full text-left px-2 py-1.5 text-xs rounded ${!categoryId ? 'bg-primary text-white' : 'hover:bg-gray-50'}`}
-                >
-                  Tất cả
-                </button>
-                {categories.map((cat) => (
-                  <button
-                    key={cat._id}
-                    onClick={() => handleFilterChange('category', cat._id)}
-                    className={`w-full text-left px-2 py-1.5 text-xs rounded ${categoryId === cat._id ? 'bg-primary text-white' : 'hover:bg-gray-50'}`}
-                  >
-                    {cat.name}
-                  </button>
-                ))}
-              </div>
+        {/* Products Grid */}
+        <div className="flex-1">
+          {loading ? (
+            <div className="flex justify-center py-12">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
-          </aside>
-
-          {/* Products Grid */}
-          <div className="flex-1">
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-              </div>
-            ) : products.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500 text-sm">Không tìm thấy sản phẩm nào</p>
-              </div>
-            ) : (
-              <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2' : 'space-y-2'}>
-                {products.map((product, index) => (
-                  <ProductCard key={product._id} product={product} index={index} />
-                ))}
-              </div>
-            )}
-          </div>
+          ) : products.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-sm">{t('product.noResults')}</p>
+            </div>
+          ) : (
+            <div className={viewMode === 'grid' ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3' : 'space-y-2'}>
+              {products.map((product, index) => (
+                <ProductCard key={product._id} product={product} index={index} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </motion.div>

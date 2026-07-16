@@ -1,17 +1,22 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiLogIn } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import SEO from '../components/SEO';
+import { SUPPORTED_LOCALES } from '../i18n';
 
 const Login = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { lang: urlLang } = useParams();
+  const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : i18n.language || 'vi';
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
-    password: ''
+    password: '',
   });
   const [error, setError] = useState('');
 
@@ -27,9 +32,13 @@ const Login = () => {
 
     try {
       await login(formData.email, formData.password);
-      navigate('/');
+      navigate(`/${lang}`);
     } catch (err) {
-      setError(err.message || 'Đăng nhập thất bại');
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        t('auth.loginFailed');
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -42,13 +51,13 @@ const Login = () => {
       exit={{ opacity: 0 }}
       className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white px-2"
     >
-      <SEO title="Login" description="Sign in to your Zuna Tungviet account to access your orders and wishlist." url="/login" noindex />
+      <SEO title={t('auth.loginTitle')} description={t('auth.loginWelcome')} url={`/${lang}/login`} noindex />
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-6">
-            <span className="text-3xl">🌿</span>
-            <h1 className="text-lg font-semibold text-primary mt-2">Đăng nhập</h1>
-            <p className="text-xs text-gray-500 mt-1">Chào mừng bạn quay trở lại</p>
+            <span className="text-3xl">🏭</span>
+            <h1 className="text-lg font-semibold text-primary mt-2">{t('auth.loginTitle')}</h1>
+            <p className="text-xs text-gray-500 mt-1">{t('auth.loginWelcome')}</p>
           </div>
 
           {error && (
@@ -59,7 +68,7 @@ const Login = () => {
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Email</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('auth.email')}</label>
               <input
                 type="email"
                 name="email"
@@ -72,7 +81,7 @@ const Login = () => {
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Mật khẩu</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('auth.password')}</label>
               <input
                 type="password"
                 name="password"
@@ -80,7 +89,7 @@ const Login = () => {
                 onChange={handleChange}
                 required
                 className="input-field"
-                placeholder="••••••••"
+                placeholder={t('auth.passwordPlaceholder')}
               />
             </div>
 
@@ -90,20 +99,20 @@ const Login = () => {
               className="btn-primary w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <FiLogIn size={16} />
-              {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+              {loading ? t('auth.loggingIn') : t('auth.login')}
             </button>
           </form>
 
           <div className="mt-4 text-center text-xs">
-            <span className="text-gray-500">Chưa có tài khoản? </span>
-            <Link to="/register" className="text-primary font-medium hover:underline">
-              Đăng ký
+            <span className="text-gray-500">{t('auth.noAccount')} </span>
+            <Link to={`/${lang}/register`} className="text-primary font-medium hover:underline">
+              {t('auth.register')}
             </Link>
           </div>
 
           <div className="mt-4 pt-4 border-t">
-            <Link to="/" className="block text-center text-xs text-gray-500 hover:text-primary">
-              ← Quay về trang chủ
+            <Link to={`/${lang}`} className="block text-center text-xs text-gray-500 hover:text-primary">
+              {t('auth.backToHome')}
             </Link>
           </div>
         </div>

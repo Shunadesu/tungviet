@@ -10,7 +10,12 @@ export default defineConfig({
         target: process.env.VITE_API_TARGET || 'http://localhost:9007',
         changeOrigin: true,
         secure: false,
-      }
+      },
+      '/uploads': {
+        target: process.env.VITE_API_TARGET || 'http://localhost:9007',
+        changeOrigin: true,
+        secure: false,
+      },
     }
   },
   build: {

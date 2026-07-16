@@ -1,13 +1,9 @@
 import * as XLSX from 'xlsx';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import Estimate from '../models/Estimate.js';
 
 dotenv.config();
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const COLUMN_MAPPING = {
   'STT': 'stt',
@@ -21,21 +17,6 @@ const COLUMN_MAPPING = {
   'Ghi chú': 'notes',
   'Sản phẩm': 'product',
 };
-
-const estimateSchema = new mongoose.Schema({
-  stt: { type: Number, default: 0 },
-  feature: { type: String, required: true, trim: true },
-  description: { type: String, default: '' },
-  complexity: { type: String, enum: ['Low', 'Medium', 'High'], default: 'Medium' },
-  estimatedHours: { type: Number, required: true, min: 0, default: 0 },
-  hourlyRate: { type: Number, required: true, min: 0, default: 0 },
-  totalCost: { type: Number, required: true, min: 0, default: 0 },
-  estimatedDays: { type: Number, required: true, min: 0, default: 0 },
-  notes: { type: String, default: '' },
-  product: { type: String, default: '' },
-}, { timestamps: true });
-
-const Estimate = mongoose.model('Estimate', estimateSchema);
 
 function parseValue(key, value) {
   if (value === undefined || value === null || value === '') {

@@ -1,159 +1,94 @@
-import Product from '../../models/Product.js';
+import { productService } from '../../services/product.service.js';
+import { apiResponse } from '../../utils/apiResponse.js';
+import { uploadSinglePDF } from '../../middlewares/upload.js';
 
-export const getAllProducts = async (req, res) => {
+export const getAllProducts = async (req, res, next) => {
   try {
-    const { category, search, status, sort, limit = 50, page = 1 } = req.query;
-    
-    const query = {};
-    
-    if (category) {
-      query.categoryId = category;
-    }
-    
-    if (search) {
-      query.name = { $regex: search, $options: 'i' };
-    }
-    
-    if (status !== undefined) {
-      query.isActive = status === 'true';
-    }
-    
-    const skip = (page - 1) * limit;
-    
-    let sortOption = { createdAt: -1 };
-    if (sort === 'price_asc') sortOption = { price: 1 };
-    if (sort === 'price_desc') sortOption = { price: -1 };
-    if (sort === 'name_asc') sortOption = { name: 1 };
-    if (sort === 'stock_asc') sortOption = { stock: 1 };
-    
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .populate('categoryId', 'name')
-        .sort(sortOption)
-        .skip(skip)
-        .limit(parseInt(limit)),
-      Product.countDocuments(query)
-    ]);
-    
-    res.json({
-      success: true,
-      data: products,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total,
-        pages: Math.ceil(total / limit)
-      }
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const { search, status, page, limit } = req.query;
+    const { items, pagination } = await productService.listAdmin({ search, status, page, limit });
+    return apiResponse.paginated(res, items, pagination);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const getProductById = async (req, res) => {
+export const getProductById = async (req, res, next) => {
   try {
-    const product = await Product.findById(req.params.id)
-      .populate('categoryId', 'name');
-    
-    if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Sản phẩm không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: product
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const product = await productService.getById(req.params.id, { populate: false });
+    return apiResponse.ok(res, product);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const createProduct = async (req, res) => {
+export const createProduct = async (req, res, next) => {
   try {
-    const { name, description, price, stock, categoryId, imageUrl } = req.body;
-    
-    const product = new Product({
-      name,
-      description,
-      price,
-      stock,
-      categoryId,
-      imageUrl
-    });
-    
-    await product.save();
-    
-    res.status(201).json({
-      success: true,
-      message: 'Tạo sản phẩm thành công',
-      data: product
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const product = await productService.create(req.body);
+    return apiResponse.created(res, product, 'Tạo sản phẩm thành công');
+  } catch (err) {
+    next(err);
   }
 };
 
-export const updateProduct = async (req, res) => {
+export const updateProduct = async (req, res, next) => {
   try {
-    const { name, description, price, stock, categoryId, imageUrl, isActive } = req.body;
-    
-    const product = await Product.findByIdAndUpdate(
-      req.params.id,
-      { name, description, price, stock, categoryId, imageUrl, isActive },
-      { new: true, runValidators: true }
-    );
-    
-    if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Sản phẩm không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Cập nhật sản phẩm thành công',
-      data: product
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const product = await productService.update(req.params.id, req.body);
+    return apiResponse.ok(res, product, 'Cập nhật sản phẩm thành công');
+  } catch (err) {
+    next(err);
   }
 };
 
-export const deleteProduct = async (req, res) => {
+export const deleteProduct = async (req, res, next) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
-    
-    if (!product) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Sản phẩm không tồn tại' 
-      });
+    await productService.delete(req.params.id);
+    return apiResponse.ok(res, null, 'Xóa sản phẩm thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const restoreProduct = async (req, res, next) => {
+  try {
+    const product = await productService.restore(req.params.id);
+    return apiResponse.ok(res, product, 'Khôi phục sản phẩm thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const uploadTDS = async (req, res, next) => {
+  try {
+    const { file } = req;
+    if (!file) {
+      return apiResponse.badRequest(res, 'Vui lòng upload file TDS (PDF)');
     }
-    
-    res.json({
-      success: true,
-      message: 'Xóa sản phẩm thành công'
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const tdsUrl = `/uploads/${file.filename}`;
+    const product = await productService.updateTdsUrl(req.params.id, tdsUrl);
+    return apiResponse.ok(res, { tdsUrl, product }, 'Upload TDS thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const listProductsForSelect = async (req, res, next) => {
+  try {
+    const products = await productService.listForSelect();
+    return apiResponse.ok(res, products);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const batchDeleteProducts = async (req, res, next) => {
+  try {
+    const { ids } = req.body;
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return apiResponse.badRequest(res, 'Danh sách id không hợp lệ');
+    }
+    const result = await productService.batchDelete(ids);
+    return apiResponse.ok(res, result, `Đã xóa ${result.deletedCount} sản phẩm`);
+  } catch (err) {
+    next(err);
   }
 };

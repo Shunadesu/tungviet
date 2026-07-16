@@ -1,19 +1,24 @@
 import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiUserPlus } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import SEO from '../components/SEO';
+import { SUPPORTED_LOCALES } from '../i18n';
 
 const Register = () => {
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { register } = useAuth();
+  const { lang: urlLang } = useParams();
+  const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : i18n.language || 'vi';
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
   });
   const [error, setError] = useState('');
 
@@ -24,14 +29,14 @@ const Register = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
-      setError('Mật khẩu xác nhận không khớp');
+      setError(t('auth.passwordMismatch'));
       return;
     }
 
     if (formData.password.length < 6) {
-      setError('Mật khẩu phải có ít nhất 6 ký tự');
+      setError(t('auth.passwordTooShort'));
       return;
     }
 
@@ -40,9 +45,13 @@ const Register = () => {
 
     try {
       await register(formData.name, formData.email, formData.password);
-      navigate('/');
+      navigate(`/${lang}`);
     } catch (err) {
-      setError(err.message || 'Đăng ký thất bại');
+      const message =
+        err?.response?.data?.message ||
+        err?.message ||
+        t('auth.registerFailed');
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -55,13 +64,13 @@ const Register = () => {
       exit={{ opacity: 0 }}
       className="min-h-screen flex items-center justify-center bg-gradient-to-b from-primary-50 to-white px-2 py-8"
     >
-      <SEO title="Create Account" description="Create your Zuna Tungviet account to start shopping for premium plants." url="/register" noindex />
+      <SEO title={t('auth.registerTitle')} description={t('auth.registerSubtitle')} url={`/${lang}/register`} noindex />
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-6">
-            <span className="text-3xl">🌿</span>
-            <h1 className="text-lg font-semibold text-primary mt-2">Đăng ký</h1>
-            <p className="text-xs text-gray-500 mt-1">Tạo tài khoản mới</p>
+            <span className="text-3xl">🏭</span>
+            <h1 className="text-lg font-semibold text-primary mt-2">{t('auth.registerTitle')}</h1>
+            <p className="text-xs text-gray-500 mt-1">{t('auth.registerSubtitle')}</p>
           </div>
 
           {error && (
@@ -72,7 +81,7 @@ const Register = () => {
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Họ tên</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('auth.name')}</label>
               <input
                 type="text"
                 name="name"
@@ -80,12 +89,12 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="input-field"
-                placeholder="Nguyễn Văn A"
+                placeholder={t('auth.namePlaceholder')}
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Email</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('auth.email')}</label>
               <input
                 type="email"
                 name="email"
@@ -98,7 +107,7 @@ const Register = () => {
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Mật khẩu</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('auth.password')}</label>
               <input
                 type="password"
                 name="password"
@@ -106,12 +115,12 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="input-field"
-                placeholder="Ít nhất 6 ký tự"
+                placeholder={t('auth.passwordHint')}
               />
             </div>
 
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Xác nhận mật khẩu</label>
+              <label className="block text-xs text-gray-600 mb-1">{t('auth.confirmPassword')}</label>
               <input
                 type="password"
                 name="confirmPassword"
@@ -119,7 +128,7 @@ const Register = () => {
                 onChange={handleChange}
                 required
                 className="input-field"
-                placeholder="Nhập lại mật khẩu"
+                placeholder={t('auth.confirmPasswordPlaceholder')}
               />
             </div>
 
@@ -129,20 +138,20 @@ const Register = () => {
               className="btn-primary w-full py-2.5 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <FiUserPlus size={16} />
-              {loading ? 'Đang đăng ký...' : 'Đăng ký'}
+              {loading ? t('auth.registering') : t('auth.register')}
             </button>
           </form>
 
           <div className="mt-4 text-center text-xs">
-            <span className="text-gray-500">Đã có tài khoản? </span>
-            <Link to="/login" className="text-primary font-medium hover:underline">
-              Đăng nhập
+            <span className="text-gray-500">{t('auth.hasAccount')} </span>
+            <Link to={`/${lang}/login`} className="text-primary font-medium hover:underline">
+              {t('auth.login')}
             </Link>
           </div>
 
           <div className="mt-4 pt-4 border-t">
-            <Link to="/" className="block text-center text-xs text-gray-500 hover:text-primary">
-              ← Quay về trang chủ
+            <Link to={`/${lang}`} className="block text-center text-xs text-gray-500 hover:text-primary">
+              {t('auth.backToHome')}
             </Link>
           </div>
         </div>

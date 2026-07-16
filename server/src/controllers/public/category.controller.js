@@ -1,41 +1,34 @@
-import Category from '../../models/Category.js';
+import { categoryService } from '../../services/category.service.js';
+import { apiResponse } from '../../utils/apiResponse.js';
+import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
+import { localizeFields, resolveLocale } from '../../utils/i18n.js';
 
-export const getAllCategories = async (req, res) => {
+const LOCALIZABLE_FIELDS = ['name', 'description'];
+
+export const getAllCategories = async (req, res, next) => {
   try {
-    const categories = await Category.find({ isActive: true })
-      .sort({ name: 1 });
-    
-    res.json({
-      success: true,
-      data: categories
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const locale = resolveLocale(req);
+    const cacheParams = { locale };
+    const key = cacheKeys.publicCategories(cacheParams);
+    const cached = cacheStore.get(key);
+    if (cached) return apiResponse.ok(res, cached);
+
+    const items = await categoryService.list({ sort: 'name_asc' });
+    const localized = items.map((doc) => localizeFields(doc.toObject ? doc.toObject() : doc, locale, LOCALIZABLE_FIELDS));
+    cacheStore.set(key, localized, TTL.PUBLIC_CATEGORIES);
+    return apiResponse.ok(res, localized);
+  } catch (err) {
+    next(err);
   }
 };
 
-export const getCategoryById = async (req, res) => {
+export const getCategoryById = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id);
-    
-    if (!category) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Danh mục không tồn tại' 
-      });
-    }
-    
-    res.json({
-      success: true,
-      data: category
-    });
-  } catch (error) {
-    res.status(500).json({ 
-      success: false, 
-      message: error.message 
-    });
+    const locale = resolveLocale(req);
+    const category = await categoryService.getById(req.params.id, { onlyActive: true });
+    const obj = category.toObject ? category.toObject() : category;
+    return apiResponse.ok(res, localizeFields(obj, locale, LOCALIZABLE_FIELDS));
+  } catch (err) {
+    next(err);
   }
 };

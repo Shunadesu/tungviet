@@ -1,13 +1,22 @@
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiShoppingCart, FiEye } from 'react-icons/fi';
-import { useCart } from '../context/CartContext';
+import { FiFile, FiFileText } from 'react-icons/fi';
+import { useTranslation } from 'react-i18next';
+import { SUPPORTED_LOCALES } from '../i18n';
+import { useQuoteBag } from '../context/QuoteBagContext';
+import placeholderProduct from '../assets/placeholder-product.svg';
 
 const ProductCard = ({ product, index = 0 }) => {
-  const { addToCart } = useCart();
+  const { lang: urlLang } = useParams();
+  const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
+  const { t } = useTranslation();
+  const { addToQuoteBag, isInBag } = useQuoteBag();
+  const inBag = isInBag(product._id);
 
-  const formatPrice = (price) => {
-    return new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+  const handleAdd = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    addToQuoteBag(product);
   };
 
   return (
@@ -17,53 +26,65 @@ const ProductCard = ({ product, index = 0 }) => {
       transition={{ delay: index * 0.1 }}
       className="card group"
     >
-      <Link to={`/products/${product._id}`}>
+      <Link to={`/${lang}/products/${product._id}`}>
         <div className="relative overflow-hidden rounded-lg mb-2">
           <img
-            src={product.imageUrl || 'https://via.placeholder.com/300x200?text=Cay+Canh'}
+            src={product.imageUrl || placeholderProduct}
             alt={product.name}
-            className="w-full h-40 object-cover transition-transform duration-300 group-hover:scale-105"
+            className="w-full h-40 object-cover bg-gray-100 transition-transform duration-300 group-hover:scale-105"
+            onError={(e) => { e.currentTarget.src = placeholderProduct; }}
           />
-          {product.stock === 0 && (
-            <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-              <span className="text-white text-xs font-medium">Hết hàng</span>
+          {product.tdsUrl && (
+            <div className="absolute top-2 right-2 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5">
+              <FiFile size={10} />
+              TDS
             </div>
           )}
         </div>
       </Link>
-      
+
       <div className="p-2">
-        <Link to={`/products/${product._id}`}>
-          <h3 className="text-sm font-medium text-gray-800 line-clamp-1 hover:text-primary transition-colors">
+        <Link to={`/${lang}/products/${product._id}`}>
+          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 hover:text-primary transition-colors">
             {product.name}
           </h3>
         </Link>
-        
-        <p className="text-xs text-gray-500 mt-1 line-clamp-1">
-          {product.categoryId?.name || 'Danh mục'}
-        </p>
-        
-        <div className="flex items-center justify-between mt-2">
-          <span className="text-sm font-semibold text-primary">
-            {formatPrice(product.price)}
-          </span>
-          
-          <div className="flex gap-1">
-            <button
-              onClick={() => addToCart(product)}
-              disabled={product.stock === 0}
-              className="p-1.5 bg-primary text-white rounded-md hover:bg-primary-light transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <FiShoppingCart size={14} />
-            </button>
-            <Link
-              to={`/products/${product._id}`}
-              className="p-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-primary hover:text-white transition-colors"
-            >
-              <FiEye size={14} />
-            </Link>
-          </div>
+
+        {/* Specifications */}
+        <div className="flex flex-wrap gap-1 mt-2">
+          {product.softeningPoint && (
+            <span className="text-[9px] px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded">
+              {product.softeningPoint}
+            </span>
+          )}
+          {product.color && (
+            <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
+              {product.color}
+            </span>
+          )}
         </div>
+
+        {/* Benefits preview */}
+        {product.benefits && product.benefits.length > 0 && (
+          <p className="text-[10px] text-gray-400 mt-1.5 line-clamp-1">
+            {product.benefits[0]}
+          </p>
+        )}
+
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={inBag}
+          className={`mt-2 w-full text-[10px] flex items-center justify-center gap-1 py-1.5 rounded transition-colors ${
+            inBag
+              ? 'bg-green-50 text-green-600 cursor-default'
+              : 'bg-primary-50 text-primary hover:bg-primary-100'
+          }`}
+          title={t('product.requestQuote')}
+        >
+          <FiFileText size={12} />
+          {inBag ? t('product.addedToQuote') : t('product.requestQuote')}
+        </button>
       </div>
     </motion.div>
   );

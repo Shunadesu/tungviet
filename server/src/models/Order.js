@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import mongooseDelete from 'mongoose-delete';
 
 const orderSchema = new mongoose.Schema({
   userId: {
@@ -42,6 +43,12 @@ const orderSchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+orderSchema.index({ userId: 1, orderDate: -1 });
+orderSchema.index({ status: 1, orderDate: -1 });
+orderSchema.index({ userEmail: 1 });
+orderSchema.index({ userPhone: 1 });
+orderSchema.plugin(mongooseDelete, { deletedAt: true, overrideMethods: 'all' });
 
 const Order = mongoose.model('Order', orderSchema);
 

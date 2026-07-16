@@ -59,6 +59,8 @@ const estimateSchema = new mongoose.Schema({
   timestamps: true,
 });
 
+estimateSchema.index({ stt: 1 }, { unique: true });
+
 const Estimate = mongoose.model('Estimate', estimateSchema);
 
 export default Estimate;

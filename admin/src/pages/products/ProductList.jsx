@@ -1,42 +1,28 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch } from 'react-icons/fi';
-import Header from '../components/Header';
-import Modal from '../components/Modal';
-import RichEditor from '../components/RichEditor';
-import SEO from '../components/SEO';
-import adminApi from '../api/adminApi';
-import { useNotification } from '../context/NotificationContext';
+import { FiPlus, FiEdit2, FiTrash2, FiFile, FiUpload } from 'react-icons/fi';
+import Header from '../../components/Header';
+import SEO from '../../components/SEO';
+import adminApi from '../../api/adminApi';
+import { useNotification } from '../../context/NotificationContext';
 
 const ProductList = () => {
   const [products, setProducts] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingProduct, setEditingProduct] = useState(null);
+  const [selected, setSelected] = useState([]);
+  const [deleting, setDeleting] = useState(false);
+  const navigate = useNavigate();
   const { addNotification } = useNotification();
 
-  const [formData, setFormData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    stock: '',
-    categoryId: '',
-    imageUrl: '',
-  });
-
   useEffect(() => {
-    fetchData();
+    fetchProducts();
   }, []);
 
-  const fetchData = async () => {
+  const fetchProducts = async () => {
     try {
-      const [productsRes, categoriesRes] = await Promise.all([
-        adminApi.getProducts(),
-        adminApi.getCategories(),
-      ]);
-      setProducts(productsRes.data.data);
-      setCategories(categoriesRes.data.data);
+      const res = await adminApi.getProducts();
+      setProducts(res.data.data);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -44,74 +30,93 @@ const ProductList = () => {
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const data = { ...formData, price: Number(formData.price), stock: Number(formData.stock) };
-      
-      if (editingProduct) {
-        await adminApi.updateProduct(editingProduct._id, data);
-        addNotification('Cập nhật sản phẩm thành công');
-      } else {
-        await adminApi.createProduct(data);
-        addNotification('Thêm sản phẩm thành công');
-      }
-      
-      setModalOpen(false);
-      setEditingProduct(null);
-      resetForm();
-      fetchData();
-    } catch (error) {
-      addNotification(error.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    }
-  };
-
-  const handleEdit = (product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      description: product.description || '',
-      price: product.price,
-      stock: product.stock,
-      categoryId: product.categoryId?._id || product.categoryId,
-      imageUrl: product.imageUrl || '',
-    });
-    setModalOpen(true);
-  };
-
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa sản phẩm này?')) return;
     try {
       await adminApi.deleteProduct(id);
       addNotification('Xóa sản phẩm thành công');
-      fetchData();
+      fetchProducts();
     } catch (error) {
       addNotification('Có lỗi xảy ra', 'error');
     }
   };
 
-  const resetForm = () => {
-    setFormData({ name: '', description: '', price: '', stock: '', categoryId: '', imageUrl: '' });
+  const handleDeleteSelected = async () => {
+    if (selected.length === 0) return;
+    if (!confirm(`Xóa ${selected.length} sản phẩm đã chọn?`)) return;
+    setDeleting(true);
+    try {
+      await adminApi.deleteProducts(selected);
+      addNotification(`Đã xóa ${selected.length} sản phẩm`);
+      setSelected([]);
+      fetchProducts();
+    } catch (error) {
+      addNotification('Có lỗi xảy ra khi xóa nhiều', 'error');
+    } finally {
+      setDeleting(false);
+    }
   };
 
-  const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+  const toggleAll = () => {
+    if (selected.length === products.length) {
+      setSelected([]);
+    } else {
+      setSelected(products.map((p) => p._id));
+    }
+  };
+
+  const toggleOne = (id) => {
+    setSelected((prev) =>
+      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
+    );
+  };
+
+  const handleUploadTDS = (id) => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.pdf';
+    input.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      try {
+        await adminApi.uploadTDS(id, file);
+        addNotification('Upload TDS thành công');
+        fetchProducts();
+      } catch (error) {
+        addNotification('Upload thất bại', 'error');
+      }
+    };
+    input.click();
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <SEO title="Products" description="Manage products" url="/products" />
+      <SEO title="Sản phẩm" description="Quản lý sản phẩm" url="/products" />
       <Header title="Quản lý sản phẩm" />
-      
+
       <div className="p-4">
         <div className="card">
           <div className="flex justify-between items-center mb-3">
             <h2 className="text-sm font-semibold">Danh sách sản phẩm ({products.length})</h2>
-            <button
-              onClick={() => { resetForm(); setEditingProduct(null); setModalOpen(true); }}
-              className="btn-primary flex items-center gap-1 text-xs"
-            >
-              <FiPlus size={14} />
-              Thêm sản phẩm
-            </button>
+            <div className="flex items-center gap-2">
+              {selected.length > 0 && (
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={deleting}
+                  className="btn-danger flex items-center gap-1 text-xs"
+                >
+                  <FiTrash2 size={14} />
+                  Xóa ({selected.length})
+                </button>
+              )}
+              <button
+                onClick={() => navigate('/products/new')}
+                className="btn-primary flex items-center gap-1 text-xs"
+              >
+                <FiPlus size={14} />
+                Thêm sản phẩm
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -123,17 +128,37 @@ const ProductList = () => {
               <table className="w-full">
                 <thead>
                   <tr className="table-header">
-                    <th className="px-2 py-2 text-left">Ảnh</th>
-                    <th className="px-2 py-2 text-left">Tên</th>
-                    <th className="px-2 py-2 text-left">Danh mục</th>
-                    <th className="px-2 py-2 text-left">Giá</th>
-                    <th className="px-2 py-2 text-left">Kho</th>
-                    <th className="px-2 py-2 text-right">Thao tác</th>
+                    <th className="px-2 py-2 w-10">
+                      <input
+                        type="checkbox"
+                        checked={products.length > 0 && selected.length === products.length}
+                        onChange={toggleAll}
+                        className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                      />
+                    </th>
+                    <th className="px-2 py-2 text-left text-xs">Ảnh</th>
+                    <th className="px-2 py-2 text-left text-xs">Tên</th>
+                    <th className="px-2 py-2 text-left text-xs">Điểm làm mềm</th>
+                    <th className="px-2 py-2 text-left text-xs">Màu sắc</th>
+                    <th className="px-2 py-2 text-left text-xs">Lợi ích</th>
+                    <th className="px-2 py-2 text-left text-xs">TDS</th>
+                    <th className="px-2 py-2 text-right text-xs">Thao tác</th>
                   </tr>
                 </thead>
                 <tbody>
                   {products.map((product) => (
-                    <tr key={product._id} className="table-row">
+                    <tr
+                      key={product._id}
+                      className={`table-row ${selected.includes(product._id) ? 'bg-primary/5' : ''}`}
+                    >
+                      <td className="px-2 py-2">
+                        <input
+                          type="checkbox"
+                          checked={selected.includes(product._id)}
+                          onChange={() => toggleOne(product._id)}
+                          className="w-4 h-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                        />
+                      </td>
                       <td className="px-2 py-2">
                         <img
                           src={product.imageUrl || 'https://via.placeholder.com/40'}
@@ -141,21 +166,63 @@ const ProductList = () => {
                           className="w-10 h-10 object-cover rounded"
                         />
                       </td>
-                      <td className="px-2 py-2 text-xs font-medium">{product.name}</td>
-                      <td className="px-2 py-2 text-xs">{product.categoryId?.name}</td>
-                      <td className="px-2 py-2 text-xs text-primary font-medium">{formatPrice(product.price)}</td>
-                      <td className="px-2 py-2 text-xs">{product.stock}</td>
+                      <td className="px-2 py-2">
+                        <div className="text-xs font-medium">{product.name}</div>
+                        {product.nameEn && (
+                          <div className="text-[10px] text-gray-400">{product.nameEn}</div>
+                        )}
+                      </td>
+                      <td className="px-2 py-2 text-xs">{product.softeningPoint || '—'}</td>
+                      <td className="px-2 py-2 text-xs">{product.color || '—'}</td>
+                      <td className="px-2 py-2">
+                        <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {product.benefits && product.benefits.length > 0 ? (
+                            product.benefits.slice(0, 2).map((b, i) => (
+                              <span key={i} className="text-[10px] px-1 py-0.5 bg-green-50 text-green-600 rounded">
+                                {b}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-400">—</span>
+                          )}
+                          {product.benefits && product.benefits.length > 2 && (
+                            <span className="text-[10px] text-gray-400">+{product.benefits.length - 2}</span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2">
+                        {product.tdsUrl ? (
+                          <a
+                            href={product.tdsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-blue-600 hover:text-blue-800"
+                          >
+                            <FiFile size={16} />
+                          </a>
+                        ) : (
+                          <button
+                            onClick={() => handleUploadTDS(product._id)}
+                            className="text-gray-400 hover:text-gray-600"
+                            title="Upload TDS"
+                          >
+                            <FiUpload size={16} />
+                          </button>
+                        )}
+                      </td>
                       <td className="px-2 py-2 text-right">
                         <div className="flex justify-end gap-1">
                           <button
-                            onClick={() => handleEdit(product)}
+                            onClick={() => navigate(`/products/${product._id}/edit`)}
                             className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                            title="Sửa"
                           >
                             <FiEdit2 size={14} />
                           </button>
                           <button
                             onClick={() => handleDelete(product._id)}
                             className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                            title="Xóa"
                           >
                             <FiTrash2 size={14} />
                           </button>
@@ -169,94 +236,6 @@ const ProductList = () => {
           )}
         </div>
       </div>
-
-      {/* Modal */}
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingProduct ? 'Sửa sản phẩm' : 'Thêm sản phẩm'}
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium mb-1">Tên sản phẩm *</label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="input-field"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">Giá (VNĐ) *</label>
-              <input
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                required
-                className="input-field"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Số lượng *</label>
-              <input
-                type="number"
-                value={formData.stock}
-                onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
-                required
-                className="input-field"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Danh mục *</label>
-            <select
-              value={formData.categoryId}
-              onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
-              required
-              className="input-field"
-            >
-              <option value="">Chọn danh mục</option>
-              {categories.map((cat) => (
-                <option key={cat._id} value={cat._id}>{cat.name}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Link ảnh</label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              className="input-field"
-              placeholder="https://..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Mô tả</label>
-            <RichEditor
-              value={formData.description}
-              onChange={(value) => setFormData({ ...formData, description: value })}
-              placeholder="Nhập mô tả sản phẩm..."
-            />
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t">
-            <button type="button" onClick={() => setModalOpen(false)} className="btn-secondary text-xs">
-              Hủy
-            </button>
-            <button type="submit" className="btn-primary text-xs">
-              {editingProduct ? 'Cập nhật' : 'Thêm mới'}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </motion.div>
   );
 };
