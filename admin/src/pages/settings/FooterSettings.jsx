@@ -40,8 +40,19 @@ const FooterSettings = () => {
     })();
   }, []);
 
+  const extractIframeSrc = (raw) => {
+    if (!raw) return '';
+    const text = String(raw).trim();
+    const m = text.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i);
+    if (m) return m[1];
+    const m2 = text.match(/<iframe[^>]*\ssrc=([^\s>]+)/i);
+    if (m2) return m2[1].replace(/^["']|["']$/g, '');
+    return text.split('"')[0].split("'")[0].trim();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const cleanMapEmbed = extractIframeSrc(form.mapEmbed || '');
     const cleanForm = {
       about: typeof form.about === 'string' ? form.about : '',
       phone: typeof form.phone === 'string' ? form.phone : '',
@@ -49,7 +60,7 @@ const FooterSettings = () => {
       address: typeof form.address === 'string' ? form.address : '',
       copyright: typeof form.copyright === 'string' ? form.copyright : '',
       logoUrl: typeof form.logoUrl === 'string' ? form.logoUrl : '',
-      mapEmbed: typeof form.mapEmbed === 'string' ? form.mapEmbed : '',
+      mapEmbed: /^https?:\/\//i.test(cleanMapEmbed) ? cleanMapEmbed : '',
     };
     setSaving(true);
     try {
@@ -247,10 +258,10 @@ const FooterSettings = () => {
                 value={form.mapEmbed || ''}
                 onChange={(e) => setForm({ ...form, mapEmbed: e.target.value })}
                 className="input-field"
-                placeholder="https://www.google.com/maps/embed?pb=..."
+                placeholder="https://www.google.com/maps/embed?pb=... (hoặc paste nguyên thẻ <iframe>)"
                 maxLength={2000}
               />
-              <p className="text-[10px] text-gray-400 mt-0.5">Dán link embed từ Google Maps (Share → Embed a map)</p>
+              <p className="text-[10px] text-gray-400 mt-0.5">Dán link embed từ Google Maps (Share → Embed a map), hoặc paste cả thẻ <code className="bg-gray-100 px-1 rounded">&lt;iframe&gt;</code> - hệ thống sẽ tự tách URL.</p>
             </div>
 
             <div className="flex justify-end pt-2 border-t">

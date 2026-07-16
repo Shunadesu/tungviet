@@ -25,7 +25,7 @@ const Home = () => {
       <HeroSlider />
       <WhyUsSection />
       <StatsSection />
-      <TestimonialsSection />
+      {/* <TestimonialsSection /> */}
       <MarketsGridSection />
       <CertificatesSection />
       <FeaturedProducts />

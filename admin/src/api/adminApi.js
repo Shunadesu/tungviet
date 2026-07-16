@@ -5,19 +5,25 @@ export const adminApi = {
   login: (data) => axiosClient.post('/auth/login', data),
 
   // Upload
-  uploadImage: (file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return axiosClient.post('/admin/upload', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+  uploadImage: (payload) => {
+    let fd;
+    if (payload instanceof FormData) {
+      fd = payload;
+    } else {
+      fd = new FormData();
+      fd.append('file', payload);
+    }
+    return axiosClient.post('/admin/upload', fd);
   },
-  uploadPDF: (file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return axiosClient.post('/admin/upload/pdf', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
+  uploadPDF: (payload) => {
+    let fd;
+    if (payload instanceof FormData) {
+      fd = payload;
+    } else {
+      fd = new FormData();
+      fd.append('file', payload);
+    }
+    return axiosClient.post('/admin/upload/pdf', fd);
   },
 
   // Products

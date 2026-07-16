@@ -78,24 +78,42 @@ const Footer = () => {
                   {address}
                 </li>
               )}
-              {mapEmbed && (
-                <li className="mt-3">
-                  <div className="rounded-lg overflow-hidden border border-primary-700">
-                    <iframe
-                      src={mapEmbed}
-                      className="w-full h-32"
-                      style={{ border: 0 }}
-                      allowFullScreen
-                      loading="lazy"
-                      referrerPolicy="no-referrer-when-downgrade"
-                      title="Google Maps"
-                    />
-                  </div>
-                </li>
-              )}
             </ul>
           </div>
         </div>
+
+        {mapEmbed && (() => {
+          let src = String(mapEmbed).trim();
+          const iframeMatch = src.match(/<iframe[^>]*\ssrc=["']([^"']+)["']/i);
+          if (iframeMatch) src = iframeMatch[1];
+          const beforeQuote = src.split('"')[0].split("'")[0].trim();
+          src = beforeQuote;
+          if (!/^https?:\/\//i.test(src)) return null;
+          try {
+            const u = new URL(src);
+            if (u.hostname.includes('google.com') && u.pathname.includes('/maps/embed')) {
+              if (!u.searchParams.has('origin') && typeof window !== 'undefined') {
+                u.searchParams.set('origin', window.location.origin);
+              }
+            }
+            src = u.toString();
+          } catch { return null; }
+          return (
+            <div className="mt-6">
+              <div className="rounded-lg overflow-hidden border border-primary-700">
+                <iframe
+                  src={src}
+                  className="w-full h-72 md:h-96"
+                  style={{ border: 0 }}
+                  allowFullScreen
+                  loading="lazy"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  title="Google Maps"
+                />
+              </div>
+            </div>
+          );
+        })()}
 
         <div className="border-t border-primary-700 mt-6 pt-4 text-center">
           <p className="text-xs text-gray-400">{copyright}</p>

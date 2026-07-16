@@ -19,7 +19,6 @@ const QuoteSectionForm = () => {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [form, setForm] = useState(emptyForm());
-  const fileRef = { current: null };
 
   useEffect(() => { fetchSection(); }, []);
 
@@ -62,19 +61,21 @@ const QuoteSectionForm = () => {
       hotlines: p.hotlines.filter((_, i) => i !== idx),
     }));
 
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
+  const handleImageUpload = async (file) => {
     if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
     setUploadingImage(true);
     try {
-      const res = await adminApi.uploadImage(fd);
+      const res = await adminApi.uploadImage(file);
       const url = res.data?.url || res.data?.data?.url || '';
-      if (url) setField('backgroundUrl', null, url);
-      else addNotification('Upload anh that bai', 'error');
-    } catch {
-      addNotification('Upload anh that bai', 'error');
+      if (url) {
+        setField('backgroundUrl', null, url);
+        addNotification('Upload ảnh thành công');
+      } else {
+        addNotification('Upload ảnh thất bại', 'error');
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Upload ảnh thất bại';
+      addNotification(msg, 'error');
     } finally { setUploadingImage(false); }
   };
 
@@ -166,14 +167,24 @@ const QuoteSectionForm = () => {
                   </div>
                 )}
                 <div>
-                  <input type="file" accept="image/*" className="hidden"
-                    ref={fileRef} onChange={handleImageUpload} />
-                  <button type="button" onClick={() => fileRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="btn-secondary flex items-center gap-2 text-xs">
+                  <label
+                    htmlFor="quote-bg-file"
+                    className={`btn-secondary flex items-center gap-2 text-xs cursor-pointer ${uploadingImage ? 'pointer-events-none opacity-60' : ''}`}
+                  >
                     <FiUpload size={13} />
                     {uploadingImage ? 'Dang tai...' : 'Tai anh len'}
-                  </button>
+                  </label>
+                  <input
+                    id="quote-bg-file"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      e.target.value = '';
+                      if (file) handleImageUpload(file);
+                    }}
+                  />
                 </div>
               </div>
             </div>

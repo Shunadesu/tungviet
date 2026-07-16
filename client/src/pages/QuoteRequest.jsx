@@ -1,11 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCheckCircle, FiTrash2, FiX, FiMail } from 'react-icons/fi';
+import { FiCheckCircle, FiTrash2, FiX, FiSend, FiAlertCircle, FiMail, FiPhone } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import { useQuoteBag } from '../context/QuoteBagContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
+import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 import placeholderProduct from '../assets/placeholder-product.svg';
 
@@ -16,16 +17,18 @@ const QuoteRequest = () => {
   const { items, count, removeFromQuoteBag, clearQuoteBag } = useQuoteBag();
   const { footer } = useSiteConfig();
 
-  const [success, setSuccess] = useState(false);
+  const [sending, setSending] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
-    fullName: '',
+    name: '',
     email: '',
     phone: '',
     company: '',
     message: '',
     preferredContact: 'email',
   });
-  const [errors, setErrors] = useState({});
+  const [submittedContact, setSubmittedContact] = useState(null);
 
   useEffect(() => {
     document.title = t('quote.title');
@@ -34,69 +37,71 @@ const QuoteRequest = () => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: null }));
   };
 
-  const validate = () => {
-    const newErrors = {};
-    if (!formData.fullName.trim()) newErrors.fullName = true;
-    if (!formData.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = true;
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!formData.name.trim()) {
+      setError(t('quoteSection.errorName') || 'Vui lòng nhập họ tên');
+      return;
     }
-    if (!formData.phone.trim()) newErrors.phone = true;
-    if (count === 0) newErrors.items = true;
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const buildEmailBody = () => {
-    const lines = [
-      `${t('quote.fullName')}: ${formData.fullName}`,
-      `${t('quote.email')}: ${formData.email}`,
-      `${t('quote.phone')}: ${formData.phone}`,
-    ];
-    if (formData.company) lines.push(`${t('quote.company')}: ${formData.company}`);
-    lines.push('');
-    lines.push(`${t('quote.bag')}:`);
-    items.forEach((it, i) => {
-      lines.push(`${i + 1}. ${it.name}${it.softeningPoint ? ` (${it.softeningPoint})` : ''} - ${it._id}`);
-    });
-    if (formData.message) {
-      lines.push('');
-      lines.push(`${t('quote.message')}:`);
-      lines.push(formData.message);
+    if (!formData.email.trim()) {
+      setError('Vui lòng nhập email');
+      return;
     }
-    lines.push('');
-    lines.push(`${t('quote.preferredContact')}: ${formData.preferredContact === 'email' ? t('quote.preferredEmail') : t('quote.preferredPhone')}`);
-    return lines.join('\n');
-  };
+    if (!formData.phone.trim()) {
+      setError('Vui lòng nhập số điện thoại');
+      return;
+    }
+    if (count === 0) {
+      setError(t('quote.bagEmpty') || 'Vui lòng chọn ít nhất một sản phẩm');
+      return;
+    }
 
-  const handleSendViaEmail = () => {
-    if (!validate()) return;
-    const to = footer?.email || 'contact@zuna.vn';
-    const subject = `[Quote Request] ${formData.fullName}`;
-    const body = buildEmailBody();
-    const mailto = `mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    window.location.href = mailto;
-    setSuccess(true);
+    setSending(true);
+    setError('');
+    try {
+      const payload = {
+        name: formData.name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        company: formData.company.trim(),
+        message: formData.message.trim(),
+        preferredContact: formData.preferredContact,
+        items: items.map((it) => ({
+          productId: it._id || it.id || '',
+          name: it.name || '',
+          softeningPoint: it.softeningPoint || '',
+          imageUrl: it.imageUrl || '',
+          quantity: Number(it.quantity) || 1,
+        })),
+      };
+      await publicApi.submitQuote(payload);
+      setSubmittedContact({
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        preferredContact: formData.preferredContact,
+      });
+      setSubmitted(true);
+      clearQuoteBag();
+      setFormData({ name: '', email: '', phone: '', company: '', message: '', preferredContact: 'email' });
+    } catch (err) {
+      setError(err.response?.data?.message || t('quoteSection.error') || 'Gửi yêu cầu thất bại. Vui lòng thử lại.');
+    } finally {
+      setSending(false);
+    }
   };
 
   const handleSendAnother = () => {
-    setSuccess(false);
-    clearQuoteBag();
-    setFormData({
-      fullName: '',
-      email: '',
-      phone: '',
-      company: '',
-      message: '',
-      preferredContact: 'email',
-    });
+    setSubmitted(false);
+    setSubmittedContact(null);
+    setFormData({ name: '', email: '', phone: '', company: '', message: '', preferredContact: 'email' });
   };
 
   const summaryItems = useMemo(() => items, [items]);
 
-  if (success) {
+  if (submitted) {
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
@@ -105,17 +110,20 @@ const QuoteRequest = () => {
       >
         <div className="text-center max-w-md mx-auto">
           <FiCheckCircle size={72} className="mx-auto text-green-500 mb-3" />
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('quote.success')}</h2>
-          <p className="text-sm text-gray-600 mb-4">
-            {t('quote.successSubtitle')}{' '}
-            <strong>{formData.preferredContact === 'email' ? formData.email : formData.phone}</strong>.
-          </p>
+          <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('quote.success') || 'Gửi yêu cầu thành công!'}</h2>
+          {submittedContact && (
+            <p className="text-sm text-gray-600 mb-4">
+              Chúng tôi sẽ liên hệ lại với bạn qua{' '}
+              <strong>{submittedContact.preferredContact === 'email' ? submittedContact.email : submittedContact.phone}</strong>{' '}
+              trong thời gian sớm nhất.
+            </p>
+          )}
           <div className="flex flex-wrap justify-center gap-2">
             <Link to={`/${lang}/products`} className="btn-secondary text-sm">
-              {t('quote.browseProducts')}
+              {t('quote.browseProducts') || 'Xem thêm sản phẩm'}
             </Link>
             <button type="button" onClick={handleSendAnother} className="btn-primary text-sm">
-              {t('quote.sendAnother')}
+              {t('quote.sendAnother') || 'Gửi yêu cầu khác'}
             </button>
           </div>
         </div>
@@ -141,22 +149,16 @@ const QuoteRequest = () => {
 
       <div className="max-w-7xl mx-auto px-2 py-4 grid lg:grid-cols-3 gap-4">
         {/* Form */}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleSendViaEmail();
-          }}
-          className="lg:col-span-2 space-y-4"
-        >
+        <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-4">
           <div className="bg-white rounded-lg p-4">
-            <h2 className="text-sm font-semibold mb-3">{t('quote.info')}</h2>
+            <h2 className="text-sm font-semibold mb-3">{t('quote.info') || 'Thông tin liên hệ'}</h2>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs text-gray-600 mb-1">{t('quote.fullName')} *</label>
+                <label className="block text-xs text-gray-600 mb-1">{t('quote.fullName') || 'Họ và tên'} *</label>
                 <input
                   type="text"
-                  name="fullName"
-                  value={formData.fullName}
+                  name="name"
+                  value={formData.name}
                   onChange={handleChange}
                   required
                   className="input-field"
@@ -165,7 +167,7 @@ const QuoteRequest = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">{t('quote.email')} *</label>
+                  <label className="block text-xs text-gray-600 mb-1">Email *</label>
                   <input
                     type="email"
                     name="email"
@@ -177,7 +179,7 @@ const QuoteRequest = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-600 mb-1">{t('quote.phone')} *</label>
+                  <label className="block text-xs text-gray-600 mb-1">{t('quote.phone') || 'Số điện thoại'} *</label>
                   <input
                     type="tel"
                     name="phone"
@@ -190,61 +192,85 @@ const QuoteRequest = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">{t('quote.company')}</label>
+                <label className="block text-xs text-gray-600 mb-1">{t('quote.company') || 'Công ty'}</label>
                 <input
                   type="text"
                   name="company"
                   value={formData.company}
                   onChange={handleChange}
                   className="input-field"
-                  placeholder={t('quote.companyPlaceholder')}
+                  placeholder={t('quote.companyPlaceholder') || 'Tên công ty (không bắt buộc)'}
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">{t('quote.message')}</label>
+                <label className="block text-xs text-gray-600 mb-1">{t('quote.message') || 'Lời nhắn'}</label>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleChange}
                   rows={4}
                   className="input-field resize-none"
-                  placeholder={t('quote.messagePlaceholder')}
+                  placeholder={t('quote.messagePlaceholder') || 'Mô tả chi tiết yêu cầu của bạn...'}
                 />
               </div>
               <div>
-                <label className="block text-xs text-gray-600 mb-1">{t('quote.preferredContact')}</label>
-                <div className="flex gap-2">
-                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <label className="block text-xs text-gray-600 mb-2">{t('quote.preferredContact') || 'Phương thức liên hệ'}</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <label className={`flex items-center gap-2 text-xs cursor-pointer border rounded-lg p-2.5 transition-colors ${formData.preferredContact === 'email' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input
                       type="radio"
                       name="preferredContact"
                       value="email"
                       checked={formData.preferredContact === 'email'}
                       onChange={handleChange}
+                      className="accent-primary"
                     />
-                    {t('quote.preferredEmail')}
+                    <FiMail size={14} className="text-blue-600" />
+                    <span>{t('quote.preferredEmail') || 'Email'}</span>
                   </label>
-                  <label className="flex items-center gap-2 text-xs cursor-pointer">
+                  <label className={`flex items-center gap-2 text-xs cursor-pointer border rounded-lg p-2.5 transition-colors ${formData.preferredContact === 'phone' ? 'border-primary bg-primary/5' : 'border-gray-200 hover:border-gray-300'}`}>
                     <input
                       type="radio"
                       name="preferredContact"
                       value="phone"
                       checked={formData.preferredContact === 'phone'}
                       onChange={handleChange}
+                      className="accent-primary"
                     />
-                    {t('quote.preferredPhone')}
+                    <FiPhone size={14} className="text-primary" />
+                    <span>{t('quote.preferredPhone') || 'Điện thoại'}</span>
                   </label>
                 </div>
               </div>
             </div>
           </div>
 
-          <button type="submit" className="btn-primary w-full py-3 flex items-center justify-center gap-2">
-            <FiMail size={16} />
-            {t('quote.sendViaEmail')}
+          {error && (
+            <div className="flex items-center gap-2 text-red-600 text-xs bg-red-50 border border-red-100 rounded-lg p-3">
+              <FiAlertCircle size={14} />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={sending || count === 0}
+            className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {sending ? (
+              <>
+                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                {t('quoteSection.form.sending') || 'Đang gửi...'}
+              </>
+            ) : (
+              <>
+                <FiSend size={16} />
+                {t('quoteSection.form.submit') || 'Gửi yêu cầu báo giá'}
+              </>
+            )}
           </button>
-          {errors.items && (
-            <p className="text-xs text-red-600 text-center">{t('quote.bagEmpty')}</p>
+          {count === 0 && !sending && (
+            <p className="text-xs text-red-600 text-center">{t('quote.bagEmpty') || 'Vui lòng chọn ít nhất một sản phẩm để gửi yêu cầu'}</p>
           )}
         </form>
 
@@ -253,7 +279,7 @@ const QuoteRequest = () => {
           <div className="bg-white rounded-lg p-4 sticky top-16">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-semibold">
-                {t('quote.bag')} ({count})
+                {t('quote.bag') || 'Sản phẩm yêu cầu'} ({count})
               </h2>
               {count > 0 && (
                 <button
@@ -262,16 +288,16 @@ const QuoteRequest = () => {
                   className="text-[10px] text-red-600 hover:underline flex items-center gap-1"
                 >
                   <FiTrash2 size={10} />
-                  {t('quote.clear')}
+                  {t('quote.clear') || 'Xoá hết'}
                 </button>
               )}
             </div>
 
             {summaryItems.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-xs text-gray-500 mb-2">{t('quote.bagEmpty')}</p>
+                <p className="text-xs text-gray-500 mb-2">{t('quote.bagEmpty') || 'Chưa có sản phẩm nào'}</p>
                 <Link to={`/${lang}/products`} className="text-xs text-primary hover:underline">
-                  {t('quote.browseProducts')}
+                  {t('quote.browseProducts') || 'Chọn sản phẩm'}
                 </Link>
               </div>
             ) : (
@@ -294,12 +320,18 @@ const QuoteRequest = () => {
                       type="button"
                       onClick={() => removeFromQuoteBag(item._id)}
                       className="text-gray-400 hover:text-red-500 flex-shrink-0"
-                      title={t('quote.remove')}
+                      title={t('quote.remove') || 'Xoá'}
                     >
                       <FiX size={14} />
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {footer?.email && (
+              <div className="mt-4 pt-3 border-t text-[10px] text-gray-500">
+                <p>Cần hỗ trợ? Gọi <a href={`tel:${footer.phone?.replace(/\s/g, '')}`} className="text-primary font-medium">{footer.phone}</a> hoặc email <a href={`mailto:${footer.email}`} className="text-blue-600">{footer.email}</a></p>
               </div>
             )}
           </div>
