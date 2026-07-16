@@ -45,23 +45,38 @@ const FloatingContactBar = ({ contacts = [] }) => {
 
   if (!contacts || contacts.length === 0) return null;
 
+  const getKey = (contact, index) => {
+    if (contact?._id != null) {
+      if (typeof contact._id === 'string') return contact._id;
+      if (typeof contact._id === 'object' && typeof contact._id.toHexString === 'function') {
+        return contact._id.toHexString();
+      }
+      if (typeof contact._id === 'object' && contact._id._id) {
+        return String(contact._id._id);
+      }
+      return String(contact._id);
+    }
+    return `floating-contact-${index}`;
+  };
+
   return (
     <div className="fixed right-4 bottom-20 z-50 flex flex-col gap-3">
       <AnimatePresence>
         {contacts.map((contact, index) => {
           const config = ICON_DISPLAY[contact.icon] || ICON_DISPLAY.FiPhone;
           const IconComponent = config.icon;
-          const isHovered = hoveredId === contact._id;
+          const key = getKey(contact, index);
+          const isHovered = hoveredId === key;
 
           return (
             <motion.div
-              key={contact._id || index}
+              key={key}
               initial={{ opacity: 0, scale: 0, x: 20 }}
               animate={{ opacity: 1, scale: 1, x: 0 }}
               exit={{ opacity: 0, scale: 0, x: 20 }}
               transition={{ delay: index * 0.05, duration: 0.2 }}
               className="relative"
-              onMouseEnter={() => setHoveredId(contact._id)}
+              onMouseEnter={() => setHoveredId(key)}
               onMouseLeave={() => setHoveredId(null)}
             >
               <a

@@ -83,6 +83,18 @@ const localizeAbout = (about, locale) => {
   };
 };
 
+const normalizeId = (item) => {
+  if (!item) return item;
+  const raw = item._id;
+  let idStr = null;
+  if (raw == null) idStr = null;
+  else if (typeof raw === 'string') idStr = raw;
+  else if (typeof raw === 'object' && typeof raw.toHexString === 'function') idStr = raw.toHexString();
+  else if (typeof raw === 'object' && raw._id) idStr = String(raw._id);
+  else idStr = String(raw);
+  return idStr ? { ...item, _id: idStr } : item;
+};
+
 const toClient = (doc, locale = 'vi') => {
   if (!doc) return null;
   const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
@@ -109,7 +121,7 @@ const toClient = (doc, locale = 'vi') => {
       .filter((c) => c.active !== false)
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-      .map((c) => ({ _id: c._id, icon: c.icon || 'FiPhone', url: c.url || '', label: c.label || '' })),
+      .map((c) => normalizeId({ _id: c._id, icon: c.icon || 'FiPhone', url: c.url || '', label: c.label || '' })),
     updatedAt: obj.updatedAt || null,
   };
 };
@@ -117,17 +129,6 @@ const toClient = (doc, locale = 'vi') => {
 const toAdmin = (doc) => {
   if (!doc) return doc;
   const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
-  const normalizeId = (item) => {
-    if (!item) return item;
-    const raw = item._id;
-    let idStr = null;
-    if (raw == null) idStr = null;
-    else if (typeof raw === 'string') idStr = raw;
-    else if (typeof raw === 'object' && typeof raw.toHexString === 'function') idStr = raw.toHexString();
-    else if (typeof raw === 'object' && raw._id) idStr = String(raw._id);
-    else idStr = String(raw);
-    return idStr ? { ...item, _id: idStr } : item;
-  };
   return {
     logoUrl: obj.logoUrl || null,
     logoFilename: obj.logoFilename || null,

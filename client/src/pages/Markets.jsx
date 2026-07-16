@@ -77,7 +77,12 @@ const Markets = () => {
         ) : (
           <div className="space-y-8">
             {markets.map((market, index) => (
-              <MarketSection key={market._id} market={market} lang={lang} index={index} />
+              <MarketSection
+                key={market._id != null ? String(market._id) : `market-${index}`}
+                market={market}
+                lang={lang}
+                index={index}
+              />
             ))}
           </div>
         )}
@@ -151,8 +156,9 @@ const MarketSection = ({ market, lang, index }) => {
                 const techTitle = lang === 'en' && tech.titleEn ? tech.titleEn : tech.title;
                 const techDesc = lang === 'en' && tech.descriptionEn ? sanitizeHtml(tech.descriptionEn) : sanitizeHtml(tech.description);
                 const techProducts = tech.products?.filter((p) => p.isActive !== false) || [];
+                const techKey = tech._id != null ? String(tech._id) : `tech-${i}`;
                 return (
-                  <div key={i} className="bg-primary-50/50 rounded-lg p-3 border border-primary-100">
+                  <div key={techKey} className="bg-primary-50/50 rounded-lg p-3 border border-primary-100">
                     <div className="flex items-start gap-2 mb-2">
                       {tech.imageUrl ? (
                         <img
@@ -184,7 +190,10 @@ const MarketSection = ({ market, lang, index }) => {
                     {techProducts.length > 0 && (
                       <div className="flex flex-wrap gap-1 mt-2">
                         {techProducts.slice(0, 3).map((product, pi) => (
-                          <span key={pi} className="text-[9px] px-1.5 py-0.5 bg-white text-gray-600 rounded border">
+                          <span
+                            key={product?._id != null ? `tech-product-${String(product._id)}` : `tech-product-${pi}`}
+                            className="text-[9px] px-1.5 py-0.5 bg-white text-gray-600 rounded border"
+                          >
                             {product.name || product.nameEn}
                           </span>
                         ))}
@@ -215,8 +224,9 @@ const MarketSection = ({ market, lang, index }) => {
                   ? sanitizeHtml(app.benefitsEn)
                   : sanitizeHtml(app.benefits);
                 const appProducts = app.products?.filter((p) => p.isActive !== false) || [];
+                const appKey = app._id != null ? String(app._id) : `app-${i}`;
                 return (
-                  <div key={i} className="bg-green-50/50 rounded-lg p-3 border border-green-100">
+                  <div key={appKey} className="bg-green-50/50 rounded-lg p-3 border border-green-100">
                     <div className="flex items-start gap-2 mb-2">
                       {app.imageUrl ? (
                         <img
@@ -248,7 +258,10 @@ const MarketSection = ({ market, lang, index }) => {
                     {appProducts.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {appProducts.slice(0, 3).map((product, pi) => (
-                          <span key={pi} className="text-[9px] px-1.5 py-0.5 bg-white text-gray-600 rounded border">
+                          <span
+                            key={product?._id != null ? `app-product-${String(product._id)}` : `app-product-${pi}`}
+                            className="text-[9px] px-1.5 py-0.5 bg-white text-gray-600 rounded border"
+                          >
                             {product.name || product.nameEn}
                           </span>
                         ))}
@@ -288,8 +301,12 @@ const MarketSection = ({ market, lang, index }) => {
               {t('market.products')} ({market.selectedProducts.length})
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {market.selectedProducts.map((product) => (
-                <MarketProductCard key={product._id} product={product} lang={lang} />
+              {market.selectedProducts.map((product, productIndex) => (
+                <MarketProductCard
+                  key={product?._id != null ? String(product._id) : `market-product-${productIndex}`}
+                  product={product}
+                  lang={lang}
+                />
               ))}
             </div>
           </div>

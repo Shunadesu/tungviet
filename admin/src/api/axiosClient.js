@@ -1,12 +1,20 @@
 import axios from 'axios';
 
+const isFormData = (value) =>
+  typeof FormData !== 'undefined' && (
+    value instanceof FormData || Object.prototype.toString.call(value) === '[object FormData]'
+  );
+
 const axiosClient = axios.create({
   baseURL: import.meta.env.VITE_API_URL || '/api',
 });
 
 axiosClient.interceptors.request.use(
   (config) => {
-    if (!(config.data instanceof FormData) && !config.headers['Content-Type']) {
+    if (isFormData(config.data)) {
+      config.headers?.delete?.('Content-Type');
+      if (config.headers) delete config.headers['Content-Type'];
+    } else if (!config.headers?.['Content-Type']) {
       config.headers['Content-Type'] = 'application/json';
     }
     const token = localStorage.getItem('adminToken');

@@ -342,7 +342,24 @@ export const uploadFavicon = async (req, res, next) => {
 
 export const updateFloatingContacts = async (req, res, next) => {
   try {
-    const contacts = Array.isArray(req.body) ? req.body : [];
+    const rawContacts = Array.isArray(req.body) ? req.body : [];
+    const contacts = rawContacts.map((item, index) => {
+      const normalized = {
+        icon: typeof item?.icon === 'string' && item.icon.trim() ? item.icon.trim() : 'FiPhone',
+        url: typeof item?.url === 'string' ? item.url : '',
+        label: typeof item?.label === 'string' ? item.label : '',
+        active: item?.active !== false,
+        order: typeof item?.order === 'number' ? item.order : index,
+      };
+      if (item && item._id) {
+        const raw = item._id;
+        if (typeof raw === 'string') normalized._id = raw;
+        else if (typeof raw === 'object' && typeof raw.toHexString === 'function') normalized._id = raw.toHexString();
+        else if (typeof raw === 'object' && raw._id) normalized._id = String(raw._id);
+        else normalized._id = String(raw);
+      }
+      return normalized;
+    });
     const config = await siteConfigService.updateFloatingContacts(contacts);
     return apiResponse.ok(res, config.floatingContacts, 'Cap nhat thanh cong');
   } catch (err) {

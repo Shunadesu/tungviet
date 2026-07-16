@@ -69,6 +69,18 @@ export const SiteConfigProvider = ({ children }) => {
     return () => i18n.off('languageChanged', onLangChange);
   }, [i18n]);
 
+const normalizeContactId = (contact, index) => {
+  if (!contact) return contact;
+  const raw = contact._id;
+  let idStr = null;
+  if (raw == null || raw === '') idStr = null;
+  else if (typeof raw === 'string') idStr = raw;
+  else if (typeof raw === 'object' && typeof raw.toHexString === 'function') idStr = raw.toHexString();
+  else if (typeof raw === 'object' && raw._id) idStr = String(raw._id);
+  else idStr = String(raw);
+  return idStr ? { ...contact, _id: idStr } : { ...contact, _id: `floating-contact-${index}` };
+};
+
   const fetchConfig = useCallback(async () => {
     setLoading(true);
     try {
@@ -83,7 +95,11 @@ export const SiteConfigProvider = ({ children }) => {
       setFooter(data.footer ? { ...defaults.footer, ...data.footer } : defaults.footer);
       setSeo(data.seo || null);
       setFaviconUrl(data.faviconUrl || null);
-      setFloatingContacts(Array.isArray(data.floatingContacts) ? data.floatingContacts : []);
+      setFloatingContacts(
+        Array.isArray(data.floatingContacts)
+          ? data.floatingContacts.map((contact, index) => normalizeContactId(contact, index))
+          : []
+      );
     } catch (err) {
       console.warn('[SiteConfig] fetch failed, using defaults:', err?.message);
     } finally {

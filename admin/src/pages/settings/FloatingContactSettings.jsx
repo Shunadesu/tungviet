@@ -14,6 +14,27 @@ const ICON_OPTIONS = [
   { value: 'FiClock', label: 'Hours', color: 'text-orange-500' },
 ];
 
+const generateTempId = () => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+};
+
+const getContactKey = (contact, index) => {
+  if (contact?._id != null) {
+    if (typeof contact._id === 'string') return contact._id;
+    if (typeof contact._id === 'object' && typeof contact._id.toHexString === 'function') {
+      return contact._id.toHexString();
+    }
+    if (typeof contact._id === 'object' && contact._id._id) {
+      return String(contact._id._id);
+    }
+    return String(contact._id);
+  }
+  return contact?.tempId || `floating-contact-${index}`;
+};
+
 const FloatingContactSettings = () => {
   const { addNotification } = useNotification();
   const [contacts, setContacts] = useState([]);
@@ -50,14 +71,16 @@ const FloatingContactSettings = () => {
     setSaving(true);
     try {
       let updated;
-      if (editingId) {
+      const targetId = editingId;
+      if (targetId) {
         updated = contacts.map((c) =>
-          c._id === editingId ? { ...c, ...form } : c
+          (c._id || c.tempId) === targetId ? { ...c, ...form } : c
         );
       } else {
         const newContact = {
           ...form,
           order: contacts.length,
+          tempId: generateTempId(),
         };
         updated = [...contacts, newContact];
       }
@@ -80,7 +103,7 @@ const FloatingContactSettings = () => {
   };
 
   const handleEdit = (contact) => {
-    setEditingId(contact._id);
+    setEditingId(contact._id || contact.tempId);
     setForm({ icon: contact.icon, url: contact.url, label: contact.label || '', active: contact.active !== false });
     setShowForm(true);
   };
@@ -90,7 +113,7 @@ const FloatingContactSettings = () => {
 
     setSaving(true);
     try {
-      const updated = contacts.filter((c) => c._id !== id);
+      const updated = contacts.filter((c) => (c._id || c.tempId) !== id);
       await adminApi.updateFloatingContacts(updated);
       setContacts(updated);
       addNotification('Xoa thanh cong');
@@ -103,7 +126,7 @@ const FloatingContactSettings = () => {
 
   const handleToggleActive = async (id) => {
     const updated = contacts.map((c) =>
-      c._id === id ? { ...c, active: c.active === false ? true : false } : c
+      (c._id || c.tempId) === id ? { ...c, active: c.active === false ? true : false } : c
     );
     setContacts(updated);
     try {
@@ -255,7 +278,7 @@ const FloatingContactSettings = () => {
                 const iconOpt = ICON_OPTIONS.find((o) => o.value === contact.icon) || ICON_OPTIONS[0];
                 return (
                   <div
-                    key={contact._id}
+                    key={getContactKey(contact, index)}
                     className={`flex items-center gap-3 p-3 rounded-lg border ${
                       contact.active === false ? 'bg-gray-50 opacity-60' : 'bg-white'
                     }`}

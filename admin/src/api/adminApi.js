@@ -1,45 +1,35 @@
 import axiosClient from './axiosClient';
 
+const isFormData = (value) =>
+  typeof FormData !== 'undefined' && value instanceof FormData;
+
+const toUploadFormData = (payload) => {
+  if (isFormData(payload)) {
+    const file = payload.get('file');
+    if (!(file instanceof Blob)) {
+      throw new TypeError('Vui lòng chọn file hợp lệ');
+    }
+    return payload;
+  }
+
+  if (!(payload instanceof Blob)) {
+    throw new TypeError('Vui lòng chọn file hợp lệ');
+  }
+
+  const formData = new FormData();
+  formData.append('file', payload, payload.name || 'upload');
+  return formData;
+};
+
+const postUpload = (url, payload) => axiosClient.post(url, toUploadFormData(payload));
+
 export const adminApi = {
   // Auth
   login: (data) => axiosClient.post('/auth/login', data),
 
   // Upload
-  uploadImage: (payload) => {
-    let fd;
-    if (payload instanceof FormData) {
-      fd = payload;
-    } else {
-      fd = new FormData();
-      fd.append('file', payload);
-    }
-    return axiosClient.post('/admin/upload', fd, {
-      transformRequest: (data, headers) => {
-        if (typeof FormData !== 'undefined' && data instanceof FormData) {
-          // Let the browser set the proper multipart boundary.
-          if (headers) delete headers['Content-Type'];
-        }
-        return data;
-      },
-    });
-  },
-  uploadPDF: (payload) => {
-    let fd;
-    if (payload instanceof FormData) {
-      fd = payload;
-    } else {
-      fd = new FormData();
-      fd.append('file', payload);
-    }
-    return axiosClient.post('/admin/upload/pdf', fd, {
-      transformRequest: (data, headers) => {
-        if (typeof FormData !== 'undefined' && data instanceof FormData) {
-          if (headers) delete headers['Content-Type'];
-        }
-        return data;
-      },
-    });
-  },
+  uploadImage: (payload) => postUpload('/admin/upload', payload),
+  uploadPDF: (payload) => postUpload('/admin/upload/pdf', payload),
 
   // Products
   getProducts: (params) => axiosClient.get('/admin/products', { params }),
@@ -48,13 +38,7 @@ export const adminApi = {
   updateProduct: (id, data) => axiosClient.put(`/admin/products/${id}`, data),
   deleteProduct: (id) => axiosClient.delete(`/admin/products/${id}`),
   deleteProducts: (ids) => axiosClient.post('/admin/products/batch-delete', { ids }),
-  uploadTDS: (id, file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return axiosClient.post(`/admin/products/${id}/upload-tds`, fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
+  uploadTDS: (id, file) => postUpload(`/admin/products/${id}/upload-tds`, file),
   getProductsForSelect: () => axiosClient.get('/admin/products/select'),
 
   // Product columns
@@ -95,13 +79,7 @@ export const adminApi = {
 
   // Site config (logo, banner, footer)
   getSiteConfig: () => axiosClient.get('/admin/site-config'),
-  uploadLogo: (file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return axiosClient.post('/admin/site-config/logo/upload', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
+  uploadLogo: (file) => postUpload('/admin/site-config/logo/upload', file),
   clearLogo: () => axiosClient.delete('/admin/site-config/logo'),
   updateFooter: (data) => axiosClient.put('/admin/site-config/footer', data),
 
@@ -128,13 +106,7 @@ export const adminApi = {
 
   // SEO & Favicon
   updateSeo: (data) => axiosClient.put('/admin/site-config/seo', data),
-  uploadFavicon: (file) => {
-    const fd = new FormData();
-    fd.append('file', file);
-    return axiosClient.post('/admin/site-config/favicon', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    });
-  },
+  uploadFavicon: (file) => postUpload('/admin/site-config/favicon', file),
 
   // Floating contacts
   updateFloatingContacts: (data) => axiosClient.put('/admin/site-config/floating-contacts', data),
