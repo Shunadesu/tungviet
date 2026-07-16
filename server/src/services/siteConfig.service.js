@@ -117,25 +117,39 @@ const toClient = (doc, locale = 'vi') => {
 const toAdmin = (doc) => {
   if (!doc) return doc;
   const obj = typeof doc.toObject === 'function' ? doc.toObject() : doc;
+  const normalizeId = (item) => {
+    if (!item) return item;
+    const raw = item._id;
+    let idStr = null;
+    if (raw == null) idStr = null;
+    else if (typeof raw === 'string') idStr = raw;
+    else if (typeof raw === 'object' && typeof raw.toHexString === 'function') idStr = raw.toHexString();
+    else if (typeof raw === 'object' && raw._id) idStr = String(raw._id);
+    else idStr = String(raw);
+    return idStr ? { ...item, _id: idStr } : item;
+  };
   return {
     logoUrl: obj.logoUrl || null,
     logoFilename: obj.logoFilename || null,
     heroSlides: (obj.heroSlides || [])
       .slice()
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map(normalizeId),
     aboutSlides: (obj.aboutSlides || [])
       .slice()
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map(normalizeId),
     about: obj.about || null,
-    fastFacts: obj.fastFacts || [],
-    coreValues: obj.coreValues || [],
+    fastFacts: (obj.fastFacts || []).map(normalizeId),
+    coreValues: (obj.coreValues || []).map(normalizeId),
+    floatingContacts: (obj.floatingContacts || [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map(normalizeId),
     footer: obj.footer || null,
     seo: obj.seo || null,
     faviconUrl: obj.faviconUrl || null,
     faviconFilename: obj.faviconFilename || null,
-    floatingContacts: (obj.floatingContacts || [])
-      .slice()
-      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
     updatedAt: obj.updatedAt || null,
   };
 };

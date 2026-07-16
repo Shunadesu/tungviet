@@ -4,6 +4,7 @@ import { uploadService } from './upload.controller.js';
 import { apiResponse } from '../utils/apiResponse.js';
 import { AppError } from '../utils/AppError.js';
 import { resolveLocale } from '../utils/i18n.js';
+import { toAbsoluteUploadUrls } from '../utils/imageUrl.js';
 
 const requireString = (value, field) => {
   if (typeof value !== 'string') {
@@ -16,7 +17,7 @@ export const getPublicSiteConfig = async (req, res, next) => {
   try {
     const locale = resolveLocale(req);
     const data = await siteConfigService.getPublic(locale);
-    return apiResponse.ok(res, data);
+    return apiResponse.ok(res, toAbsoluteUploadUrls(data));
   } catch (err) {
     next(err);
   }
@@ -25,7 +26,7 @@ export const getPublicSiteConfig = async (req, res, next) => {
 export const getSiteConfig = async (req, res, next) => {
   try {
     const data = await siteConfigService.getAdmin();
-    return apiResponse.ok(res, data);
+    return apiResponse.ok(res, toAbsoluteUploadUrls(data));
   } catch (err) {
     next(err);
   }
@@ -38,11 +39,11 @@ export const updateLogoByUrl = async (req, res, next) => {
     const config = await siteConfigService.updateLogo({ logoUrl, logoFilename: filename });
     return apiResponse.ok(
       res,
-      {
+      toAbsoluteUploadUrls({
         logoUrl: config.logoUrl,
         logoFilename: config.logoFilename,
         updatedAt: config.updatedAt,
-      },
+      }),
       'Cập nhật logo thành công'
     );
   } catch (err) {
@@ -59,11 +60,11 @@ export const uploadLogo = async (req, res, next) => {
     });
     return apiResponse.ok(
       res,
-      {
+      toAbsoluteUploadUrls({
         logoUrl: saved.url,
         logoFilename: saved.filename,
         updatedAt: config.updatedAt,
-      },
+      }),
       'Upload logo thành công'
     );
   } catch (err) {
@@ -106,7 +107,7 @@ export const updateFooter = async (req, res, next) => {
   try {
     const footer = sanitizeFooter(req.body);
     const config = await siteConfigService.updateFooter(footer);
-    return apiResponse.ok(res, config.footer, 'Cập nhật footer thành công');
+    return apiResponse.ok(res, toAbsoluteUploadUrls(config.footer), 'Cập nhật footer thành công');
   } catch (err) {
     next(err);
   }
@@ -139,7 +140,7 @@ export const addHeroSlide = async (req, res, next) => {
     const slide = sanitizeSlide(req.body);
     const config = await siteConfigService.addHeroSlide(slide);
     const created = config.heroSlides[config.heroSlides.length - 1];
-    return apiResponse.created(res, created, 'Thêm slide thành công');
+    return apiResponse.created(res, toAbsoluteUploadUrls(created), 'Thêm slide thành công');
   } catch (err) {
     next(err);
   }
@@ -156,7 +157,7 @@ export const updateHeroSlide = async (req, res, next) => {
     const updated = (config.heroSlides || []).find(
       (s) => String(s._id) === String(slideId)
     );
-    return apiResponse.ok(res, updated, 'Cập nhật slide thành công');
+    return apiResponse.ok(res, toAbsoluteUploadUrls(updated), 'Cập nhật slide thành công');
   } catch (err) {
     next(err);
   }
@@ -169,7 +170,7 @@ export const deleteHeroSlide = async (req, res, next) => {
       throw AppError.badRequest('slideId không hợp lệ', 'INVALID_ID');
     }
     const config = await siteConfigService.deleteHeroSlide(slideId);
-    return apiResponse.ok(res, config.heroSlides, 'Xoá slide thành công');
+    return apiResponse.ok(res, toAbsoluteUploadUrls(config.heroSlides), 'Xoá slide thành công');
   } catch (err) {
     next(err);
   }
@@ -182,7 +183,7 @@ export const reorderHeroSlides = async (req, res, next) => {
       throw AppError.badRequest('order phải là mảng slideId hợp lệ', 'INVALID_FIELD');
     }
     const config = await siteConfigService.reorderHeroSlides(order);
-    return apiResponse.ok(res, config.heroSlides, 'Sắp xếp slide thành công');
+    return apiResponse.ok(res, toAbsoluteUploadUrls(config.heroSlides), 'Sắp xếp slide thành công');
   } catch (err) {
     next(err);
   }
@@ -216,7 +217,7 @@ export const addAboutSlide = async (req, res, next) => {
     const slide = sanitizeAboutSlide(req.body);
     const config = await siteConfigService.addAboutSlide(slide);
     const created = config.aboutSlides[config.aboutSlides.length - 1];
-    return apiResponse.created(res, created, 'Thêm slide thành công');
+    return apiResponse.created(res, toAbsoluteUploadUrls(created), 'Thêm slide thành công');
   } catch (err) {
     next(err);
   }
@@ -230,7 +231,7 @@ export const updateAboutSlide = async (req, res, next) => {
     const updated = (config.aboutSlides || []).find(
       (s) => String(s._id) === String(slideId)
     );
-    return apiResponse.ok(res, updated, 'Cập nhật slide thành công');
+    return apiResponse.ok(res, toAbsoluteUploadUrls(updated), 'Cập nhật slide thành công');
   } catch (err) {
     next(err);
   }
@@ -240,7 +241,7 @@ export const deleteAboutSlide = async (req, res, next) => {
   try {
     const { slideId } = req.params;
     const config = await siteConfigService.deleteAboutSlide(slideId);
-    return apiResponse.ok(res, config.aboutSlides, 'Xoá slide thành công');
+    return apiResponse.ok(res, toAbsoluteUploadUrls(config.aboutSlides), 'Xoá slide thành công');
   } catch (err) {
     next(err);
   }
@@ -250,7 +251,7 @@ export const reorderAboutSlides = async (req, res, next) => {
   try {
     const order = Array.isArray(req.body?.order) ? req.body.order : [];
     const config = await siteConfigService.reorderAboutSlides(order);
-    return apiResponse.ok(res, config.aboutSlides, 'Sắp xếp slide thành công');
+    return apiResponse.ok(res, toAbsoluteUploadUrls(config.aboutSlides), 'Sắp xếp slide thành công');
   } catch (err) {
     next(err);
   }

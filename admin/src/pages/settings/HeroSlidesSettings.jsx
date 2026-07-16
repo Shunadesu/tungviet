@@ -39,7 +39,7 @@ export default function HeroSlidesSettings() {
       title: { vi: slide.title?.vi || '', en: slide.title?.en || '' },
       active: slide.active !== false,
     });
-    setEditing(slide._id);
+    setEditing(String(slide._id || ''));
   };
   const closeForm = () => { setEditing(null); setForm(emptySlide()); };
   const handleField = (key, value) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -69,7 +69,8 @@ export default function HeroSlidesSettings() {
     setSaving(true);
     try {
       if (editing === 'new') { await adminApi.addHeroSlide(form); addNotification('Thêm slide thành công'); }
-      else { await adminApi.updateHeroSlide(editing, form); addNotification('Cập nhật slide thành công'); }
+      else if (editing) { await adminApi.updateHeroSlide(String(editing), form); addNotification('Cập nhật slide thành công'); }
+      else { addNotification('Slide không hợp lệ', 'error'); }
       closeForm();
       await loadSlides();
     } catch (err) {
@@ -78,13 +79,25 @@ export default function HeroSlidesSettings() {
   };
 
   const handleDelete = async (slide) => {
+    const id = String(slide._id || '');
+    if (!id || id === '[object Object]') {
+      addNotification('Slide không hợp lệ, vui lòng tải lại trang', 'error');
+      await loadSlides();
+      return;
+    }
     if (!window.confirm(`Xoá slide "${slide.title?.vi || slide.imageUrl}"?`)) return;
-    try { await adminApi.deleteHeroSlide(slide._id); addNotification('Xoá slide thành công'); await loadSlides(); }
+    try { await adminApi.deleteHeroSlide(id); addNotification('Xoá slide thành công'); await loadSlides(); }
     catch (err) { addNotification(err.response?.data?.message || 'Xoá slide thất bại', 'error'); }
   };
 
   const toggleActive = async (slide) => {
-    try { await adminApi.updateHeroSlide(slide._id, { active: !(slide.active !== false) }); await loadSlides(); }
+    const id = String(slide._id || '');
+    if (!id || id === '[object Object]') {
+      addNotification('Slide không hợp lệ, vui lòng tải lại trang', 'error');
+      await loadSlides();
+      return;
+    }
+    try { await adminApi.updateHeroSlide(id, { active: !(slide.active !== false) }); await loadSlides(); }
     catch (err) { addNotification(err.response?.data?.message || 'Cập nhật trạng thái thất bại', 'error'); }
   };
 
@@ -94,7 +107,8 @@ export default function HeroSlidesSettings() {
     if (target < 0 || target >= next.length) return;
     [next[index], next[target]] = [next[target], next[index]];
     setSlides(next);
-    try { await adminApi.reorderHeroSlides(next.map((s) => s._id)); }
+    const ids = next.map((s) => String(s._id || '')).filter((id) => id && id !== '[object Object]');
+    try { await adminApi.reorderHeroSlides(ids); }
     catch (err) { addNotification(err.response?.data?.message || 'Sắp xếp thất bại', 'error'); await loadSlides(); }
   };
 

@@ -283,11 +283,13 @@ const Header = () => {
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
+  const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
   const [markets, setMarkets] = useState([]);
   const [products, setProducts] = useState([]);
   const searchInputRef = useRef(null);
+  const searchWrapperRef = useRef(null);
 
   useEffect(() => {
     publicApi.getMarkets({ lang: currentLang, limit: DROPDOWN_LIMIT }).then((r) => {
@@ -302,10 +304,28 @@ const Header = () => {
   }, [currentLang]);
 
   useEffect(() => {
-    if (searchOpen && searchInputRef.current) {
+    if ((searchOpen || desktopSearchOpen) && searchInputRef.current) {
       searchInputRef.current.focus();
     }
-  }, [searchOpen]);
+  }, [searchOpen, desktopSearchOpen]);
+
+  useEffect(() => {
+    if (!desktopSearchOpen) return undefined;
+    const onClick = (e) => {
+      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target)) {
+        setDesktopSearchOpen(false);
+      }
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setDesktopSearchOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [desktopSearchOpen]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
@@ -319,9 +339,11 @@ const Header = () => {
   }, [location.pathname]);
 
   const handleSearchSubmit = (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
     const q = searchQuery.trim();
-    if (!q) return;
+    if (q.length < 2) return;
+    setDesktopSearchOpen(false);
+    setSearchOpen(false);
     navigate(`/${currentLang}/products?q=${encodeURIComponent(q)}`);
   };
 
@@ -333,7 +355,7 @@ const Header = () => {
   };
 
   const isHome = location.pathname === `/${currentLang}` || location.pathname === `/${currentLang}/`;
-  const transparent = isHome && !scrolled && !menuOpen && !searchOpen;
+  const transparent = isHome && !scrolled && !menuOpen && !searchOpen && !desktopSearchOpen;
 
   const headerBase = 'sticky top-0 z-50 transition-all duration-300';
   const headerTheme = transparent
@@ -345,16 +367,16 @@ const Header = () => {
     : 'p-2 text-gray-500 hover:text-primary transition-colors';
 
   const searchFormClass = transparent
-    ? 'hidden md:flex items-center bg-white/15 hover:bg-white/25 focus-within:bg-white/30 focus-within:ring-1 focus-within:ring-white/40 rounded-full transition-all'
-    : 'hidden md:flex items-center bg-gray-100 hover:bg-gray-200 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary rounded-full transition-all';
+    ? 'hidden md:flex items-center bg-white/15 hover:bg-white/25 focus-within:bg-white/30 focus-within:ring-1 focus-within:ring-white/40 rounded-full transition-all overflow-hidden'
+    : 'hidden md:flex items-center bg-gray-100 hover:bg-gray-200 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary rounded-full transition-all overflow-hidden';
 
   const searchButtonClass = transparent
     ? 'p-2 text-white/85 hover:text-white'
     : 'p-2 text-gray-500 hover:text-primary';
 
   const searchInputClass = transparent
-    ? 'bg-transparent outline-none text-sm w-0 focus:w-40 transition-all duration-300 pr-3 text-white placeholder-white/70'
-    : 'bg-transparent outline-none text-sm w-0 focus:w-40 transition-all duration-300 pr-3 text-gray-800';
+    ? 'bg-transparent outline-none text-sm w-40 pr-3 text-white placeholder-white/70 px-2'
+    : 'bg-transparent outline-none text-sm w-40 pr-3 text-gray-800 px-2';
 
   const localePillClass = transparent
     ? 'hidden sm:flex items-center bg-white/15 rounded-full p-0.5 text-[10px] font-semibold text-white'
@@ -444,20 +466,46 @@ const Header = () => {
 
           {/* Right controls */}
           <div className="col-span-8 md:col-span-4 flex items-center justify-end gap-1">
-            <form onSubmit={handleSearchSubmit} className={searchFormClass}>
-              <button type="submit" aria-label={t('common.search')} className={searchButtonClass}>
-                <FiSearch size={16} />
+            {/* Desktop search */}
+            <div ref={searchWrapperRef} className="hidden md:flex items-center">
+              <AnimatePresence initial={false}>
+                {desktopSearchOpen && (
+                  <motion.form
+                    key="desktop-search"
+                    initial={{ width: 0, opacity: 0 }}
+                    animate={{ width: 200, opacity: 1 }}
+                    exit={{ width: 0, opacity: 0 }}
+                    transition={{ duration: 0.2, ease: 'easeOut' }}
+                    onSubmit={handleSearchSubmit}
+                    className={searchFormClass.replace('hidden md:flex', '')}
+                  >
+                    <input
+                      ref={searchInputRef}
+                      type="text"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      placeholder={t('common.search')}
+                      className={searchInputClass}
+                      maxLength={120}
+                    />
+                  </motion.form>
+                )}
+              </AnimatePresence>
+              <button
+                type="button"
+                aria-label={t('common.search')}
+                aria-expanded={desktopSearchOpen}
+                onClick={() => {
+                  setDesktopSearchOpen((v) => !v);
+                  setTimeout(() => searchInputRef.current?.focus(), 60);
+                }}
+                className={searchButtonClass}
+              >
+                <FiSearch size={18} />
               </button>
-              <input
-                ref={searchInputRef}
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t('common.search')}
-                className={searchInputClass}
-              />
-            </form>
+            </div>
 
+            {/* Mobile search trigger */}
             <button onClick={() => setSearchOpen(!searchOpen)} aria-label={t('common.search')} className={`md:hidden ${iconClass}`}>
               <FiSearch size={18} />
             </button>
