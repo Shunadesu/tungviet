@@ -154,7 +154,7 @@ const MegaMenuAbout = ({ transparent, isHomeTop }) => {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
                   <div className="absolute bottom-0 left-0 right-0 p-5">
                     <p className={`text-sm font-semibold ${taglineClass}`}>
-                      {lang === 'en' ? 'About Zuna Tungviet' : 'Về Tùng Việt'}
+                      {lang === 'en' ? 'About  Tungviet' : 'Về Tùng Việt'}
                     </p>
                     <p className={`text-[11px] mt-1 ${taglineSubClass}`}>
                       {lang === 'en'
@@ -419,13 +419,13 @@ const Header = () => {
               {logoUrl ? (
                 <img
                   src={logoUrl}
-                  alt="Zuna Tungviet"
+                  alt=" Tungviet"
                   className="h-10 w-auto max-w-[180px] object-contain"
                 />
               ) : (
                 <>
                   <span className="text-xl shrink-0">🏭</span>
-                  <span className={logoFallbackTextClass}>Zuna Tungviet</span>
+                  <span className={logoFallbackTextClass}> Tungviet</span>
                 </>
               )}
             </Link>

@@ -13,7 +13,15 @@ export const adminApi = {
       fd = new FormData();
       fd.append('file', payload);
     }
-    return axiosClient.post('/admin/upload', fd);
+    return axiosClient.post('/admin/upload', fd, {
+      transformRequest: (data, headers) => {
+        if (typeof FormData !== 'undefined' && data instanceof FormData) {
+          // Let the browser set the proper multipart boundary.
+          if (headers) delete headers['Content-Type'];
+        }
+        return data;
+      },
+    });
   },
   uploadPDF: (payload) => {
     let fd;
@@ -23,7 +31,14 @@ export const adminApi = {
       fd = new FormData();
       fd.append('file', payload);
     }
-    return axiosClient.post('/admin/upload/pdf', fd);
+    return axiosClient.post('/admin/upload/pdf', fd, {
+      transformRequest: (data, headers) => {
+        if (typeof FormData !== 'undefined' && data instanceof FormData) {
+          if (headers) delete headers['Content-Type'];
+        }
+        return data;
+      },
+    });
   },
 
   // Products

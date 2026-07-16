@@ -173,7 +173,7 @@ function AboutSlidesTab({ slides, onReload }) {
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Title (EN)</label>
-                  <input type="text" value={form.title.en} onChange={(e) => setLocale('title', 'en', e.target.value)} className="input-field" placeholder="About Zuna Tungviet" />
+                  <input type="text" value={form.title.en} onChange={(e) => setLocale('title', 'en', e.target.value)} className="input-field" placeholder="About  Tungviet" />
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-3">

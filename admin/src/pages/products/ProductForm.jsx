@@ -98,13 +98,17 @@ const ProductForm = () => {
     setUploadingImage(true);
     try {
       const res = await adminApi.uploadImage(file);
-      const url = res.data.data?.url;
+      const url = res?.data?.data?.url;
       if (url) {
         setFormData((prev) => ({ ...prev, imageUrl: url }));
         addNotification('Upload ảnh thành công');
+      } else {
+        addNotification(res?.data?.message || 'Upload ảnh thất bại', 'error');
       }
     } catch (error) {
-      addNotification('Upload ảnh thất bại', 'error');
+      const msg = error?.response?.data?.message || error?.message || 'Upload ảnh thất bại';
+      console.error('[ProductForm] upload error:', error);
+      addNotification(msg, 'error');
     } finally {
       setUploadingImage(false);
     }
@@ -114,13 +118,17 @@ const ProductForm = () => {
     setUploadingTDS(true);
     try {
       const res = await adminApi.uploadPDF(file);
-      const url = res.data.data?.url;
+      const url = res?.data?.data?.url;
       if (url) {
         setFormData((prev) => ({ ...prev, tdsUrl: url }));
         addNotification('Upload TDS thành công');
+      } else {
+        addNotification(res?.data?.message || 'Upload TDS thất bại', 'error');
       }
     } catch (error) {
-      addNotification('Upload TDS thất bại', 'error');
+      const msg = error?.response?.data?.message || error?.message || 'Upload TDS thất bại';
+      console.error('[ProductForm] upload TDS error:', error);
+      addNotification(msg, 'error');
     } finally {
       setUploadingTDS(false);
     }

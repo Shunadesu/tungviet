@@ -9,10 +9,10 @@ const SEO = ({
   type = 'website',
   noindex = true,
 }) => {
-  const siteName = 'Zuna Tungviet Admin';
-  const defaultTitle = 'Zuna Tungviet - Admin Dashboard';
+  const siteName = ' Tungviet Admin';
+  const defaultTitle = ' Tungviet - Admin Dashboard';
   const defaultDescription =
-    'Admin dashboard for managing products, categories, orders, and estimates at Zuna Tungviet.';
+    'Admin dashboard for managing products, categories, orders, and estimates at  Tungviet.';
   const siteUrl = 'https://admin.tungviet.fun';
 
   const finalTitle = title ? `${title} | ${siteName}` : defaultTitle;

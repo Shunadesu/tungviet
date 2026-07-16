@@ -34,8 +34,16 @@ export const marketService = {
     const [items, total] = await Promise.all([
       Market.find(query)
         .populate(PRODUCT_POPULATE)
-        .populate(TECH_PRODUCT_POPULATE)
-        .populate(APP_PRODUCT_POPULATE)
+        .populate({
+          path: 'technologies.products',
+          select: 'name nameEn imageUrl isActive',
+          strictPopulate: false,
+        })
+        .populate({
+          path: 'applications.products',
+          select: 'name nameEn imageUrl isActive',
+          strictPopulate: false,
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
@@ -58,8 +66,16 @@ export const marketService = {
     const [items, total] = await Promise.all([
       Market.find(query)
         .populate({ ...PRODUCT_POPULATE, select: 'name nameEn isActive' })
-        .populate({ ...TECH_PRODUCT_POPULATE, select: 'name nameEn isActive' })
-        .populate({ ...APP_PRODUCT_POPULATE, select: 'name nameEn isActive' })
+        .populate({
+          path: 'technologies.products',
+          select: 'name nameEn isActive',
+          strictPopulate: false,
+        })
+        .populate({
+          path: 'applications.products',
+          select: 'name nameEn isActive',
+          strictPopulate: false,
+        })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit),
@@ -83,8 +99,16 @@ export const marketService = {
     const query = onlyActive ? { _id: id, isActive: true } : { _id: id };
     const market = await Market.findOne(query)
       .populate(PRODUCT_POPULATE)
-      .populate(TECH_PRODUCT_POPULATE)
-      .populate(APP_PRODUCT_POPULATE)
+      .populate({
+        path: 'technologies.products',
+        select: 'name nameEn imageUrl isActive',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'applications.products',
+        select: 'name nameEn imageUrl isActive',
+        strictPopulate: false,
+      })
       .lean();
     if (!market) throw AppError.notFound('Thị trường không tồn tại');
     return market;
@@ -114,7 +138,18 @@ export const marketService = {
       id,
       { title, titleEn, imageUrl, description, descriptionEn, tdsUrl, technologies, applications, selectedProducts, isActive },
       { new: true, runValidators: true }
-    ).populate(PRODUCT_POPULATE).populate(TECH_PRODUCT_POPULATE).populate(APP_PRODUCT_POPULATE);
+    )
+      .populate(PRODUCT_POPULATE)
+      .populate({
+        path: 'technologies.products',
+        select: 'name nameEn imageUrl isActive',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'applications.products',
+        select: 'name nameEn imageUrl isActive',
+        strictPopulate: false,
+      });
     if (!market) throw AppError.notFound('Thị trường không tồn tại');
     invalidate();
     return market;

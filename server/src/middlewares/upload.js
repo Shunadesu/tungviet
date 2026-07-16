@@ -9,7 +9,15 @@ const __dirname = path.dirname(__filename);
 const UPLOAD_DIR = path.resolve(__dirname, '../../public/uploads');
 
 // Image upload config
-const ALLOWED_IMAGE_MIME = ['image/jpeg', 'image/png', 'image/webp'];
+const ALLOWED_IMAGE_MIME = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/svg+xml',
+  'image/gif',
+  'image/x-icon',
+  'image/vnd.microsoft.icon',
+];
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
 // PDF upload config
@@ -22,7 +30,7 @@ const imageStorage = multer.diskStorage({
   },
   filename(req, file, cb) {
     const ext = path.extname(file.originalname).toLowerCase();
-    const safeExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext) ? ext : '.jpg';
+    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.ico'].includes(ext) ? ext : '.jpg';
     const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`;
     cb(null, unique);
   },
@@ -45,7 +53,7 @@ export const uploadImage = multer({
   limits: { fileSize: MAX_IMAGE_SIZE },
   fileFilter(req, file, cb) {
     if (!ALLOWED_IMAGE_MIME.includes(file.mimetype)) {
-      return cb(AppError.badRequest('Chỉ chấp nhận file ảnh (jpg, png, webp)', 'INVALID_IMAGE_TYPE'));
+      return cb(AppError.badRequest('Chỉ chấp nhận file ảnh (jpg, png, webp, gif, svg, ico)', 'INVALID_IMAGE_TYPE'));
     }
     cb(null, true);
   },
@@ -68,7 +76,7 @@ export const upload = multer({
   limits: { fileSize: MAX_IMAGE_SIZE },
   fileFilter(req, file, cb) {
     if (!ALLOWED_IMAGE_MIME.includes(file.mimetype)) {
-      return cb(AppError.badRequest('Chỉ chấp nhận file ảnh (jpg, png, webp)', 'INVALID_FILE_TYPE'));
+      return cb(AppError.badRequest('Chỉ chấp nhận file ảnh (jpg, png, webp, gif, svg, ico)', 'INVALID_FILE_TYPE'));
     }
     cb(null, true);
   },

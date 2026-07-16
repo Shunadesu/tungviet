@@ -24,20 +24,8 @@ export const uploadService = {
   },
 };
 
-import { logger } from '../utils/logger.js';
-
 export const uploadFile = async (req, res, next) => {
   try {
-    if (!req.file) {
-      logger.warn({
-        ct: req.headers['content-type'],
-        cl: req.headers['content-length'],
-        bodyKeys: req.body ? Object.keys(req.body) : null,
-        bodyFileType: req.body?.file ? typeof req.body.file : null,
-        hasFile: !!req.file,
-        hasFiles: !!req.files,
-      }, '[upload-debug] NO_FILE');
-    }
     const saved = await uploadService.save(req.file);
     return apiResponse.created(res, saved, 'Upload thành công');
   } catch (err) {

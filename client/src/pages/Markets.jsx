@@ -25,9 +25,10 @@ const Markets = () => {
   const fetchMarkets = async () => {
     try {
       const res = await publicApi.getMarkets({ lang, limit: 50 });
-      setMarkets(res.data.data || []);
+      setMarkets(res?.data?.data || []);
     } catch (error) {
-      console.error('Error fetching markets:', error);
+      console.error('[Markets] error:', error);
+      setMarkets([]);
     } finally {
       setLoading(false);
     }
