@@ -23,6 +23,9 @@ export const cacheStore = {
   del(key) {
     return cache.del(key);
   },
+  keys() {
+    return cache.keys();
+  },
   delByPrefix(prefix) {
     const keys = cache.keys().filter((k) => k.startsWith(prefix));
     if (keys.length) cache.del(keys);

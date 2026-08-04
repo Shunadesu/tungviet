@@ -50,6 +50,7 @@
   },
   "stats": {
     "title": "Tung Viet in numbers",
+    "eyebrow": "By the numbers",
     "experience": "Years of experience",
     "clients": "B2B clients",
     "capacity": "Tons per year",
@@ -57,7 +58,8 @@
   },
   "testimonials": {
     "title": "What our clients say",
-    "subtitle": "Feedback from our strategic partners worldwide"
+    "subtitle": "Feedback from our strategic partners worldwide",
+    "eyebrow": "Testimonials"
   },
   "marketsGrid": {
     "title": "Application markets",
@@ -67,9 +69,65 @@
     "title": "Certificates & Standards",
     "subtitle": "Quality commitment meeting international standards"
   },
+  "process": {
+    "eyebrow": "How we work",
+    "title": "Our collaboration process",
+    "subtitle": "From request to delivery in four clear steps.",
+    "steps": {
+      "consult": {
+        "title": "Consult",
+        "desc": "We listen, analyze your technical requirements and recommend the right solution."
+      },
+      "formulate": {
+        "title": "Formulate",
+        "desc": "Our lab develops and tests sample formulations before mass production."
+      },
+      "produce": {
+        "title": "Produce",
+        "desc": "Manufacturing in ISO-certified facilities with strict quality control."
+      },
+      "deliver": {
+        "title": "Deliver",
+        "desc": "Export-grade packaging and on-time delivery to your warehouse."
+      }
+    }
+  },
+  "blog": {
+    "eyebrow": "Insights",
+    "title": "Insights & Updates",
+    "subtitle": "Latest articles from our technical team.",
+    "viewAll": "View all posts",
+    "readMore": "Read more",
+    "minutes": "min",
+    "empty": "No posts yet"
+  },
+  "ctaStrip": {
+    "eyebrow": "Get in touch",
+    "title": "Ready to upgrade your supply?",
+    "subtitle": "Leave your details and our technical team will reach out within 24 business hours.",
+    "bullets": {
+      "quality": "ISO 9001 & REACH certified quality",
+      "consult": "Free technical consultation by experts",
+      "fast": "Reply within 24 hours, nationwide delivery"
+    },
+    "form": {
+      "name": "Full name",
+      "namePh": "John Doe",
+      "phone": "Phone number",
+      "message": "Message",
+      "messagePh": "Tell us about your needs...",
+      "privacy": "We respect your privacy and never share your data.",
+      "submit": "Request a quote",
+      "sending": "Sending...",
+      "success": "Request sent. We will contact you shortly!",
+      "error": "Please fill in your name and phone number."
+    }
+  },
   "home": {
     "featuredProducts": "Featured Products",
     "featuredProductsSubtitle": "Our most popular rosin and resin products",
+    "featuredEmpty": "No featured products yet",
+    "featuredEmptyDesc": "Please check back later.",
     "newProducts": "New Products",
     "newProductsSubtitle": "Our latest rosin and resin products",
     "marketsTitle": "Application Markets",
@@ -82,7 +140,18 @@
     "noDescription": "No description",
     "allProducts": "All products",
     "productsCount": "{{n}} products",
-    "filter": "Filter",
+    "productsSubtitle": "Explore our catalog of premium rosin and industrial materials.",
+    "searchResultsSubtitle": "Products matching your search query.",
+    "viewDetails": "View details",
+    "requestQuoteSubtitle": "Premium rosin products for industrial applications",
+    "relatedProducts": "Related products",
+    "mightLike": "You may also like",
+    "filter": {
+      "title": "Filters",
+      "active": "Filtering by",
+      "clearAll": "Clear all",
+      "all": "All"
+    },
     "sort": {
       "label": "Sort",
       "default": "Default",
@@ -90,6 +159,7 @@
       "newest": "Newest"
     },
     "noResults": "No products found",
+    "noResultsHint": "Try changing the filters or search keyword.",
     "searchResultsFor": "Results for: {{q}}",
     "breadcrumbHome": "Home",
     "breadcrumbProducts": "Products",
@@ -205,9 +275,14 @@
   "market": {
     "title": "Application Markets",
     "subtitle": "Rosin solutions by industry",
+    "about": "About",
+    "applicationMarket": "Application Market",
     "technologies": "Technologies",
     "products": "Products",
+    "productsInMarket": "Products in this market",
+    "featuredProducts": "Featured products",
     "noProducts": "No products yet",
+    "viewDetails": "View details",
     "viewProduct": "View product",
     "downloadTds": "Download TDS",
     "benefits": "Benefits",
@@ -217,9 +292,48 @@
     "acidValue": "Acid Value",
     "color": "Color",
     "noMarkets": "No markets available",
+    "noMarketsHint": "Market list will be updated soon.",
+    "noResults": "No markets match your filters",
+    "noResultsHint": "Try a different keyword or clear filters.",
+    "noDescription": "No description provided yet.",
+    "notFound": "Market not found",
+    "backToList": "View all markets",
     "productCount": "{{count}} products",
+    "searchPlaceholder": "Search markets...",
+    "searchResultsTitle": "Results for \"{{q}}\"",
+    "searchResultsSubtitle": "Markets matching your keyword.",
+    "cardsCount": "{{n}} markets",
+    "techsCount": "{{n}} technologies",
+    "appsCount": "{{n}} applications",
+    "sort": {
+      "label": "Sort by",
+      "default": "Default",
+      "newest": "Newest",
+      "nameAsc": "Name: A-Z"
+    },
+    "filter": {
+      "active": "Active filters",
+      "clearAll": "Clear filters"
+    },
+    "pagination": {
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {{n}} / {{total}}"
+    },
     "breadcrumbHome": "Home",
-    "breadcrumbMarkets": "Markets"
+    "breadcrumbMarkets": "Markets",
+    "tabs": {
+      "overview": "Overview",
+      "technologies": "Technologies",
+      "applications": "Applications",
+      "products": "Products"
+    },
+    "whyThisMarket": "Why this market",
+    "requestQuoteForMarket": "Request quote for this market",
+    "keySpecs": "Key specifications",
+    "noTechnologies": "No technologies listed yet",
+    "noApplications": "No applications listed yet",
+    "viewAllProducts": "View all related products"
   },
   "about": {
     "title": "About us",

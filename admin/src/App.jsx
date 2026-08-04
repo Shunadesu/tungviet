@@ -25,6 +25,7 @@ import PostList from './pages/posts/PostList';
 import PostForm from './pages/posts/PostForm';
 import CategoryList from './pages/categories/CategoryList';
 import OrderList from './pages/orders/OrderList';
+import Analytics from './pages/analytics/Analytics';
 import AppearanceOverview from './pages/settings/AppearanceOverview';
 import LogoSettings from './pages/settings/LogoSettings';
 import HeroSlidesSettings from './pages/settings/HeroSlidesSettings';
@@ -190,6 +191,11 @@ function App() {
               <Route path="/orders" element={
                 <ProtectedRoute>
                   <OrderList />
+                </ProtectedRoute>
+              } />
+              <Route path="/analytics" element={
+                <ProtectedRoute>
+                  <Analytics />
                 </ProtectedRoute>
               } />
               <Route path="/settings/appearance" element={

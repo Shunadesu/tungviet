@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { sanitizeHtml } from '../utils/sanitize';
 
 // ── Member Card ───────────────────────────────────────────────────────────────
 function MemberCard({ member, lang, onClick }) {
@@ -45,7 +46,7 @@ function MemberCard({ member, lang, onClick }) {
         {member.description && (
           <p
             className="text-xs text-gray-600 leading-relaxed line-clamp-3 [&_*]:inline"
-            dangerouslySetInnerHTML={{ __html: member.description }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(member.description) }}
           />
         )}
         <button className="mt-3 text-xs text-primary font-medium hover:underline">
@@ -119,7 +120,7 @@ function BioModal({ member, lang, onClose }) {
             {member.bio ? (
               <div
                 className="text-sm text-gray-700 leading-relaxed space-y-3 [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:pl-5 [&_li]:mb-1 [&_strong]:font-semibold"
-                dangerouslySetInnerHTML={{ __html: member.bio }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(member.bio) }}
               />
             ) : (
               <p className="text-sm text-gray-400 text-center py-4 italic">

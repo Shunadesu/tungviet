@@ -7,6 +7,7 @@ import swaggerUi from 'swagger-ui-express';
 import connectDB from './config/db.js';
 import { logger, requestLogger } from './utils/logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
+import { trackVisitor } from './middlewares/trackVisitor.js';
 import { apiResponse } from './utils/apiResponse.js';
 import { swaggerSpec } from './config/swagger.js';
 import { productColumnService } from './services/productColumn.service.js';
@@ -39,6 +40,7 @@ import publicPartnerRoutes from './routes/public/partner.routes.js';
 import adminPostRoutes from './routes/admin/post.routes.js';
 import publicPostRoutes from './routes/public/post.routes.js';
 import estimateRoutes from './routes/estimate.routes.js';
+import analyticsRoutes from './routes/admin/analytics.routes.js';
 
 import Product from './models/Product.js';
 import Category from './models/Category.js';
@@ -56,6 +58,7 @@ import Member from './models/Member.js';
 import Location from './models/Location.js';
 import Leadership from './models/Leadership.js';
 import ProductColumn from './models/ProductColumn.js';
+import VisitLog from './models/VisitLog.js';
 
 dotenv.config();
 
@@ -63,6 +66,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
+app.set('trust proxy', 1);
 
 connectDB()
   .then(async () => {
@@ -84,6 +88,7 @@ connectDB()
         Partner.syncIndexes(),
         Post.syncIndexes(),
         ProductColumn.syncIndexes(),
+        VisitLog.syncIndexes(),
       ]);
       logger.info('MongoDB indexes synced');
 
@@ -109,6 +114,7 @@ app.use(cors({
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use(requestLogger);
+app.use(trackVisitor);
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 app.use('/api/public/products', publicRoutes);
@@ -137,6 +143,7 @@ app.use('/api/admin/leadership', adminLeadershipRoutes);
 app.use('/api/admin/quote-section', adminQuoteSectionRoutes);
 app.use('/api/admin/partners', adminPartnerRoutes);
 app.use('/api/admin/posts', adminPostRoutes);
+app.use('/api/admin/analytics', analyticsRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/estimates', estimateRoutes);
 

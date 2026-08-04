@@ -24,6 +24,7 @@ import { useQuoteBag } from '../context/QuoteBagContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { SUPPORTED_LOCALES } from '../i18n';
 import publicApi from '../api/publicApi';
+import { getMarketTitle } from '../utils/market';
 
 const LOCALE_LABELS = { vi: 'VI', en: 'EN' };
 const SCROLL_THRESHOLD = 16;
@@ -33,6 +34,7 @@ const DROPDOWN_LIMIT = 8;
 const DropdownNav = ({ to, label, children, transparent }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const onClick = (e) => {
@@ -46,27 +48,76 @@ const DropdownNav = ({ to, label, children, transparent }) => {
     ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer'
     : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer';
 
-  const panelClass = transparent
-    ? 'absolute top-full left-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-100 overflow-hidden'
-    : 'absolute top-full left-0 mt-2 w-56 bg-white shadow-lg rounded-lg border border-gray-100 overflow-hidden';
+  const panelClass =
+    'absolute top-full left-0 mt-2 w-64 max-h-[70vh] overflow-y-auto bg-white shadow-lg rounded-lg border border-gray-100 z-50';
+
+  const closeMenu = () => setOpen(false);
+
+  const handleLabelClick = (e) => {
+    // Middle-click / cmd-click / ctrl-click: let the browser handle navigation
+    if (e.metaKey || e.ctrlKey || e.button === 1) return;
+    e.preventDefault();
+    setOpen((v) => !v);
+  };
+
+  const handleLabelKeyDown = (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      setOpen((v) => !v);
+    }
+  };
+
+  const handleNavigate = () => {
+    closeMenu();
+    navigate(to);
+  };
 
   return (
     <div ref={ref} className="relative">
-      <Link to={to} className={triggerClass} onClick={(e) => { e.preventDefault(); setOpen((v) => !v); }}>
-        {label}
-        <FiChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </Link>
+      <div className="flex items-center">
+        <Link
+          to={to}
+          onClick={handleLabelClick}
+          onKeyDown={handleLabelKeyDown}
+          className={triggerClass}
+        >
+          {label}
+        </Link>
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={label}
+          aria-haspopup="true"
+          aria-expanded={open}
+          className={`${triggerClass} -ml-1 pl-1`}
+        >
+          <FiChevronDown
+            size={12}
+            className={`transition-transform ${open ? 'rotate-180' : ''}`}
+          />
+        </button>
+      </div>
       <AnimatePresence>
         {open && (
-          <motion.div
-            initial={{ opacity: 0, y: -6 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -6 }}
-            transition={{ duration: 0.15 }}
-            className={panelClass}
-          >
-            {children}
-          </motion.div>
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40"
+              onClick={closeMenu}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.15 }}
+              className={panelClass}
+              role="menu"
+            >
+              {children({ close: closeMenu, navigateAll: handleNavigate })}
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </div>
@@ -292,15 +343,25 @@ const Header = () => {
   const searchWrapperRef = useRef(null);
 
   useEffect(() => {
-    publicApi.getMarkets({ lang: currentLang, limit: DROPDOWN_LIMIT }).then((r) => {
-      setMarkets(r.data?.data ?? []);
-    }).catch(() => {});
+    publicApi
+      .getMarkets({ lang: currentLang, limit: DROPDOWN_LIMIT })
+      .then((r) => {
+        setMarkets(r.data?.data ?? []);
+      })
+      .catch((err) => {
+        console.warn('[Header] getMarkets failed:', err?.message || err);
+      });
   }, [currentLang]);
 
   useEffect(() => {
-    publicApi.getProducts({ lang: currentLang, limit: DROPDOWN_LIMIT }).then((r) => {
-      setProducts(r.data?.data ?? []);
-    }).catch(() => {});
+    publicApi
+      .getProducts({ lang: currentLang, limit: DROPDOWN_LIMIT })
+      .then((r) => {
+        setProducts(r.data?.data ?? []);
+      })
+      .catch((err) => {
+        console.warn('[Header] getProducts failed:', err?.message || err);
+      });
   }, [currentLang]);
 
   useEffect(() => {
@@ -433,35 +494,91 @@ const Header = () => {
 
           {/* Nav */}
           <nav className="hidden md:flex col-span-5 items-center justify-center gap-8">
-            <DropdownNav to={`/${currentLang}/markets`} label={t('nav.markets')} transparent={transparent}>
-              {markets.map((m) => (
-                <Link key={m._id} to={`/${currentLang}/markets/${m._id}`} className={subLinkClass} onClick={() => {}}>
-                  {currentLang === 'en' && m.nameEn ? m.nameEn : m.name}
-                </Link>
-              ))}
-              <div className="border-t">
-                <Link to={`/${currentLang}/markets`} className={`${subLinkClass} text-primary font-medium`}>
-                  {t('common.viewAll')} {t('nav.markets')}
-                </Link>
-              </div>
+            <MegaMenuAbout transparent={transparent} isHomeTop={isHome && !scrolled} />
+
+            <DropdownNav
+              to={`/${currentLang}/markets`}
+              label={t('nav.markets')}
+              transparent={transparent}
+            >
+              {({ close, navigateAll }) => (
+                <>
+                  {markets.length === 0 ? (
+                    <div className="px-3 py-3 text-xs text-gray-500 italic">
+                      {t('market.noMarkets')}
+                    </div>
+                  ) : (
+                    markets.map((m) => (
+                      <Link
+                        key={m._id}
+                        to={`/${currentLang}/markets/${m._id}`}
+                        className={subLinkClass}
+                        onClick={close}
+                        role="menuitem"
+                      >
+                        {getMarketTitle(m, currentLang)}
+                      </Link>
+                    ))
+                  )}
+                  <div className="border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={navigateAll}
+                      className={`${subLinkClass} w-full text-left text-primary font-medium`}
+                      role="menuitem"
+                    >
+                      {t('common.viewAll')} {t('nav.markets')} →
+                    </button>
+                  </div>
+                </>
+              )}
             </DropdownNav>
 
-            <DropdownNav to={`/${currentLang}/products`} label={t('nav.products')} transparent={transparent}>
-              {products.map((p) => (
-                <Link key={p._id} to={`/${currentLang}/products/${p._id}`} className={subLinkClass} onClick={() => {}}>
-                  {currentLang === 'en' && p.nameEn ? p.nameEn : p.name}
-                </Link>
-              ))}
-              <div className="border-t">
-                <Link to={`/${currentLang}/products`} className={`${subLinkClass} text-primary font-medium`}>
-                  {t('common.viewAll')} {t('nav.products')}
-                </Link>
-              </div>
+            <DropdownNav
+              to={`/${currentLang}/products`}
+              label={t('nav.products')}
+              transparent={transparent}
+            >
+              {({ close, navigateAll }) => (
+                <>
+                  {products.length === 0 ? (
+                    <div className="px-3 py-3 text-xs text-gray-500 italic">
+                      {t('product.noProducts')}
+                    </div>
+                  ) : (
+                    products.map((p) => {
+                      const label =
+                        currentLang === 'en' && p.nameEn
+                          ? p.nameEn
+                          : p.name;
+                      return (
+                        <Link
+                          key={p._id}
+                          to={`/${currentLang}/products/${p._id}`}
+                          className={subLinkClass}
+                          onClick={close}
+                          role="menuitem"
+                        >
+                          {label}
+                        </Link>
+                      );
+                    })
+                  )}
+                  <div className="border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={navigateAll}
+                      className={`${subLinkClass} w-full text-left text-primary font-medium`}
+                      role="menuitem"
+                    >
+                      {t('common.viewAll')} {t('nav.products')} →
+                    </button>
+                  </div>
+                </>
+              )}
             </DropdownNav>
 
             <MegaMenuContact transparent={transparent} />
-
-            <MegaMenuAbout transparent={transparent} isHomeTop={isHome && !scrolled} />
           </nav>
 
           {/* Right controls */}
@@ -602,18 +719,33 @@ const Header = () => {
               className={`md:hidden overflow-hidden ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`}
             >
               <div className="py-2 flex flex-col">
+                <Link to={`/${currentLang}/about`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
+                  {t('nav.about')}
+                </Link>
+
+                <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
+
                 {markets.length > 0 && (
                   <>
                     <span className={`px-1 text-[10px] uppercase font-semibold tracking-wide ${transparent ? 'text-white/60' : 'text-gray-400'}`}>
                       {t('nav.markets')}
                     </span>
                     {markets.slice(0, 5).map((m) => (
-                      <Link key={m._id} to={`/${currentLang}/markets/${m._id}`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
-                        <span className="ml-3">{currentLang === 'en' && m.nameEn ? m.nameEn : m.name}</span>
+                      <Link
+                        key={m._id}
+                        to={`/${currentLang}/markets/${m._id}`}
+                        onClick={() => setMenuOpen(false)}
+                        className={mobileLinkClass}
+                      >
+                        <span className="ml-3">{getMarketTitle(m, currentLang)}</span>
                       </Link>
                     ))}
-                    <Link to={`/${currentLang}/markets`} onClick={() => setMenuOpen(false)} className={`${mobileLinkClass} text-primary font-medium ml-3`}>
-                      {t('common.viewAll')} {t('nav.markets')}
+                    <Link
+                      to={`/${currentLang}/markets`}
+                      onClick={() => setMenuOpen(false)}
+                      className={`${mobileLinkClass} text-primary font-medium ml-3`}
+                    >
+                      {t('common.viewAll')} {t('nav.markets')} →
                     </Link>
                     <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
                   </>
@@ -635,10 +767,6 @@ const Header = () => {
                     <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
                   </>
                 )}
-
-                <Link to={`/${currentLang}/about`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
-                  {t('nav.about')}
-                </Link>
 
                 <Link to={`/${currentLang}/contact`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
                   {t('nav.contact')}

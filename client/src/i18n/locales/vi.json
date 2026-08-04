@@ -50,6 +50,7 @@
   },
   "stats": {
     "title": "Tùng Việt trong số liệu",
+    "eyebrow": "Con số ấn tượng",
     "experience": "Năm kinh nghiệm",
     "clients": "Khách hàng B2B",
     "capacity": "Tấn sản phẩm/năm",
@@ -57,7 +58,8 @@
   },
   "testimonials": {
     "title": "Khách hàng nói gì về chúng tôi",
-    "subtitle": "Đánh giá từ các đối tác chiến lược trên toàn cầu"
+    "subtitle": "Đánh giá từ các đối tác chiến lược trên toàn cầu",
+    "eyebrow": "Đánh giá"
   },
   "marketsGrid": {
     "title": "Thị trường ứng dụng",
@@ -67,9 +69,65 @@
     "title": "Chứng chỉ & Tiêu chuẩn",
     "subtitle": "Cam kết chất lượng đạt chuẩn quốc tế"
   },
+  "process": {
+    "eyebrow": "Cách chúng tôi làm việc",
+    "title": "Quy trình hợp tác",
+    "subtitle": "Từ yêu cầu đến giao hàng trong 4 bước rõ ràng.",
+    "steps": {
+      "consult": {
+        "title": "Tư vấn",
+        "desc": "Lắng nghe nhu cầu, phân tích yêu cầu kỹ thuật và tư vấn giải pháp phù hợp."
+      },
+      "formulate": {
+        "title": "Công thức",
+        "desc": "Phòng lab phát triển và thử nghiệm công thức mẫu trước khi sản xuất hàng loạt."
+      },
+      "produce": {
+        "title": "Sản xuất",
+        "desc": "Sản xuất tại nhà máy đạt chuẩn ISO với quy trình kiểm soát chất lượng chặt chẽ."
+      },
+      "deliver": {
+        "title": "Giao hàng",
+        "desc": "Đóng gói theo tiêu chuẩn xuất khẩu và giao hàng đúng hẹn đến kho của bạn."
+      }
+    }
+  },
+  "blog": {
+    "eyebrow": "Kiến thức",
+    "title": "Kiến thức & Cập nhật",
+    "subtitle": "Bài viết mới nhất từ đội ngũ kỹ thuật của chúng tôi.",
+    "viewAll": "Xem tất cả bài viết",
+    "readMore": "Đọc tiếp",
+    "minutes": "phút",
+    "empty": "Chưa có bài viết"
+  },
+  "ctaStrip": {
+    "eyebrow": "Liên hệ ngay",
+    "title": "Sẵn sàng nâng cấp nguồn cung ứng?",
+    "subtitle": "Để lại thông tin, đội ngũ tư vấn kỹ thuật sẽ liên hệ trong 24 giờ làm việc.",
+    "bullets": {
+      "quality": "Chất lượng đạt chuẩn ISO 9001 & REACH",
+      "consult": "Tư vấn kỹ thuật miễn phí bởi chuyên gia",
+      "fast": "Phản hồi trong 24 giờ, giao hàng toàn quốc"
+    },
+    "form": {
+      "name": "Họ và tên",
+      "namePh": "Nguyễn Văn A",
+      "phone": "Số điện thoại",
+      "message": "Lời nhắn",
+      "messagePh": "Cho chúng tôi biết nhu cầu của bạn...",
+      "privacy": "Chúng tôi cam kết bảo mật thông tin của bạn.",
+      "submit": "Yêu cầu báo giá",
+      "sending": "Đang gửi...",
+      "success": "Yêu cầu đã được gửi. Chúng tôi sẽ liên hệ sớm!",
+      "error": "Vui lòng điền họ tên và số điện thoại."
+    }
+  },
   "home": {
     "featuredProducts": "Sản phẩm nổi bật",
     "featuredProductsSubtitle": "Những sản phẩm nhựa thông được quan tâm nhiều nhất",
+    "featuredEmpty": "Chưa có sản phẩm nổi bật",
+    "featuredEmptyDesc": "Vui lòng quay lại sau.",
     "newProducts": "Sản phẩm mới",
     "newProductsSubtitle": "Những sản phẩm nhựa thông mới nhất",
     "marketsTitle": "Thị trường ứng dụng",
@@ -82,7 +140,18 @@
     "noDescription": "Chưa có mô tả",
     "allProducts": "Tất cả sản phẩm",
     "productsCount": "{{n}} sản phẩm",
-    "filter": "Bộ lọc",
+    "productsSubtitle": "Khám phá danh mục sản phẩm nhựa thông và nguyên liệu công nghiệp chất lượng cao.",
+    "searchResultsSubtitle": "Danh sách sản phẩm phù hợp với từ khóa của bạn.",
+    "viewDetails": "Xem chi tiết",
+    "requestQuoteSubtitle": "Sản phẩm nhựa thông chất lượng cao cho ứng dụng công nghiệp",
+    "relatedProducts": "Sản phẩm liên quan",
+    "mightLike": "Có thể bạn quan tâm",
+    "filter": {
+      "title": "Bộ lọc",
+      "active": "Đang lọc",
+      "clearAll": "Xóa bộ lọc",
+      "all": "Tất cả"
+    },
     "sort": {
       "label": "Sắp xếp",
       "default": "Mặc định",
@@ -90,6 +159,7 @@
       "newest": "Mới nhất"
     },
     "noResults": "Không tìm thấy sản phẩm nào",
+    "noResultsHint": "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.",
     "searchResultsFor": "Kết quả cho: {{q}}",
     "breadcrumbHome": "Trang chủ",
     "breadcrumbProducts": "Sản phẩm",
@@ -205,9 +275,14 @@
   "market": {
     "title": "Thị trường ứng dụng",
     "subtitle": "Giải pháp nhựa thông theo từng ngành",
+    "about": "Giới thiệu",
+    "applicationMarket": "Thị trường ứng dụng",
     "technologies": "Công nghệ",
     "products": "Sản phẩm",
+    "productsInMarket": "Sản phẩm trong thị trường này",
+    "featuredProducts": "Sản phẩm tiêu biểu",
     "noProducts": "Chưa có sản phẩm",
+    "viewDetails": "Xem chi tiết",
     "viewProduct": "Xem sản phẩm",
     "downloadTds": "Tải TDS",
     "benefits": "Lợi ích",
@@ -217,9 +292,48 @@
     "acidValue": "Chỉ số axit",
     "color": "Màu sắc",
     "noMarkets": "Chưa có thị trường nào",
+    "noMarketsHint": "Danh sách thị trường sẽ được cập nhật sớm.",
+    "noResults": "Không tìm thấy thị trường phù hợp",
+    "noResultsHint": "Thử từ khóa khác hoặc xóa bộ lọc.",
+    "noDescription": "Chưa có mô tả cho thị trường này.",
+    "notFound": "Không tìm thấy thị trường",
+    "backToList": "Xem tất cả thị trường",
     "productCount": "{{count}} sản phẩm",
+    "searchPlaceholder": "Tìm thị trường...",
+    "searchResultsTitle": "Kết quả cho \"{{q}}\"",
+    "searchResultsSubtitle": "Các thị trường ứng dụng phù hợp với từ khóa của bạn.",
+    "cardsCount": "{{n}} thị trường",
+    "techsCount": "{{n}} công nghệ",
+    "appsCount": "{{n}} ứng dụng",
+    "sort": {
+      "label": "Sắp xếp",
+      "default": "Mặc định",
+      "newest": "Mới nhất",
+      "nameAsc": "Tên: A-Z"
+    },
+    "filter": {
+      "active": "Đang lọc",
+      "clearAll": "Xóa bộ lọc"
+    },
+    "pagination": {
+      "previous": "Trang trước",
+      "next": "Trang sau",
+      "page": "Trang {{n}} / {{total}}"
+    },
     "breadcrumbHome": "Trang chủ",
-    "breadcrumbMarkets": "Thị trường"
+    "breadcrumbMarkets": "Thị trường",
+    "tabs": {
+      "overview": "Tổng quan",
+      "technologies": "Công nghệ",
+      "applications": "Ứng dụng",
+      "products": "Sản phẩm"
+    },
+    "whyThisMarket": "Vì sao chọn thị trường này",
+    "requestQuoteForMarket": "Yêu cầu báo giá cho thị trường này",
+    "keySpecs": "Thông số chính",
+    "noTechnologies": "Chưa cập nhật công nghệ",
+    "noApplications": "Chưa cập nhật ứng dụng",
+    "viewAllProducts": "Xem tất cả sản phẩm liên quan"
   },
   "about": {
     "title": "Giới thiệu",

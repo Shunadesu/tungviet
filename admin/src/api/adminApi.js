@@ -155,6 +155,17 @@ export const adminApi = {
   updatePost: (id, data) => axiosClient.put(`/admin/posts/${id}`, data),
   deletePost: (id) => axiosClient.delete(`/admin/posts/${id}`),
   reorderPosts: (order) => axiosClient.post('/admin/posts/reorder', { order }),
+
+  // Analytics
+  getOnlineUsers: () => axiosClient.get('/admin/analytics/online'),
+  getOnlineCount: () => axiosClient.get('/admin/analytics/online/count'),
+  getAnalyticsVisitors: (params) => axiosClient.get('/admin/analytics/visitors', { params }),
+  getAnalyticsLogs: (params) => axiosClient.get('/admin/analytics/logs', { params }),
+  getAnalyticsStats: (range) =>
+    axiosClient.get('/admin/analytics/stats', { params: { range } }),
+  getAnalyticsDashboard: () => axiosClient.get('/admin/analytics/dashboard'),
+  getAnalyticsChart: (range) =>
+    axiosClient.get('/admin/analytics/chart', { params: { range } }),
 };
 
 export default adminApi;

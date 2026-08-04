@@ -1,14 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiChevronRight, FiFile, FiDownload, FiFileText, FiCheck } from 'react-icons/fi';
+import {
+  FiChevronRight,
+  FiDownload,
+  FiCheck,
+  FiArrowRight,
+  FiFileText,
+} from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
-import placeholderProduct from '../assets/placeholder-product.svg';
+import ProductGallery from '../components/ProductGallery';
+import RelatedProducts from '../components/RelatedProducts';
+import PageHero from '../components/PageHero';
 import { useQuoteBag } from '../context/QuoteBagContext';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { sanitizeHtml } from '../utils/sanitize';
+import { htmlToText } from '../utils/html';
 
 const LEGACY_COLUMNS = [
   { key: 'softeningPoint', name: 'Điểm làm mềm', nameEn: 'Softening Point', order: 1 },
@@ -82,7 +91,7 @@ const ProductDetail = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
       </div>
     );
   }
@@ -90,8 +99,10 @@ const ProductDetail = () => {
   if (notFound || !product) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-xl font-semibold text-gray-800 mb-2">{t('product.notFound')}</h1>
-        <Link to={`/${lang}/products`} className="btn-primary text-sm">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-3">
+          {t('product.notFound')}
+        </h1>
+        <Link to={`/${lang}/products`} className="btn-primary">
           {t('quote.browseProducts')}
         </Link>
       </div>
@@ -102,173 +113,164 @@ const ProductDetail = () => {
   const dynamicAttributes = columns
     .filter((column) => column.isActive !== false)
     .map((column) => {
-      const value = product.attributes?.[column.key]
-        ?? product[column.key];
-      return { column, value: value === null || value === undefined ? '' : String(value).trim() };
+      const value =
+        product.attributes?.[column.key] ?? product[column.key];
+      return {
+        column,
+        value:
+          value === null || value === undefined
+            ? ''
+            : String(value).trim(),
+      };
     })
     .filter(({ value }) => value);
+
+  const galleryImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
+
+  const breadcrumb = [
+    { label: t('product.breadcrumbHome'), to: `/${lang}` },
+    { label: t('product.breadcrumbProducts'), to: `/${lang}/products` },
+    { label: product.name },
+  ];
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen pb-8"
+      className="bg-white"
     >
       <SEO
         title={product.name}
-        description={(product.description || `${product.name} -  Tungviet`).replace(/<[^>]*>/g, '').slice(0, 200)}
+        description={htmlToText(product.description || `${product.name} -  Tungviet`).slice(0, 200)}
         keywords={`${product.name}, rosin, resin, industrial,  Tungviet`}
         url={`/${lang}/products/${product._id}`}
         type="product"
       />
 
-      {/* Breadcrumb */}
-      <div className="bg-gray-50 border-b">
-        <div className="max-w-7xl mx-auto px-2 py-2">
-          <div className="flex items-center gap-1 text-xs text-gray-500">
-            <Link to={`/${lang}`} className="hover:text-primary">{t('product.breadcrumbHome')}</Link>
-            <FiChevronRight size={12} />
-            <Link to={`/${lang}/products`} className="hover:text-primary">{t('product.breadcrumbProducts')}</Link>
-            <FiChevronRight size={12} />
-            <span className="text-primary truncate max-w-[200px]">{product.name}</span>
-          </div>
-        </div>
-      </div>
+      <PageHero
+        breadcrumb={breadcrumb}
+        title={product.name}
+        subtitle={product.shortDescription || t('product.requestQuoteSubtitle')}
+      />
 
-      <div className="max-w-7xl mx-auto px-2 py-4">
-        <div className="bg-white rounded-lg overflow-hidden shadow-sm">
-          <div className="grid md:grid-cols-2 gap-6">
-            {/* Image */}
-            <div className="relative">
-              <img
-                src={product.imageUrl || placeholderProduct}
-                alt={product.name}
-                className="w-full h-64 md:h-80 lg:h-96 object-cover bg-gray-100"
-                onError={(e) => { e.currentTarget.src = placeholderProduct; }}
-              />
+      <section className="container-page py-12 md:py-16">
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
+          {/* Gallery - 3 cols */}
+          <div className="lg:col-span-3">
+            <ProductGallery images={galleryImages} name={product.name} tdsUrl={product.tdsUrl} />
+          </div>
+
+          {/* Info - 2 cols */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            {/* Specifications card */}
+            {dynamicAttributes.length > 0 && (
+              <div className="card p-5">
+                <h3 className="heading-eyebrow mb-4">
+                  {t('product.specifications')}
+                </h3>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3">
+                  {dynamicAttributes.map(({ column, value }) => (
+                    <div key={column._id || column.key} className="border-b border-gray-100 pb-2 last:border-0 last:pb-0">
+                      <dt className="text-[11px] uppercase tracking-wider text-gray-500 font-medium mb-0.5">
+                        {lang === 'en' ? (column.nameEn || column.name) : column.name}
+                      </dt>
+                      <dd className="text-sm font-semibold text-slate-900">{value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </div>
+            )}
+
+            {/* Benefits */}
+            {product.benefits && product.benefits.length > 0 && (
+              <div className="card p-5">
+                <h3 className="heading-eyebrow mb-4">{t('product.benefits')}</h3>
+                <ul className="space-y-2.5">
+                  {product.benefits.map((benefit, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-slate-700 leading-relaxed">
+                      <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary-100 text-primary flex items-center justify-center mt-0.5">
+                        <FiCheck size={12} />
+                      </span>
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+
+            {/* Applications */}
+            {product.applications && product.applications.length > 0 && (
+              <div className="card p-5">
+                <h3 className="heading-eyebrow mb-4">{t('product.applications')}</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.applications.map((app, i) => (
+                    <span
+                      key={i}
+                      className="badge-primary !text-xs"
+                    >
+                      {app}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* CTA */}
+            <div className="card p-5 bg-gradient-to-br from-primary-50/60 to-white">
+              <button
+                type="button"
+                onClick={handleAddToQuote}
+                className={`w-full inline-flex items-center justify-center gap-2 font-medium py-3 rounded-xl transition-all duration-200 active:scale-[0.98] ${
+                  added
+                    ? 'bg-primary text-white'
+                    : 'bg-slate-900 text-white hover:bg-primary'
+                }`}
+              >
+                {added ? (
+                  <>
+                    <FiCheck size={16} />
+                    {t('product.addedToQuote')}
+                  </>
+                ) : (
+                  <>
+                    <FiFileText size={16} />
+                    {t('product.requestQuote')}
+                    <FiArrowRight size={14} />
+                  </>
+                )}
+              </button>
               {product.tdsUrl && (
                 <a
                   href={product.tdsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="absolute bottom-3 right-3 flex items-center gap-1.5 bg-accent text-white text-xs px-3 py-1.5 rounded-lg hover:bg-accent-dark transition-colors"
+                  className="mt-3 w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-slate-700 hover:text-primary py-2 transition-colors"
                 >
                   <FiDownload size={14} />
-                  {t('product.downloadTds')}
+                  {t('product.downloadTds')} (PDF)
                 </a>
               )}
             </div>
-
-            {/* Info */}
-            <div className="p-4 md:p-6">
-              <h1 className="text-2xl font-semibold text-gray-900 mb-1">{product.name}</h1>
-
-              {/* Specifications */}
-              {dynamicAttributes.length > 0 && (
-                <div className="mb-4 p-3 bg-gray-50 rounded-lg">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                    {t('product.specifications')}
-                  </h3>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                    {dynamicAttributes.map(({ column, value }) => (
-                      <div key={column._id || column.key}>
-                        <p className="text-[10px] text-gray-400">
-                          {lang === 'en' ? (column.nameEn || column.name) : column.name}
-                        </p>
-                        <p className="text-sm font-medium">{value}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Benefits */}
-              {product.benefits && product.benefits.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                    {t('product.benefits')}
-                  </h3>
-                  <ul className="space-y-1">
-                    {product.benefits.map((benefit, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm">
-                        <FiCheck size={16} className="text-green-500 mt-0.5 flex-shrink-0" />
-                        <span>{benefit}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {/* Applications */}
-              {product.applications && product.applications.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                    {t('product.applications')}
-                  </h3>
-                  <div className="flex flex-wrap gap-1.5">
-                    {product.applications.map((app, i) => (
-                      <span
-                        key={i}
-                        className="text-xs px-2.5 py-1 bg-primary-50 text-primary rounded-full"
-                      >
-                        {app}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Description */}
-              {safeDescription && (
-                <div className="mb-4">
-                  <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                    {t('product.description')}
-                  </h3>
-                  <div
-                    className="text-sm text-gray-600 leading-relaxed prose prose-sm max-w-none"
-                    dangerouslySetInnerHTML={{ __html: safeDescription }}
-                  />
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="pt-4 border-t flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={handleAddToQuote}
-                  className={`flex-1 min-w-[160px] flex items-center justify-center gap-2 text-sm py-2.5 rounded-lg transition-colors ${
-                    added ? 'bg-green-600 text-white' : 'btn-primary'
-                  }`}
-                >
-                  {added ? (
-                    <>
-                      <FiCheck size={16} />
-                      {t('product.addedToQuote')}
-                    </>
-                  ) : (
-                    <>
-                      <FiFileText size={16} />
-                      {t('product.requestQuote')}
-                    </>
-                  )}
-                </button>
-                {product.tdsUrl && (
-                  <a
-                    href={product.tdsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex-1 min-w-[160px] flex items-center justify-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm py-2.5 rounded-lg transition-colors"
-                  >
-                    <FiFile size={16} />
-                    {t('product.downloadTds')} (PDF)
-                  </a>
-                )}
-              </div>
-            </div>
           </div>
         </div>
-      </div>
+
+        {/* Description */}
+        {safeDescription && (
+          <div className="mt-12 md:mt-16 max-w-4xl">
+            <div className="flex items-center gap-3 mb-5">
+              <span className="heading-eyebrow">{t('product.description')}</span>
+              <div className="flex-1 h-px bg-gray-100" />
+            </div>
+            <div
+              className="prose prose-slate max-w-none text-slate-700 leading-relaxed prose-headings:text-slate-900 prose-a:text-primary"
+              dangerouslySetInnerHTML={{ __html: safeDescription }}
+            />
+          </div>
+        )}
+      </section>
+
+      <RelatedProducts currentProduct={product} />
     </motion.div>
   );
 };

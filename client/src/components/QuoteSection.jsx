@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FiPhone, FiSend, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import publicApi from '../api/publicApi';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const QuoteSection = ({ data, products, markets }) => {
   const { t } = useTranslation();
@@ -66,7 +67,7 @@ const QuoteSection = ({ data, products, markets }) => {
             </h2>
             <div
               className="text-white/90 text-base leading-relaxed [&_p]:mb-3 [&_p:last-child]:mb-0 [&_ul]:pl-5 [&_li]:mb-1"
-              dangerouslySetInnerHTML={{ __html: data?.subtitle || t('quoteSection.subtitle') }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(data?.subtitle || t('quoteSection.subtitle')) }}
             />
           </div>
 

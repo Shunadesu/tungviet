@@ -1,6 +1,6 @@
 import { Link, useParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiFile, FiFileText } from 'react-icons/fi';
+import { FiFile, FiFileText, FiArrowRight } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { useQuoteBag } from '../context/QuoteBagContext';
@@ -23,62 +23,83 @@ const ProductCard = ({ product, index = 0 }) => {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="card group"
+      transition={{ delay: index * 0.04, duration: 0.35 }}
+      className="group card-elevated overflow-hidden flex flex-col h-full"
     >
-      <Link to={`/${lang}/products/${product._id}`}>
-        <div className="relative overflow-hidden rounded-lg mb-2">
-          <img
-            src={product.imageUrl || placeholderProduct}
-            alt={product.name}
-            className="w-full h-40 object-cover bg-gray-100 transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => { e.currentTarget.src = placeholderProduct; }}
-          />
-          {product.tdsUrl && (
-            <div className="absolute top-2 right-2 bg-accent text-white text-[10px] px-1.5 py-0.5 rounded flex items-center gap-0.5">
+      {/* Image - fixed aspect ratio for consistency */}
+      <Link
+        to={`/${lang}/products/${product._id}`}
+        className="relative block aspect-[4/3] overflow-hidden bg-gray-50 flex-shrink-0"
+      >
+        <img
+          src={product.imageUrl || placeholderProduct}
+          alt={product.name}
+          loading="lazy"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(e) => {
+            e.currentTarget.src = placeholderProduct;
+          }}
+        />
+
+        {/* Top-left badges */}
+        {product.tdsUrl && (
+          <div className="absolute top-3 left-3">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-white text-[10px] font-semibold backdrop-blur-sm">
               <FiFile size={10} />
               TDS
-            </div>
-          )}
+            </span>
+          </div>
+        )}
+
+        {/* Hover overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+          <span className="inline-flex items-center gap-1 text-white text-xs font-semibold">
+            {t('product.viewDetails')}
+            <FiArrowRight size={12} />
+          </span>
         </div>
       </Link>
 
-      <div className="p-2">
-        <Link to={`/${lang}/products/${product._id}`}>
-          <h3 className="text-sm font-medium text-gray-800 line-clamp-2 hover:text-primary transition-colors">
-            {product.name}
-          </h3>
+      {/* Body - flex-col với flex-1 để CTA luôn ở dưới cùng */}
+      <div className="flex-1 flex flex-col p-5">
+        {/* Title - cố định 2 dòng */}
+        <Link
+          to={`/${lang}/products/${product._id}`}
+          className="block text-[15px] font-semibold text-slate-900 hover:text-primary transition-colors leading-snug line-clamp-2 min-h-[2.75rem]"
+        >
+          {product.name}
         </Link>
 
-        {/* Specifications */}
-        <div className="flex flex-wrap gap-1 mt-2">
-          {product.softeningPoint && (
-            <span className="text-[9px] px-1.5 py-0.5 bg-orange-50 text-orange-600 rounded">
-              {product.softeningPoint}
-            </span>
-          )}
-          {product.color && (
-            <span className="text-[9px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded">
-              {product.color}
-            </span>
+        {/* Specs - cố định chiều cao (chỗ trống nếu không có) */}
+        <div className="mt-3 min-h-[28px] flex items-start">
+          {(product.softeningPoint || product.color) && (
+            <div className="flex flex-wrap gap-1.5">
+              {product.softeningPoint && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-orange-50 text-orange-700 text-[11px] font-medium">
+                  {product.softeningPoint}
+                </span>
+              )}
+              {product.color && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-[11px] font-medium">
+                  {product.color}
+                </span>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Benefits preview */}
-        {product.benefits && product.benefits.length > 0 && (
-          <p className="text-[10px] text-gray-400 mt-1.5 line-clamp-1">
-            {product.benefits[0]}
-          </p>
-        )}
+        {/* Spacer đẩy CTA xuống dưới cùng */}
+        <div className="flex-1" />
 
+        {/* CTA - luôn ở dưới cùng */}
         <button
           type="button"
           onClick={handleAdd}
           disabled={inBag}
-          className={`mt-2 w-full text-[10px] flex items-center justify-center gap-1 py-1.5 rounded transition-colors ${
+          className={`w-full inline-flex items-center justify-center gap-1.5 text-xs font-medium py-2.5 rounded-lg transition-all duration-200 ${
             inBag
-              ? 'bg-green-50 text-green-600 cursor-default'
-              : 'bg-primary-50 text-primary hover:bg-primary-100'
+              ? 'bg-primary-50 text-primary-700 cursor-default'
+              : 'bg-slate-900 text-white hover:bg-primary active:scale-[0.98]'
           }`}
           title={t('product.requestQuote')}
         >

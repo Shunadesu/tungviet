@@ -1,13 +1,28 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { FiArrowRight, FiPackage } from 'react-icons/fi';
+import { FiArrowRight } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
+import { motion } from 'framer-motion';
 import ProductCard from './ProductCard';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
+import SectionHeader from './SectionHeader';
+import EmptyState from './EmptyState';
 
-const FeaturedProducts = ({ title, subtitle, limit = 8, viewAllLink, viewAllText }) => {
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.06 } },
+};
+
+const FeaturedProducts = ({
+  title,
+  subtitle,
+  eyebrow,
+  icon: Icon,
+  limit = 8,
+  viewAllLink,
+  viewAllText,
+}) => {
   const { t } = useTranslation();
   const { lang: urlLang } = useParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
@@ -23,84 +38,81 @@ const FeaturedProducts = ({ title, subtitle, limit = 8, viewAllLink, viewAllText
       .finally(() => setLoading(false));
   }, [lang, limit]);
 
-  if (loading) {
+  if (products.length === 0 && !loading) {
     return (
-      <section className="max-w-7xl mx-auto px-4 py-12">
-        <div className="flex items-end justify-between mb-6">
-          <div>
-            <h2 className="text-xl font-bold text-gray-900">{title || t('home.featuredProducts')}</h2>
-            {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
-          </div>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="bg-gray-100 rounded-lg h-64 animate-pulse" />
-          ))}
+      <section className="bg-slate-50/60 py-16 md:py-20">
+        <div className="container-page">
+          <SectionHeader
+            eyebrow={eyebrow}
+            icon={Icon}
+            title={title || t('home.featuredProducts')}
+            subtitle={subtitle}
+            align="center"
+            className="mb-10"
+          />
+          <EmptyState
+            title={t('home.featuredEmpty', 'Chưa có sản phẩm nổi bật')}
+            description={t('home.featuredEmptyDesc', 'Vui lòng quay lại sau.')}
+          />
         </div>
       </section>
     );
   }
 
-  if (products.length === 0) return null;
-
   return (
-    <section className="max-w-7xl mx-auto px-4 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.5 }}
-        className="flex items-end justify-between mb-6"
-      >
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">
-            {title || t('home.featuredProducts')}
-          </h2>
-          {subtitle && (
-            <p className="text-sm text-gray-500 mt-1">{subtitle}</p>
-          )}
-        </div>
-        {(viewAllLink || viewAllText) && (
-          <Link
-            to={viewAllLink || `/${lang}/products`}
-            className="hidden sm:flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700 transition-colors"
-          >
-            {viewAllText || t('common.viewAll')}
-            <FiArrowRight size={14} />
-          </Link>
-        )}
-      </motion.div>
+    <section className="bg-slate-50/60 py-16 md:py-20">
+      <div className="container-page">
+        <SectionHeader
+          eyebrow={eyebrow}
+          icon={Icon}
+          title={title || t('home.featuredProducts')}
+          subtitle={subtitle}
+          align="center"
+          className="mb-10"
+        />
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {products.map((product, index) => (
+        {loading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="card overflow-hidden">
+                <div className="aspect-[4/3] skeleton !rounded-none" />
+                <div className="p-5 space-y-3">
+                  <div className="skeleton h-4 w-3/4" />
+                  <div className="skeleton h-3 w-1/2" />
+                  <div className="skeleton h-9 w-full mt-3" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
           <motion.div
-            key={product._id}
-            initial={{ opacity: 0, y: 16 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: index * 0.06, duration: 0.4 }}
+            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5 md:gap-6 items-stretch"
+            variants={containerVariants}
+            initial="hidden"
+            whileInView="show"
+            viewport={{ once: true, margin: '-80px' }}
           >
-            <ProductCard product={product} index={index} />
+            {products.map((product, index) => (
+              <ProductCard key={product._id} product={product} index={index} />
+            ))}
           </motion.div>
-        ))}
-      </div>
+        )}
 
-      {(viewAllLink || viewAllText) && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true }}
-          className="mt-6 text-center sm:hidden"
-        >
-          <Link
-            to={viewAllLink || `/${lang}/products`}
-            className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary-700 transition-colors"
-          >
-            {viewAllText || t('common.viewAll')}
-            <FiArrowRight size={14} />
-          </Link>
-        </motion.div>
-      )}
+        {(viewAllLink || viewAllText) && (
+          <div className="mt-10 text-center">
+            <Link
+              to={viewAllLink || `/${lang}/products`}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-700 transition-colors group"
+            >
+              {viewAllText || t('common.viewAll')}
+              <FiArrowRight
+                size={14}
+                className="transition-transform group-hover:translate-x-1"
+              />
+            </Link>
+          </div>
+        )}
+      </div>
     </section>
   );
 };

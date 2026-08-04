@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import QuoteForm from '../components/QuoteForm';
 import publicApi from '../api/publicApi';
+import { sanitizeHtml } from '../utils/sanitize';
+import { htmlToText } from '../utils/html';
 
 const NewsDetail = () => {
   const { t, i18n } = useTranslation();
@@ -43,7 +45,7 @@ const NewsDetail = () => {
   if (!post) return null;
 
   const seoTitle = post.seoTitle || post.title;
-  const seoDesc = post.seoDescription || post.excerpt || '';
+  const seoDesc = htmlToText(post.seoDescription || post.excerpt || '').slice(0, 200);
   const seoKeywords = post.seoKeywords || '';
   const ogImage = post.thumbnail || '';
 
@@ -104,7 +106,7 @@ const NewsDetail = () => {
             {post.content && (
               <div
                 className="prose max-w-none mb-8"
-                dangerouslySetInnerHTML={{ __html: post.content }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
               />
             )}
 

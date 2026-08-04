@@ -15,6 +15,7 @@ import {
   FiAward,
   FiMessageSquare,
   FiFileText,
+  FiActivity,
 } from 'react-icons/fi';
 import { GiPlantRoots } from 'react-icons/gi';
 import { useState } from 'react';
@@ -42,6 +43,7 @@ const Sidebar = () => {
     { path: '/posts', icon: <FiFileText size={18} />, label: 'Bai viet' },
     { path: '/categories', icon: <FiGrid size={18} />, label: 'Danh mục' },
     { path: '/orders', icon: <FiShoppingBag size={18} />, label: 'Đơn hàng' },
+    { path: '/analytics', icon: <FiActivity size={18} />, label: 'Thống kê truy cập' },
   ];
 
   const settingsChildren = [

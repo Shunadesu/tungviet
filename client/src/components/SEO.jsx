@@ -2,8 +2,12 @@ import { Helmet } from 'react-helmet-async';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { htmlToText } from '../utils/html';
 
 const OG_LOCALE = { vi: 'vi_VN', en: 'en_US' };
+
+const truncate = (str, max = 200) =>
+  !str ? '' : str.length <= max ? str : `${str.slice(0, max - 1).trimEnd()}…`;
 
 const SEO = ({
   title,
@@ -24,7 +28,7 @@ const SEO = ({
   const siteUrl = import.meta.env.VITE_SITE_URL || 'https://tungviet.fun';
 
   const finalTitle = title ? `${title} | ${siteName}` : defaultTitle;
-  const finalDescription = description || defaultDescription;
+  const finalDescription = truncate(htmlToText(description) || defaultDescription, 200);
   const pathWithoutLocale = url ? url.replace(/^\/[^/]+/, '') : '';
   const finalUrl = url ? `${siteUrl}/${lang}${pathWithoutLocale}` : `${siteUrl}/${lang}`;
   const finalImage = image || `${siteUrl}/og-image.jpg`;

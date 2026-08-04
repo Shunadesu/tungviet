@@ -13,9 +13,12 @@ html {
 }
 
 body {
-  font-family: 'Inter', sans-serif;
-  background-color: #F8FAFC;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background-color: #FFFFFF;
   color: #0F172A;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 a {
@@ -24,23 +27,175 @@ a {
 }
 
 @layer components {
+  /* Container rộng hơn */
+  .container-page {
+    @apply max-w-8xl mx-auto px-4 md:px-6 lg:px-8;
+  }
+
+  /* Button primary - refined */
   .btn-primary {
-    @apply bg-primary text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:bg-primary-light;
+    @apply inline-flex items-center justify-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 hover:bg-primary-light hover:shadow-card active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
   }
-  
+
   .btn-secondary {
-    @apply bg-white text-primary border border-primary px-4 py-2 rounded-lg font-medium transition-all duration-300 hover:bg-primary-50;
+    @apply inline-flex items-center justify-center gap-2 bg-white text-primary border border-gray-200 px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 hover:border-primary hover:bg-primary-50 active:scale-[0.98];
   }
-  
+
+  .btn-accent {
+    @apply inline-flex items-center justify-center gap-2 bg-accent text-white px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-200 hover:bg-accent-light hover:shadow-card active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 hover:text-gray-900;
+  }
+
+  /* Card variants */
   .card {
-    @apply bg-white rounded-lg p-2 shadow-sm border border-gray-100;
+    @apply bg-white rounded-2xl shadow-card border border-gray-100/80;
   }
-  
+
+  .card-elevated {
+    @apply bg-white rounded-2xl shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+
+  .card-flat {
+    @apply bg-white rounded-2xl border border-gray-100;
+  }
+
+  /* Input field */
   .input-field {
-    @apply w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary;
+    @apply w-full px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm transition-all duration-200 focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 placeholder:text-gray-400;
   }
-  
-  .section-title {
-    @apply text-base font-semibold text-primary mb-2;
+
+  /* Section headings */
+  .heading-display {
+    @apply text-2xl md:text-3xl lg:text-display font-bold text-slate-900 tracking-tight;
+  }
+
+  .heading-section {
+    @apply text-xl md:text-2xl font-semibold text-slate-900 tracking-tight;
+  }
+
+  .heading-eyebrow {
+    @apply text-xs font-semibold uppercase tracking-[0.18em] text-primary;
+  }
+
+  /* Badge / pill */
+  .badge-pill {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium;
+  }
+
+  .badge-primary {
+    @apply badge-pill bg-primary-50 text-primary-700;
+  }
+
+  .badge-accent {
+    @apply badge-pill bg-accent-50 text-accent-700;
+  }
+
+  .badge-neutral {
+    @apply badge-pill bg-gray-100 text-gray-700;
+  }
+
+  /* Section spacing */
+  .section {
+    @apply py-12 md:py-16 lg:py-20;
+  }
+
+  .section-tight {
+    @apply py-8 md:py-10 lg:py-12;
+  }
+
+  /* Skeleton loading */
+  .skeleton {
+    @apply bg-gray-100 animate-pulse rounded-lg;
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, #f1f5f9 0px, #e2e8f0 40px, #f1f5f9 80px);
+    background-size: 1000px 100%;
+    @apply animate-shimmer rounded-lg;
+  }
+
+  /* Container for HTML rendered by Quill/rich-text editors.
+     Prevents long tables/pre/images from overflowing the parent column
+     and from pushing the surrounding grid sideways. */
+  .rich-content {
+    @apply break-words overflow-hidden min-w-0 max-w-full;
+  }
+  .rich-content *,
+  .rich-content img,
+  .rich-content table,
+  .rich-content pre,
+  .rich-content iframe,
+  .rich-content video {
+    @apply max-w-full;
+  }
+  .rich-content table {
+    @apply block w-full overflow-x-auto;
+  }
+  .rich-content pre {
+    @apply whitespace-pre-wrap break-words;
+  }
+  .rich-content img,
+  .rich-content iframe,
+  .rich-content video {
+    @apply h-auto;
+  }
+}
+
+@layer utilities {
+  /* Custom scrollbar */
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    @apply bg-gray-300 rounded-full;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    @apply bg-gray-400;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  /* Line clamp utilities */
+  .line-clamp-1 {
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Focus ring */
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
+
+  /* Subtle grid pattern overlay (used on dark sections) */
+  .grid-pattern {
+    background-image:
+      linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Marquee pause on hover (used by CertificatesSection track wrapper) */
+  .animate-marquee:hover,
+  .animate-marquee-reverse:hover {
+    animation-play-state: paused;
   }
 }

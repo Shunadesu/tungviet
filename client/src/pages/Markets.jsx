@@ -1,365 +1,244 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Link, useParams } from 'react-router-dom';
-import { FiChevronRight, FiFile, FiDownload } from 'react-icons/fi';
+import { FiSearch, FiPackage } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
-import SectionHeader from '../components/SectionHeader';
 import SEO from '../components/SEO';
-import publicApi from '../api/publicApi';
+import PageHero from '../components/PageHero';
+import EmptyState from '../components/EmptyState';
+import MarketCard from '../components/MarketCard';
+import Pagination from '../components/Pagination';
+import useMarkets from '../hooks/useMarkets';
 import { SUPPORTED_LOCALES } from '../i18n';
-import { sanitizeHtml } from '../utils/sanitize';
-import placeholderProduct from '../assets/placeholder-product.svg';
 
 const Markets = () => {
   const { t, i18n } = useTranslation();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [markets, setMarkets] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const initialSearch = searchParams.get('q') || '';
+  const initialSort = searchParams.get('sort') || '';
 
+  const {
+    markets,
+    total,
+    totalPages,
+    page,
+    pageSize,
+    loading,
+    search,
+    sort,
+    setSearch,
+    setSort,
+    setPage,
+  } = useMarkets({ lang, initialSearch, initialSort });
+
+  const gridRef = useRef(null);
+  const isFirstRender = useRef(true);
+
+  // Sync URL params
   useEffect(() => {
-    fetchMarkets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang]);
+    const params = new URLSearchParams();
+    if (search) params.set('q', search);
+    if (sort) params.set('sort', sort);
+    if (page > 1) params.set('page', String(page));
+    setSearchParams(params, { replace: true });
+  }, [search, sort, page, setSearchParams]);
 
-  const fetchMarkets = async () => {
-    try {
-      const res = await publicApi.getMarkets({ lang, limit: 50 });
-      setMarkets(res?.data?.data || []);
-    } catch (error) {
-      console.error('[Markets] error:', error);
-      setMarkets([]);
-    } finally {
-      setLoading(false);
+  // Scroll to top of grid on page change (skip first render)
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
     }
+    if (page > 1 && gridRef.current) {
+      const top =
+        gridRef.current.getBoundingClientRect().top + window.scrollY - 100;
+      window.scrollTo({ top, behavior: 'smooth' });
+    }
+  }, [page]);
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const q = e.target.search.value.trim();
+    setSearch(q);
   };
+
+  const breadcrumb = [
+    { label: t('market.breadcrumbHome'), to: `/${lang}` },
+    { label: t('market.breadcrumbMarkets') },
+  ];
+
+  const heroTitle = search
+    ? t('market.searchResultsTitle', { q: search })
+    : t('market.title');
+  const heroSubtitle = search
+    ? t('market.searchResultsSubtitle')
+    : t('market.subtitle');
+
+  const hasResults = !loading && markets.length > 0;
+  const isFiltered = Boolean(search || sort);
+  const isEmptyAll = !loading && total === 0 && !isFiltered;
 
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="min-h-screen"
+      className="bg-white min-h-screen"
     >
       <SEO
-        title={t('market.title')}
-        description={t('market.subtitle')}
+        title={heroTitle}
+        description={heroSubtitle}
         url={`/${lang}/markets`}
       />
 
-      {/* Breadcrumb */}
-      <div className="bg-gray-50 border-b">
-        <div className="max-w-7xl mx-auto px-4 py-2">
-          <nav className="flex items-center gap-1 text-xs text-gray-500">
-            <Link to={`/${lang}`} className="hover:text-primary">
-              {t('market.breadcrumbHome')}
-            </Link>
-            <FiChevronRight size={12} />
-            <span className="text-gray-700">{t('market.breadcrumbMarkets')}</span>
-          </nav>
+      <PageHero
+        breadcrumb={breadcrumb}
+        title={heroTitle}
+        subtitle={heroSubtitle}
+        align="center"
+      >
+        <form
+          onSubmit={handleSearchSubmit}
+          className="relative max-w-2xl w-full mx-auto"
+        >
+          <FiSearch
+            size={18}
+            className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            name="search"
+            defaultValue={search}
+            placeholder={t('market.searchPlaceholder')}
+            className="w-full pl-11 pr-32 py-3.5 bg-white border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-primary focus:ring-4 focus:ring-primary/10 shadow-card"
+          />
+          <button
+            type="submit"
+            className="absolute right-2 top-1/2 -translate-y-1/2 btn-primary !py-2 !px-4 !rounded-lg !text-xs"
+          >
+            {t('common.search')}
+          </button>
+        </form>
+      </PageHero>
+
+      <section className="container-page py-10 md:py-14" ref={gridRef}>
+        {/* Toolbar */}
+        <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+          <p className="text-sm text-slate-600">
+            <span className="font-semibold text-slate-900">{total}</span>{' '}
+            {t('market.cardsCount', { n: total })}
+          </p>
+
+          <div className="flex items-center gap-2">
+            <label
+              htmlFor="markets-sort"
+              className="hidden sm:inline-block text-xs font-medium text-slate-500"
+            >
+              {t('market.sort.label')}
+            </label>
+            <select
+              id="markets-sort"
+              value={sort}
+              onChange={(e) => setSort(e.target.value)}
+              className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white"
+            >
+              <option value="">{t('market.sort.default')}</option>
+              <option value="newest">{t('market.sort.newest')}</option>
+              <option value="name_asc">{t('market.sort.nameAsc')}</option>
+            </select>
+          </div>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-2 py-6">
-        <SectionHeader
-          title={t('market.title')}
-          subtitle={t('market.subtitle')}
-        />
+        {/* Active filter chip */}
+        {isFiltered && !loading && total > 0 && (
+          <div className="flex flex-wrap items-center gap-2 mb-5">
+            {search && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-primary-50 text-primary text-xs font-medium">
+                <FiSearch size={11} />
+                {search}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setSearch('');
+                setSort('');
+              }}
+              className="text-xs text-primary hover:underline font-medium"
+            >
+              {t('market.filter.clearAll')}
+            </button>
+          </div>
+        )}
 
+        {/* Body */}
         {loading ? (
-          <div className="flex justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-          </div>
-        ) : markets.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
-            <p>{t('market.noMarkets')}</p>
-          </div>
-        ) : (
-          <div className="space-y-8">
-            {markets.map((market, index) => (
-              <MarketSection
-                key={market._id != null ? String(market._id) : `market-${index}`}
-                market={market}
-                lang={lang}
-                index={index}
-              />
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 items-stretch">
+            {Array.from({ length: pageSize }).map((_, i) => (
+              <div key={i} className="card overflow-hidden flex flex-col h-full">
+                <div className="aspect-[16/10] skeleton !rounded-none" />
+                <div className="p-5 space-y-3">
+                  <div className="skeleton h-4 w-3/4" />
+                  <div className="flex gap-1.5">
+                    <div className="skeleton h-5 w-20" />
+                    <div className="skeleton h-5 w-20" />
+                  </div>
+                  <div className="skeleton h-3 w-full" />
+                  <div className="skeleton h-3 w-5/6" />
+                  <div className="skeleton h-4 w-24 mt-3" />
+                </div>
+              </div>
             ))}
           </div>
-        )}
-      </div>
-    </motion.div>
-  );
-};
-
-const MarketSection = ({ market, lang, index }) => {
-  const { t } = useTranslation();
-  const hasProducts = market.selectedProducts && market.selectedProducts.length > 0;
-  const description = market.description ? sanitizeHtml(market.description) : '';
-
-  return (
-    <motion.section
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-      className="bg-white rounded-xl shadow-sm border overflow-hidden"
-    >
-      {/* Header */}
-      <div className="relative">
-        {market.imageUrl ? (
-          <img
-            src={market.imageUrl}
-            alt={market.title}
-            className="w-full h-48 object-cover"
-            onError={(e) => { e.currentTarget.src = placeholderProduct; }}
+        ) : isEmptyAll ? (
+          <EmptyState
+            icon={FiPackage}
+            title={t('market.noMarkets')}
+            description={t('market.noMarketsHint')}
+          />
+        ) : total === 0 ? (
+          <EmptyState
+            icon={FiSearch}
+            title={t('market.noResults')}
+            description={t('market.noResultsHint')}
+            action={
+              <button
+                type="button"
+                onClick={() => {
+                  setSearch('');
+                  setSort('');
+                }}
+                className="btn-secondary"
+              >
+                {t('market.filter.clearAll')}
+              </button>
+            }
           />
         ) : (
-          <div className="w-full h-48 bg-gradient-to-r from-primary-100 to-primary-50 flex items-center justify-center">
-            <span className="text-4xl">🌍</span>
-          </div>
-        )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end">
-          <div className="p-4 text-white flex-1">
-            <h2 className="text-xl font-semibold">{market.title}</h2>
-          </div>
-          {market.tdsUrl && (
-            <a
-              href={market.tdsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="absolute top-3 right-3 flex items-center gap-1.5 bg-accent text-white text-xs px-3 py-1.5 rounded-lg hover:bg-accent-dark transition-colors"
-            >
-              <FiDownload size={14} />
-              {t('market.downloadTds')}
-            </a>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="p-4">
-        {/* Description */}
-        {description && (
-          <div
-            className="mb-4 prose prose-sm max-w-none text-gray-600"
-            dangerouslySetInnerHTML={{ __html: description }}
-          />
-        )}
-
-        {/* Technologies */}
-        {market.technologies && market.technologies.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-              {t('market.technologies')}
-            </h3>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-3">
-              {market.technologies.filter((tt) => tt.isActive !== false).map((tech, i) => {
-                const techTitle = lang === 'en' && tech.titleEn ? tech.titleEn : tech.title;
-                const techDesc = lang === 'en' && tech.descriptionEn ? sanitizeHtml(tech.descriptionEn) : sanitizeHtml(tech.description);
-                const techProducts = tech.products?.filter((p) => p.isActive !== false) || [];
-                const techKey = tech._id != null ? String(tech._id) : `tech-${i}`;
-                return (
-                  <div key={techKey} className="bg-primary-50/50 rounded-lg p-3 border border-primary-100">
-                    <div className="flex items-start gap-2 mb-2">
-                      {tech.imageUrl ? (
-                        <img
-                          src={tech.imageUrl}
-                          alt={techTitle}
-                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
-                          onError={(e) => { e.currentTarget.src = placeholderProduct; }}
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center text-primary flex-shrink-0 text-xs font-bold">
-                          {techTitle?.charAt(0)?.toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-800">{techTitle}</h4>
-                        {techProducts.length > 0 && (
-                          <span className="text-[10px] text-primary">
-                            {t('market.productCount', { count: techProducts.length })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {techDesc && (
-                      <div
-                        className="text-[10px] text-gray-500 line-clamp-2 prose prose-xs max-w-none"
-                        dangerouslySetInnerHTML={{ __html: techDesc }}
-                      />
-                    )}
-                    {techProducts.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {techProducts.slice(0, 3).map((product, pi) => (
-                          <span
-                            key={product?._id != null ? `tech-product-${String(product._id)}` : `tech-product-${pi}`}
-                            className="text-[9px] px-1.5 py-0.5 bg-white text-gray-600 rounded border"
-                          >
-                            {product.name || product.nameEn}
-                          </span>
-                        ))}
-                        {techProducts.length > 3 && (
-                          <span className="text-[9px] px-1.5 py-0.5 text-gray-400">
-                            +{techProducts.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Applications */}
-        {market.applications && market.applications.length > 0 && (
-          <div className="mb-4">
-            <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">
-              {t('market.applications')}
-            </h3>
-            <div className="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {market.applications.filter((a) => a.isActive !== false).map((app, i) => {
-                const appTitle = lang === 'en' && app.titleEn ? app.titleEn : app.title;
-                const appBenefits = lang === 'en' && app.benefitsEn
-                  ? sanitizeHtml(app.benefitsEn)
-                  : sanitizeHtml(app.benefits);
-                const appProducts = app.products?.filter((p) => p.isActive !== false) || [];
-                const appKey = app._id != null ? String(app._id) : `app-${i}`;
-                return (
-                  <div key={appKey} className="bg-green-50/50 rounded-lg p-3 border border-green-100">
-                    <div className="flex items-start gap-2 mb-2">
-                      {app.imageUrl ? (
-                        <img
-                          src={app.imageUrl}
-                          alt={appTitle}
-                          className="w-8 h-8 rounded-lg object-cover flex-shrink-0"
-                          onError={(e) => { e.currentTarget.src = placeholderProduct; }}
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-green-600 flex-shrink-0 text-xs font-bold">
-                          {appTitle?.charAt(0)?.toUpperCase()}
-                        </div>
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <h4 className="text-sm font-medium text-gray-800">{appTitle}</h4>
-                        {appProducts.length > 0 && (
-                          <span className="text-[10px] text-green-600">
-                            {t('market.productCount', { count: appProducts.length })}
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {appBenefits && (
-                      <div
-                        className="text-[10px] text-gray-500 line-clamp-3 mb-2 prose prose-xs max-w-none"
-                        dangerouslySetInnerHTML={{ __html: appBenefits }}
-                      />
-                    )}
-                    {appProducts.length > 0 && (
-                      <div className="flex flex-wrap gap-1">
-                        {appProducts.slice(0, 3).map((product, pi) => (
-                          <span
-                            key={product?._id != null ? `app-product-${String(product._id)}` : `app-product-${pi}`}
-                            className="text-[9px] px-1.5 py-0.5 bg-white text-gray-600 rounded border"
-                          >
-                            {product.name || product.nameEn}
-                          </span>
-                        ))}
-                        {appProducts.length > 3 && (
-                          <span className="text-[9px] px-1.5 py-0.5 text-gray-400">
-                            +{appProducts.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* TDS Download Button */}
-        {market.tdsUrl && (
-          <div className="mb-4">
-            <a
-              href={market.tdsUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-sm px-4 py-2 bg-accent-50 text-accent rounded-lg hover:bg-accent-100 transition-colors"
-            >
-              <FiFile size={16} />
-              {t('market.downloadTds')} (PDF)
-            </a>
-          </div>
-        )}
-
-        {/* Products */}
-        {hasProducts ? (
-          <div>
-            <h3 className="text-xs font-semibold text-gray-500 uppercase mb-3">
-              {t('market.products')} ({market.selectedProducts.length})
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-3">
-              {market.selectedProducts.map((product, productIndex) => (
-                <MarketProductCard
-                  key={product?._id != null ? String(product._id) : `market-product-${productIndex}`}
-                  product={product}
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6 items-stretch">
+              {markets.map((market, index) => (
+                <MarketCard
+                  key={market._id != null ? String(market._id) : `market-${index}`}
+                  market={market}
                   lang={lang}
+                  index={index}
                 />
               ))}
             </div>
-          </div>
-        ) : (
-          <p className="text-sm text-gray-400 text-center py-4">
-            {t('market.noProducts')}
-          </p>
+            {totalPages > 1 && (
+              <Pagination
+                currentPage={page}
+                totalPages={totalPages}
+                onPageChange={setPage}
+              />
+            )}
+          </>
         )}
-      </div>
-    </motion.section>
-  );
-};
-
-const MarketProductCard = ({ product, lang }) => {
-  return (
-    <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-      <Link to={`/${lang}/products/${product._id}`}>
-        {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-            className="w-full h-24 object-cover"
-            onError={(e) => { e.currentTarget.src = placeholderProduct; }}
-          />
-        ) : (
-          <div className="w-full h-24 bg-gray-200 flex items-center justify-center text-2xl">
-            📦
-          </div>
-        )}
-        <div className="p-2">
-          <h4 className="text-xs font-medium line-clamp-2">{product.name}</h4>
-        </div>
-      </Link>
-      <div className="px-2 pb-2 flex gap-1 flex-wrap">
-        {product.softeningPoint && (
-          <span className="text-[9px] px-1 py-0.5 bg-orange-50 text-orange-600 rounded">
-            {product.softeningPoint}
-          </span>
-        )}
-        {product.tdsUrl && (
-          <a
-            href={product.tdsUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className="text-[9px] px-1 py-0.5 bg-accent-50 text-accent rounded flex items-center gap-0.5"
-          >
-            <FiFile size={8} />
-            TDS
-          </a>
-        )}
-      </div>
-    </div>
+      </section>
+    </motion.div>
   );
 };
 

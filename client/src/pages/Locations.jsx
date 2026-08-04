@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { htmlToText } from '../utils/html';
 
 // ── Location Card ─────────────────────────────────────────────────────────────
 function LocationCard({ location, lang }) {
@@ -44,7 +45,7 @@ function LocationCard({ location, lang }) {
 
         {location.description && (
           <p className="text-xs text-gray-600 leading-relaxed mb-3">
-            {location.description}
+            {htmlToText(location.description)}
           </p>
         )}
 

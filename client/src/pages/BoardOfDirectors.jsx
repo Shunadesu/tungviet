@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { sanitizeHtml } from '../utils/sanitize';
+import { htmlToText } from '../utils/html';
 
 const absoluteUrl = (url) => {
   if (!url) return '';
@@ -73,7 +75,7 @@ function BioModal({ member, lang, onClose }) {
             <div className="px-6 pb-6">
               <div
                 className="text-sm text-gray-600 leading-relaxed text-left space-y-2 [&_p]:mb-2 [&_ul]:pl-5 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: member.bio }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(member.bio) }}
               />
             </div>
           )}
@@ -118,7 +120,7 @@ function MemberCard({ member, lang, onClick }) {
         )}
         {member.description && (
           <p className="text-xs text-gray-500 leading-relaxed line-clamp-3">
-            {member.description}
+            {htmlToText(member.description)}
           </p>
         )}
         <div className="mt-3">

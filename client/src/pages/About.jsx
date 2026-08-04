@@ -8,6 +8,8 @@ import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { sanitizeHtml } from '../utils/sanitize';
+import { htmlToText } from '../utils/html';
 
 import 'swiper/css';
 import 'swiper/css/navigation';
@@ -78,7 +80,7 @@ function AboutHeroSwiper({ slides, lang }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6 }}
                     className="text-4xl md:text-6xl font-bold max-w-4xl leading-tight drop-shadow-lg mb-3"
-                    dangerouslySetInnerHTML={{ __html: slide.title }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.title) }}
                   />
                 )}
                 {slide.subtitle && (
@@ -87,7 +89,7 @@ function AboutHeroSwiper({ slides, lang }) {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.15 }}
                     className="text-lg md:text-xl max-w-2xl text-white/90"
-                    dangerouslySetInnerHTML={{ __html: slide.subtitle }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.subtitle) }}
                   />
                 )}
               </div>
@@ -160,7 +162,7 @@ function DescriptionSection({ about, lang }) {
           {about.intro ? (
             <div
               className="text-sm text-gray-600 leading-relaxed space-y-2 [&_p]:mb-2 [&_ul]:pl-5 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: about.intro }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(about.intro) }}
             />
           ) : (
             <p className="text-sm text-gray-400">{lang === 'en' ? 'No introduction yet.' : 'Chưa có mô tả.'}</p>
@@ -178,7 +180,7 @@ function DescriptionSection({ about, lang }) {
           {about.history ? (
             <div
               className="text-sm text-gray-600 leading-relaxed space-y-2 [&_p]:mb-2 [&_ul]:pl-5 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: about.history }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(about.history) }}
             />
           ) : (
             <p className="text-sm text-gray-400">{lang === 'en' ? 'No history yet.' : 'Chưa có lịch sử.'}</p>
@@ -275,7 +277,7 @@ function CoreValuesSection({ values }) {
               </div>
               <h3 className="text-sm font-semibold text-gray-800 mb-1">{value.title}</h3>
               {value.description && (
-                <p className="text-xs text-gray-500 leading-relaxed">{value.description}</p>
+                <p className="text-xs text-gray-500 leading-relaxed">{htmlToText(value.description)}</p>
               )}
             </motion.div>
           );

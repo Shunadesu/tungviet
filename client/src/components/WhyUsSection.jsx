@@ -6,46 +6,64 @@ const FEATURES = [
   {
     key: 'quality',
     Icon: FiAward,
-    accent: 'from-sky-500 to-blue-600',
-    shadow: 'shadow-sky-200/50',
+    accent: 'from-primary to-primary-700',
+    ring: 'ring-primary-100',
+    iconBg: 'bg-primary-50',
+    iconColor: 'text-primary',
   },
   {
     key: 'team',
     Icon: FiUsers,
     accent: 'from-emerald-500 to-teal-600',
-    shadow: 'shadow-emerald-200/50',
+    ring: 'ring-emerald-100',
+    iconBg: 'bg-emerald-50',
+    iconColor: 'text-emerald-600',
   },
   {
     key: 'logistics',
     Icon: FiTruck,
     accent: 'from-cyan-500 to-sky-600',
-    shadow: 'shadow-cyan-200/50',
+    ring: 'ring-cyan-100',
+    iconBg: 'bg-cyan-50',
+    iconColor: 'text-cyan-600',
   },
   {
     key: 'support',
     Icon: FiHeadphones,
-    accent: 'from-teal-500 to-emerald-600',
-    shadow: 'shadow-teal-200/50',
+    accent: 'from-accent to-accent-700',
+    ring: 'ring-accent-100',
+    iconBg: 'bg-accent-50',
+    iconColor: 'text-accent-700',
   },
 ];
+
+const containerVariants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+const cardVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+};
 
 const WhyUsSection = () => {
   const { t } = useTranslation();
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-sky-50 via-white to-emerald-50 py-16 md:py-20">
-      <div className="absolute -top-24 -left-24 w-72 h-72 bg-sky-200/40 rounded-full blur-3xl" aria-hidden="true" />
-      <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-200/40 rounded-full blur-3xl" aria-hidden="true" />
+    <section className="relative overflow-hidden bg-gradient-to-br from-primary-50/40 via-white to-emerald-50/40 py-16 md:py-20">
+      <div className="absolute -top-24 -left-24 w-72 h-72 bg-primary-200/30 rounded-full blur-3xl" aria-hidden="true" />
+      <div className="absolute -bottom-24 -right-24 w-72 h-72 bg-emerald-200/30 rounded-full blur-3xl" aria-hidden="true" />
 
       <div className="relative max-w-6xl mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          viewport={{ once: true, margin: '-80px' }}
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <span className="inline-block px-3 py-1 text-xs font-medium uppercase tracking-wider text-emerald-700 bg-emerald-100 rounded-full mb-3">
+          <span className="inline-block px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-primary bg-primary-50 rounded-full mb-3">
             Why Tung Viet
           </span>
           <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-slate-900">
@@ -56,32 +74,43 @@ const WhyUsSection = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-          {FEATURES.map(({ key, Icon, accent, shadow }, index) => (
-            <motion.div
+        <motion.div
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true, margin: '-80px' }}
+        >
+          {FEATURES.map(({ key, Icon, iconBg, iconColor, ring }) => (
+            <motion.article
               key={key}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.08, duration: 0.5 }}
+              variants={cardVariants}
               whileHover={{ y: -6 }}
-              className={`group relative bg-white rounded-2xl p-6 border border-slate-100 shadow-lg ${shadow} hover:shadow-2xl transition-all duration-300`}
+              transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+              className="group relative bg-white rounded-2xl p-6 border border-slate-100 shadow-card hover:shadow-card-hover transition-shadow duration-300 overflow-hidden"
             >
-              <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-br ${accent} text-white text-2xl mb-4 group-hover:scale-110 transition-transform duration-300`}>
-                <Icon />
+              <span
+                aria-hidden="true"
+                className={`pointer-events-none absolute inset-x-6 -bottom-px h-0.5 bg-gradient-to-r from-transparent via-primary to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-center`}
+              />
+
+              <div className="relative mb-4">
+                <span
+                  className={`inline-flex items-center justify-center w-14 h-14 rounded-2xl ring-2 ${iconBg} ${iconColor} ${ring} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-[6deg]`}
+                >
+                  <Icon size={24} />
+                </span>
               </div>
 
-              <h3 className="text-base md:text-lg font-semibold text-slate-900 mb-1.5">
+              <h3 className="text-base md:text-lg font-bold text-slate-900 mb-1.5 tracking-tight">
                 {t(`whyUs.${key}.title`)}
               </h3>
               <p className="text-sm text-slate-600 leading-relaxed">
                 {t(`whyUs.${key}.desc`)}
               </p>
-
-              <div className="absolute inset-x-6 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-emerald-400 to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-500" />
-            </motion.div>
+            </motion.article>
           ))}
-        </div>
+        </motion.div>
       </div>
     </section>
   );

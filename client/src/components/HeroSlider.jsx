@@ -10,6 +10,7 @@ import 'swiper/css/effect-fade';
 
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { sanitizeHtml } from '../utils/sanitize';
 
 const absoluteUrl = (url) => {
   if (!url) return '';
@@ -107,7 +108,7 @@ export default function HeroSlider() {
                 {slide.title && (
                   <h1
                     className="text-2xl md:text-4xl lg:text-5xl font-bold max-w-4xl leading-tight drop-shadow-lg"
-                    dangerouslySetInnerHTML={{ __html: slide.title }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.title) }}
                   />
                 )}
               </motion.div>
