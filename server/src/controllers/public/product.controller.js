@@ -10,6 +10,9 @@ export const getAllProducts = async (req, res, next) => {
     const locale = resolveLocale(req);
     const params = {
       search: req.query.search,
+      sort: req.query.sort,
+      mainTree: req.query.mainTree,
+      productLine: req.query.productLine || req.query.category,
       page: req.query.page,
       limit: req.query.limit,
     };
@@ -18,21 +21,21 @@ export const getAllProducts = async (req, res, next) => {
       const key = cacheKeys.publicProducts({ ...params, locale });
       const cached = cacheStore.get(key);
       if (cached) {
-        const items = cached.items.map(item => localizeFields(item, locale, LOCALIZABLE_FIELDS));
+        const items = cached.items.map((item) => localizeFields(item, locale, LOCALIZABLE_FIELDS));
         return apiResponse.paginated(res, items, cached.pagination);
       }
     }
 
     const result = await productService.listPublic(params);
-    const items = result.items.map(item => localizeFields(item, locale, LOCALIZABLE_FIELDS));
+    const items = result.items.map((item) => localizeFields(item, locale, LOCALIZABLE_FIELDS));
 
     const payload = { items, pagination: result.pagination };
-    
+
     if (!params.search) {
       const key = cacheKeys.publicProducts({ ...params, locale });
       cacheStore.set(key, payload, TTL.PUBLIC_PRODUCTS);
     }
-    
+
     return apiResponse.paginated(res, payload.items, payload.pagination);
   } catch (err) {
     next(err);

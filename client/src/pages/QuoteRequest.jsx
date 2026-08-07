@@ -5,7 +5,6 @@ import { FiCheckCircle, FiTrash2, FiX, FiSend, FiAlertCircle, FiMail, FiPhone } 
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import { useQuoteBag } from '../context/QuoteBagContext';
-import { useSiteConfig } from '../context/SiteConfigContext';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 import placeholderProduct from '../assets/placeholder-product.svg';
@@ -15,7 +14,6 @@ const QuoteRequest = () => {
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
 
   const { items, count, removeFromQuoteBag, clearQuoteBag } = useQuoteBag();
-  const { footer } = useSiteConfig();
 
   const [sending, setSending] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -113,9 +111,7 @@ const QuoteRequest = () => {
           <h2 className="text-xl font-semibold text-gray-900 mb-2">{t('quote.success') || 'Gửi yêu cầu thành công!'}</h2>
           {submittedContact && (
             <p className="text-sm text-gray-600 mb-4">
-              Chúng tôi sẽ liên hệ lại với bạn qua{' '}
-              <strong>{submittedContact.preferredContact === 'email' ? submittedContact.email : submittedContact.phone}</strong>{' '}
-              trong thời gian sớm nhất.
+              {t('quote.successDetail', { channel: submittedContact.preferredContact === 'email' ? 'email' : 'số điện thoại' })}
             </p>
           )}
           <div className="flex flex-wrap justify-center gap-2">
@@ -325,13 +321,7 @@ const QuoteRequest = () => {
                       <FiX size={14} />
                     </button>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {footer?.email && (
-              <div className="mt-4 pt-3 border-t text-[10px] text-gray-500">
-                <p>Cần hỗ trợ? Gọi <a href={`tel:${footer.phone?.replace(/\s/g, '')}`} className="text-primary font-medium">{footer.phone}</a> hoặc email <a href={`mailto:${footer.email}`} className="text-blue-600">{footer.email}</a></p>
+                )                )}
               </div>
             )}
           </div>

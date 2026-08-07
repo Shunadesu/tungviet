@@ -105,12 +105,20 @@ export default function HeroSlider() {
                 transition={{ duration: 0.6 }}
                 className="relative z-10 h-full flex items-center justify-center text-center text-white px-6"
               >
-                {slide.title && (
-                  <h1
-                    className="text-2xl md:text-4xl lg:text-5xl font-bold max-w-4xl leading-tight drop-shadow-lg"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.title) }}
-                  />
-                )}
+                <div className="flex flex-col items-center">
+                  {slide.title && (
+                    <h1
+                      className="text-2xl md:text-4xl lg:text-5xl font-bold max-w-4xl leading-tight drop-shadow-lg"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.title) }}
+                    />
+                  )}
+                  {slide.description && (
+                    <p
+                      className="mt-4 text-base md:text-xl text-white/90 max-w-3xl drop-shadow leading-relaxed"
+                      dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.description) }}
+                    />
+                  )}
+                </div>
               </motion.div>
             </div>
           </SwiperSlide>

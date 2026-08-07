@@ -9,6 +9,10 @@ const heroSlideSchema = new mongoose.Schema(
       vi: { type: String, trim: true, default: '' },
       en: { type: String, trim: true, default: '' },
     },
+    description: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
     order: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
   },

@@ -1,21 +1,39 @@
 import { useState, useEffect } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 
-const CATEGORIES = ['Tin cong nghe', 'Huong dan su dung', 'Tin khuyen mai', 'Tin tu van', 'Chia se'];
-
 const News = () => {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  const { lang } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const [posts, setPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [activeCategory, setActiveCategory] = useState('');
 
-  useEffect(() => { fetchPosts(1); }, [activeCategory]);
+  const urlCategory = searchParams.get('category') || '';
+  const [activeCategory, setActiveCategory] = useState(urlCategory);
+
+  useEffect(() => {
+    publicApi
+      .getPostCategories()
+      .then((res) => setCategories(res.data?.data || []))
+      .catch(() => setCategories([]));
+  }, []);
+
+  useEffect(() => {
+    setActiveCategory(searchParams.get('category') || '');
+  }, [searchParams]);
+
+  useEffect(() => {
+    fetchPosts(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCategory]);
 
   const fetchPosts = async (p = 1) => {
     setLoading(true);
@@ -27,42 +45,89 @@ const News = () => {
       setPosts(data.items || []);
       setPage(data.page || 1);
       setTotalPages(data.pages || 1);
-    } catch (err) { console.error(err); }
-    finally { setLoading(false); }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const formatDate = (d) => d ? new Date(d).toLocaleDateString(isVi ? 'vi-VN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
+  const handleCategoryClick = (slug) => {
+    if (slug) {
+      setSearchParams({ category: slug });
+    } else {
+      setSearchParams({});
+    }
+  };
+
+  const formatDate = (d) =>
+    d
+      ? new Date(d).toLocaleDateString(isVi ? 'vi-VN' : 'en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        })
+      : '';
+
+  const getCategoryLabel = (cat) => {
+    if (!cat) return '';
+    if (isVi) return cat.name || cat.nameEn || cat.slug;
+    return cat.nameEn || cat.name || cat.slug;
+  };
+
+  const getCategorySlug = (cat) => {
+    if (!cat) return '';
+    if (typeof cat === 'string') return cat;
+    return cat.slug || '';
+  };
 
   return (
     <>
       <SEO
-        title={isVi ? 'Tin tuc & Blog' : 'News & Blog'}
-        description={isVi ? 'Tin tuc cong nghe, huong dan su dung, tin khuyen mai' : 'Technology news, usage guides, promotions'}
+        title={isVi ? 'Tin tức & Blog' : 'News & Blog'}
+        description={
+          isVi
+            ? 'Tin tức công nghệ, hướng dẫn sử dụng, tin khuyến mãi'
+            : 'Technology news, usage guides, promotions'
+        }
       />
 
       {/* Hero */}
       <section className="bg-gradient-to-r from-primary/90 to-primary py-16">
         <div className="max-w-6xl mx-auto px-4 text-center text-white">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">{isVi ? 'Tin tuc & Blog' : 'News & Blog'}</h1>
-          <p className="text-white/80">{isVi ? 'Cap nhat tin tuc, kien thuc va khuyen mai moi nhat' : 'Latest news, knowledge and promotions'}</p>
+          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+            {isVi ? 'Tin tức & Blog' : 'News & Blog'}
+          </h1>
+          <p className="text-white/80">
+            {isVi
+              ? 'Cập nhật tin tức, kiến thức và khuyến mãi mới nhất'
+              : 'Latest news, knowledge and promotions'}
+          </p>
         </div>
       </section>
 
       <div className="max-w-6xl mx-auto px-4 py-10">
         {/* Category filter */}
         <div className="flex flex-wrap gap-2 mb-8">
-          <button onClick={() => setActiveCategory('')}
+          <button
+            onClick={() => handleCategoryClick('')}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
               !activeCategory ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}>
-            {isVi ? 'Tat ca' : 'All'}
+            }`}
+          >
+            {isVi ? 'Tất cả' : 'All'}
           </button>
-          {CATEGORIES.map((cat) => (
-            <button key={cat} onClick={() => setActiveCategory(cat)}
+          {categories.map((cat) => (
+            <button
+              key={cat._id}
+              onClick={() => handleCategoryClick(getCategorySlug(cat))}
               className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
-                activeCategory === cat ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}>
-              {cat}
+                activeCategory === getCategorySlug(cat)
+                  ? 'bg-primary text-white'
+                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {getCategoryLabel(cat)}
             </button>
           ))}
         </div>
@@ -79,31 +144,62 @@ const News = () => {
             ))}
           </div>
         ) : posts.length === 0 ? (
-          <div className="text-center py-16 text-gray-400">{isVi ? 'Chua co bai viet nao.' : 'No posts yet.'}</div>
+          <div className="text-center py-16 text-gray-400">
+            {isVi ? 'Chưa có bài viết nào.' : 'No posts yet.'}
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post) => (
-                <Link key={post._id} to={`/news/${post.slug}`} className="group">
+                <Link
+                  key={post._id}
+                  to={`/${lang || 'vi'}/news/${post.slug}`}
+                  className="group"
+                >
                   <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border">
                     {post.thumbnail ? (
-                      <img src={post.thumbnail} alt={post.title} className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300" />
+                      <img
+                        src={post.thumbnail}
+                        alt={post.title}
+                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
                     ) : (
                       <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
-                        <svg width="48" height="48" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        <svg
+                          width="48"
+                          height="48"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                          />
+                        </svg>
                       </div>
                     )}
                     <div className="p-4">
                       {post.category && (
-                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">{post.category}</span>
+                        <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
+                          {getCategoryLabel(post.category)}
+                        </span>
                       )}
-                      <h3 className="font-semibold text-gray-800 mt-2 mb-1 line-clamp-2 group-hover:text-primary transition-colors">{post.title}</h3>
+                      <h3 className="font-semibold text-gray-800 mt-2 mb-1 line-clamp-2 group-hover:text-primary transition-colors">
+                        {post.title}
+                      </h3>
                       {post.excerpt && (
-                        <p className="text-sm text-gray-500 line-clamp-2 mb-2">{post.excerpt}</p>
+                        <p className="text-sm text-gray-500 line-clamp-2 mb-2">
+                          {post.excerpt}
+                        </p>
                       )}
                       <div className="flex items-center justify-between text-xs text-gray-400">
                         <span>{formatDate(post.publishedAt || post.createdAt)}</span>
-                        {post.viewCount > 0 && <span>{post.viewCount} {isVi ? 'luot xem' : 'views'}</span>}
+                        {post.viewCount > 0 && (
+                          <span>
+                            {post.viewCount} {isVi ? 'lượt xem' : 'views'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -115,10 +211,18 @@ const News = () => {
             {totalPages > 1 && (
               <div className="flex justify-center gap-2 mt-10">
                 {Array.from({ length: totalPages }, (_, i) => (
-                  <button key={i} onClick={() => { setPage(i + 1); fetchPosts(i + 1); }}
+                  <button
+                    key={i}
+                    onClick={() => {
+                      setPage(i + 1);
+                      fetchPosts(i + 1);
+                    }}
                     className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
-                      page === i + 1 ? 'bg-primary text-white' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
-                    }`}>
+                      page === i + 1
+                        ? 'bg-primary text-white'
+                        : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
                     {i + 1}
                   </button>
                 ))}

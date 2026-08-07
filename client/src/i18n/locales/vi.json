@@ -9,8 +9,11 @@
     "home": "Trang chủ",
     "products": "Sản phẩm",
     "markets": "Thị trường",
+    "mainTrees": "Ngành hàng",
+    "marketTrees": "Cây ngành",
     "about": "Giới thiệu",
     "contact": "Liên hệ",
+    "news": "Tin tức",
     "quote": "Yêu cầu báo giá",
     "account": "Tài khoản"
   },
@@ -150,7 +153,10 @@
       "title": "Bộ lọc",
       "active": "Đang lọc",
       "clearAll": "Xóa bộ lọc",
-      "all": "Tất cả"
+      "all": "Tất cả",
+      "mainTree": "Ngành hàng",
+      "productLine": "Product line",
+      "selectMainTreeFirst": "Chọn ngành hàng trước để lọc theo product line."
     },
     "sort": {
       "label": "Sắp xếp",
@@ -165,6 +171,15 @@
     "breadcrumbProducts": "Sản phẩm",
     "specifications": "Thông số kỹ thuật",
     "noAttributes": "Chưa có thông số kỹ thuật",
+    "productCode": "Mã sản phẩm",
+    "price": "Giá",
+    "priceVisible": "Hiển thị giá",
+    "webStatus": {
+      "draft": "Nháp",
+      "published": "Đã xuất bản",
+      "archived": "Lưu trữ"
+    },
+    "targetAudience": "Đối tượng mục tiêu",
     "softeningPoint": "Điểm làm mềm",
     "acidValue": "Chỉ số axit",
     "color": "Màu sắc",
@@ -197,8 +212,8 @@
     "preferredPhone": "Qua điện thoại",
     "submit": "Gửi yêu cầu",
     "submitting": "Đang gửi...",
-    "success": "Yêu cầu đã được gửi!",
-    "successSubtitle": "Chúng tôi sẽ phản hồi trong vòng 24 giờ qua",
+    "success": "Yêu cầu đã được gửi tới đội ngũ!",
+    "successDetail": "Chúng tôi sẽ xem xét và phản hồi lại cho bạn qua {{channel}} trong thời gian sớm nhất.",
     "sendAnother": "Gửi yêu cầu khác",
     "sendViaEmail": "Mở ứng dụng email",
     "itemsCount": "{{n}} sản phẩm"
@@ -415,7 +430,8 @@
       "submit": "Gửi yêu cầu",
       "sending": "Đang gửi..."
     },
-    "success": "Cảm ơn bạn! Yêu cầu của bạn đã được gửi thành công.",
+    "success": "Cảm ơn bạn! Yêu cầu đã được gửi tới đội ngũ.",
+    "successDetail": "Chúng tôi sẽ xem xét và phản hồi lại cho bạn qua email hoặc điện thoại.",
     "error": "Gửi thất bại. Vui lòng thử lại.",
     "hotline": "Hotline"
   }

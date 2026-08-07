@@ -17,6 +17,7 @@ const localizeSlide = (slide, locale) => {
     _id: slide._id,
     imageUrl: slide.imageUrl || '',
     title: pick('title'),
+    description: pick('description'),
     order: typeof slide.order === 'number' ? slide.order : 0,
     active: slide.active !== false,
   };

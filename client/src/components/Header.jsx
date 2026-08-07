@@ -16,6 +16,7 @@ import {
   FiAward,
   FiUsers,
   FiMapPin,
+  FiGitBranch,
 } from 'react-icons/fi';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +25,7 @@ import { useQuoteBag } from '../context/QuoteBagContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { SUPPORTED_LOCALES } from '../i18n';
 import publicApi from '../api/publicApi';
-import { getMarketTitle } from '../utils/market';
+import { getLocalizedField } from '../utils/i18nField';
 
 const LOCALE_LABELS = { vi: 'VI', en: 'EN' };
 const SCROLL_THRESHOLD = 16;
@@ -45,8 +46,8 @@ const DropdownNav = ({ to, label, children, transparent }) => {
   }, []);
 
   const triggerClass = transparent
-    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer'
-    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer';
+    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
+    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
 
   const panelClass =
     'absolute top-full left-0 mt-2 w-64 max-h-[70vh] overflow-y-auto bg-white shadow-lg rounded-lg border border-gray-100 z-50';
@@ -157,8 +158,8 @@ const MegaMenuAbout = ({ transparent, isHomeTop }) => {
   const menuItems = ABOUT_MENU_ITEMS[lang] || ABOUT_MENU_ITEMS.vi;
 
   const triggerClass = transparent
-    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer'
-    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer';
+    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
+    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
 
   // Khi ở trang home đầu trang → luôn nền trắng cho mega menu
   const panelBorder = 'border-gray-100';
@@ -269,8 +270,8 @@ const MegaMenuContact = ({ transparent }) => {
   const menuItems = CONTACT_MENU_ITEMS[lang] || CONTACT_MENU_ITEMS.vi;
 
   const triggerClass = transparent
-    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer'
-    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer';
+    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
+    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
 
   const panelBorder = 'border-gray-100';
   const itemHover = 'hover:bg-gray-50 hover:text-primary';
@@ -337,19 +338,31 @@ const Header = () => {
   const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [scrolled, setScrolled] = useState(false);
-  const [markets, setMarkets] = useState([]);
+  const [mainTrees, setMainTrees] = useState([]);
+  const [marketTrees, setMarketTrees] = useState([]);
   const [products, setProducts] = useState([]);
   const searchInputRef = useRef(null);
   const searchWrapperRef = useRef(null);
 
   useEffect(() => {
     publicApi
-      .getMarkets({ lang: currentLang, limit: DROPDOWN_LIMIT })
+      .getMainTrees(currentLang)
       .then((r) => {
-        setMarkets(r.data?.data ?? []);
+        setMainTrees(Array.isArray(r.data?.data) ? r.data.data : []);
       })
       .catch((err) => {
-        console.warn('[Header] getMarkets failed:', err?.message || err);
+        console.warn('[Header] getMainTrees failed:', err?.message || err);
+      });
+  }, [currentLang]);
+
+  useEffect(() => {
+    publicApi
+      .getMarketTrees({ lang: currentLang })
+      .then((r) => {
+        setMarketTrees(Array.isArray(r.data?.data) ? r.data.data : []);
+      })
+      .catch((err) => {
+        console.warn('[Header] getMarketTrees failed:', err?.message || err);
       });
   }, [currentLang]);
 
@@ -466,6 +479,10 @@ const Header = () => {
 
   const subLinkClass = 'block px-3 py-2 text-xs text-gray-700 hover:bg-gray-50 hover:text-primary';
 
+  const linkClass = transparent
+    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
+    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
+
   return (
     <motion.header
       initial={{ y: -20, opacity: 0 }}
@@ -481,7 +498,7 @@ const Header = () => {
                 <img
                   src={logoUrl}
                   alt=" Tungviet"
-                  className="h-10 w-auto max-w-[180px] object-contain"
+                  className="h-10 w-auto max-w-[140px] object-contain"
                 />
               ) : (
                 <>
@@ -493,30 +510,31 @@ const Header = () => {
           </div>
 
           {/* Nav */}
-          <nav className="hidden md:flex col-span-5 items-center justify-center gap-8">
+          <nav className="hidden md:flex col-span-5 items-center justify-center gap-4 lg:gap-5">
             <MegaMenuAbout transparent={transparent} isHomeTop={isHome && !scrolled} />
 
+            {/* Dropdown 1: Ngành hàng (MainTree) */}
             <DropdownNav
-              to={`/${currentLang}/markets`}
-              label={t('nav.markets')}
+              to={`/${currentLang}/products`}
+              label={t('nav.mainTrees')}
               transparent={transparent}
             >
               {({ close, navigateAll }) => (
                 <>
-                  {markets.length === 0 ? (
+                  {mainTrees.length === 0 ? (
                     <div className="px-3 py-3 text-xs text-gray-500 italic">
-                      {t('market.noMarkets')}
+                      {t('product.filter.all')}
                     </div>
                   ) : (
-                    markets.map((m) => (
+                    mainTrees.map((m) => (
                       <Link
                         key={m._id}
-                        to={`/${currentLang}/markets/${m._id}`}
+                        to={`/${currentLang}/products?mainTree=${m._id}`}
                         className={subLinkClass}
                         onClick={close}
                         role="menuitem"
                       >
-                        {getMarketTitle(m, currentLang)}
+                        {getLocalizedField(m, currentLang, 'name', 'nameEn')}
                       </Link>
                     ))
                   )}
@@ -527,13 +545,53 @@ const Header = () => {
                       className={`${subLinkClass} w-full text-left text-primary font-medium`}
                       role="menuitem"
                     >
-                      {t('common.viewAll')} {t('nav.markets')} →
+                      {t('common.viewAll')} →
                     </button>
                   </div>
                 </>
               )}
             </DropdownNav>
 
+            {/* Dropdown 2: Cây ngành (MarketTree) */}
+            <DropdownNav
+              to={`/${currentLang}/markets`}
+              label={t('nav.marketTrees')}
+              transparent={transparent}
+            >
+              {({ close, navigateAll }) => (
+                <>
+                  {marketTrees.length === 0 ? (
+                    <div className="px-3 py-3 text-xs text-gray-500 italic">
+                      {t('market.noMarkets')}
+                    </div>
+                  ) : (
+                    marketTrees.map((m) => (
+                      <Link
+                        key={m._id}
+                        to={`/${currentLang}/markets/${m._id}`}
+                        className={subLinkClass}
+                        onClick={close}
+                        role="menuitem"
+                      >
+                        {getLocalizedField(m, currentLang, 'name', 'nameEn')}
+                      </Link>
+                    ))
+                  )}
+                  <div className="border-t border-gray-100">
+                    <button
+                      type="button"
+                      onClick={navigateAll}
+                      className={`${subLinkClass} w-full text-left text-primary font-medium`}
+                      role="menuitem"
+                    >
+                      {t('common.viewAll')} →
+                    </button>
+                  </div>
+                </>
+              )}
+            </DropdownNav>
+
+            {/* Dropdown 3: Sản phẩm (Product) */}
             <DropdownNav
               to={`/${currentLang}/products`}
               label={t('nav.products')}
@@ -577,6 +635,13 @@ const Header = () => {
                 </>
               )}
             </DropdownNav>
+
+            <Link
+              to={`/${currentLang}/news`}
+              className={linkClass}
+            >
+              {t('nav.news')}
+            </Link>
 
             <MegaMenuContact transparent={transparent} />
           </nav>
@@ -725,19 +790,45 @@ const Header = () => {
 
                 <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
 
-                {markets.length > 0 && (
+                {mainTrees.length > 0 && (
                   <>
                     <span className={`px-1 text-[10px] uppercase font-semibold tracking-wide ${transparent ? 'text-white/60' : 'text-gray-400'}`}>
-                      {t('nav.markets')}
+                      {t('nav.mainTrees')}
                     </span>
-                    {markets.slice(0, 5).map((m) => (
+                    {mainTrees.slice(0, 5).map((m) => (
+                      <Link
+                        key={m._id}
+                        to={`/${currentLang}/products?mainTree=${m._id}`}
+                        onClick={() => setMenuOpen(false)}
+                        className={mobileLinkClass}
+                      >
+                        <span className="ml-3">{getLocalizedField(m, currentLang, 'name', 'nameEn')}</span>
+                      </Link>
+                    ))}
+                    <Link
+                      to={`/${currentLang}/products`}
+                      onClick={() => setMenuOpen(false)}
+                      className={`${mobileLinkClass} text-primary font-medium ml-3`}
+                    >
+                      {t('common.viewAll')} →
+                    </Link>
+                    <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
+                  </>
+                )}
+
+                {marketTrees.length > 0 && (
+                  <>
+                    <span className={`px-1 text-[10px] uppercase font-semibold tracking-wide ${transparent ? 'text-white/60' : 'text-gray-400'}`}>
+                      {t('nav.marketTrees')}
+                    </span>
+                    {marketTrees.slice(0, 5).map((m) => (
                       <Link
                         key={m._id}
                         to={`/${currentLang}/markets/${m._id}`}
                         onClick={() => setMenuOpen(false)}
                         className={mobileLinkClass}
                       >
-                        <span className="ml-3">{getMarketTitle(m, currentLang)}</span>
+                        <span className="ml-3">{getLocalizedField(m, currentLang, 'name', 'nameEn')}</span>
                       </Link>
                     ))}
                     <Link
@@ -745,7 +836,7 @@ const Header = () => {
                       onClick={() => setMenuOpen(false)}
                       className={`${mobileLinkClass} text-primary font-medium ml-3`}
                     >
-                      {t('common.viewAll')} {t('nav.markets')} →
+                      {t('common.viewAll')} →
                     </Link>
                     <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
                   </>
@@ -767,6 +858,10 @@ const Header = () => {
                     <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
                   </>
                 )}
+
+                <Link to={`/${currentLang}/news`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
+                  {t('nav.news')}
+                </Link>
 
                 <Link to={`/${currentLang}/contact`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
                   {t('nav.contact')}

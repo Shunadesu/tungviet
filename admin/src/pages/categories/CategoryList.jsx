@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX } from 'react-icons/fi';
 import Header from '../../components/Header';
 import Modal from '../../components/Modal';
+import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import DataTable from '../../components/DataTable';
 import adminApi from '../../api/adminApi';
@@ -10,32 +11,55 @@ import { useNotification } from '../../context/NotificationContext';
 
 const CategoryList = () => {
   const [categories, setCategories] = useState([]);
+  const [mainTrees, setMainTrees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
-  const [selected, setSelected] = useState([]);
+  const [selectedIds, setSelectedIds] = useState([]);
   const [deleting, setDeleting] = useState(false);
+  const [filterMainTree, setFilterMainTree] = useState('');
   const { addNotification } = useNotification();
 
   const [formData, setFormData] = useState({
     name: '',
     nameEn: '',
+    slug: '',
     description: '',
     descriptionEn: '',
     imageUrl: '',
+    mainTree: '',
+    order: 0,
     isActive: true,
   });
 
   useEffect(() => {
+    fetchMainTrees();
     fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    fetchCategories();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterMainTree]);
+
+  const fetchMainTrees = async () => {
+    try {
+      const res = await adminApi.getMainTrees();
+      setMainTrees(Array.isArray(res.data?.data) ? res.data.data : []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const fetchCategories = async () => {
     try {
-      const res = await adminApi.getCategories({ page: 1, limit: 100 });
-      setCategories(res.data.data);
+      const params = filterMainTree ? { mainTree: filterMainTree } : undefined;
+      const res = await adminApi.getCategories(params);
+      const data = res.data?.data;
+      setCategories(Array.isArray(data) ? data : data?.items || []);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -43,8 +67,14 @@ const CategoryList = () => {
     }
   };
 
+  const mainTreeById = useMemo(() => {
+    const map = new Map();
+    for (const t of mainTrees) map.set(String(t._id), t);
+    return map;
+  }, [mainTrees]);
+
   const filtered = useMemo(() => {
-    let list = categories;
+    let list = [...categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.name || '').localeCompare(b.name || ''));
     if (!showInactive) {
       list = list.filter((c) => c.isActive !== false);
     }
@@ -53,6 +83,7 @@ const CategoryList = () => {
       list = list.filter(
         (c) =>
           c.name?.toLowerCase().includes(q) ||
+          c.nameEn?.toLowerCase().includes(q) ||
           c.description?.toLowerCase().includes(q)
       );
     }
@@ -69,7 +100,7 @@ const CategoryList = () => {
         ),
       },
       {
-        header: 'Tên danh mục',
+        header: 'Tên',
         accessor: 'name',
         render: (val, row) => (
           <div className="flex items-center gap-2">
@@ -89,6 +120,9 @@ const CategoryList = () => {
             )}
             <div className="min-w-0">
               <span className="font-medium text-gray-800">{val}</span>
+              {row.nameEn && (
+                <div className="text-[10px] text-gray-400">{row.nameEn}</div>
+              )}
               {row.isActive === false && (
                 <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
                   Tạm ẩn
@@ -97,6 +131,18 @@ const CategoryList = () => {
             </div>
           </div>
         ),
+      },
+      {
+        header: 'Ngành hàng',
+        accessor: 'mainTree',
+        render: (val) => {
+          const mt = typeof val === 'object' ? val : mainTreeById.get(String(val));
+          return (
+            <span className="text-xs text-gray-500">
+              {mt ? mt.name : '—'}
+            </span>
+          );
+        },
       },
       {
         header: 'Mô tả',
@@ -117,18 +163,22 @@ const CategoryList = () => {
         ),
       },
     ],
-    []
+    [mainTreeById]
   );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        mainTree: formData.mainTree || null,
+      };
       if (editingCategory) {
-        await adminApi.updateCategory(editingCategory._id, formData);
-        addNotification('Cập nhật danh mục thành công');
+        await adminApi.updateCategory(editingCategory._id, payload);
+        addNotification('Cập nhật thành công');
       } else {
-        await adminApi.createCategory(formData);
-        addNotification('Thêm danh mục thành công');
+        await adminApi.createCategory(payload);
+        addNotification('Thêm thành công');
       }
       setModalOpen(false);
       setEditingCategory(null);
@@ -141,22 +191,26 @@ const CategoryList = () => {
 
   const handleEdit = (category) => {
     setEditingCategory(category);
+    const mtId = category.mainTree?._id || category.mainTree || '';
     setFormData({
       name: category.name,
       nameEn: category.nameEn || '',
+      slug: category.slug || '',
       description: category.description || '',
       descriptionEn: category.descriptionEn || '',
       imageUrl: category.imageUrl || '',
+      mainTree: mtId,
+      order: category.order ?? 0,
       isActive: category.isActive !== false,
     });
     setModalOpen(true);
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa danh mục này?')) return;
+    if (!confirm('Bạn có chắc muốn xóa?')) return;
     try {
       await adminApi.deleteCategory(id);
-      addNotification('Xóa danh mục thành công');
+      addNotification('Xóa thành công');
       fetchCategories();
     } catch (error) {
       addNotification('Có lỗi xảy ra', 'error');
@@ -164,13 +218,13 @@ const CategoryList = () => {
   };
 
   const handleDeleteSelected = async () => {
-    if (selected.length === 0) return;
-    if (!confirm(`Xóa ${selected.length} danh mục đã chọn?`)) return;
+    if (selectedIds.length === 0) return;
+    if (!confirm(`Xóa ${selectedIds.length} mục đã chọn?`)) return;
     setDeleting(true);
     try {
-      await adminApi.deleteCategories(selected);
-      addNotification(`Đã xóa ${selected.length} danh mục`);
-      setSelected([]);
+      await adminApi.deleteCategories(selectedIds);
+      addNotification(`Đã xóa ${selectedIds.length} mục`);
+      setSelectedIds([]);
       fetchCategories();
     } catch (error) {
       addNotification('Có lỗi xảy ra khi xóa nhiều', 'error');
@@ -180,7 +234,17 @@ const CategoryList = () => {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', nameEn: '', description: '', descriptionEn: '', imageUrl: '', isActive: true });
+    setFormData({
+      name: '',
+      nameEn: '',
+      slug: '',
+      description: '',
+      descriptionEn: '',
+      imageUrl: '',
+      mainTree: filterMainTree || '',
+      order: 0,
+      isActive: true,
+    });
   };
 
   const renderActions = (row) => (
@@ -204,28 +268,38 @@ const CategoryList = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <SEO title="Danh mục" description="Quản lý danh mục sản phẩm" url="/categories" />
-      <Header title="Quản lý danh mục" />
+      <SEO title="Product line" description="Quản lý product line" url="/categories" />
+      <Header title="Quản lý Product line" />
 
       <div className="p-4">
-        {/* Toolbar */}
         <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700">
-            Danh sách danh mục
+            Danh sách product line
             <span className="ml-1.5 text-gray-400 font-normal">
-              ({filtered.length}{' '}
-              {showInactive ? '' : 'đang hoạt động'})
+              ({filtered.length} {showInactive ? '' : 'đang hoạt động'})
             </span>
           </h2>
-          <div className="flex items-center gap-2">
-            {selected.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <select
+              value={filterMainTree}
+              onChange={(e) => setFilterMainTree(e.target.value)}
+              className="input-field text-xs py-1.5 w-44"
+            >
+              <option value="">Tất cả ngành hàng</option>
+              {mainTrees.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name}
+                </option>
+              ))}
+            </select>
+            {selectedIds.length > 0 && (
               <button
                 onClick={handleDeleteSelected}
                 disabled={deleting}
                 className="btn-danger flex items-center gap-1 text-xs"
               >
                 <FiTrash2 size={14} />
-                Xóa ({selected.length})
+                Xóa ({selectedIds.length})
               </button>
             )}
             <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
@@ -267,24 +341,23 @@ const CategoryList = () => {
               className="btn-primary flex items-center gap-1 text-xs"
             >
               <FiPlus size={14} />
-              Thêm danh mục
+              Thêm product line
             </button>
           </div>
         </div>
 
-        {/* Table */}
         <div className="card">
           {loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
               <span className="text-3xl">📂</span>
               <p className="text-sm">
                 {search
-                  ? 'Không tìm thấy danh mục phù hợp'
-                  : 'Chưa có danh mục nào'}
+                  ? 'Không tìm thấy mục phù hợp'
+                  : 'Chưa có product line nào'}
               </p>
               {!search && (
                 <button
@@ -294,32 +367,40 @@ const CategoryList = () => {
                   }}
                   className="text-xs text-primary hover:underline"
                 >
-                  Thêm danh mục đầu tiên
+                  Thêm mục đầu tiên
                 </button>
               )}
             </div>
           ) : (
-            <DataTable columns={columns} data={filtered} actions={renderActions} selectable selected={selected} onSelectChange={setSelected} />
+            <DataTable
+              columns={columns}
+              data={filtered}
+              actions={renderActions}
+              selectable
+              selected={selectedIds}
+              onSelectChange={setSelectedIds}
+            />
           )}
         </div>
       </div>
 
-      {/* Modal */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        title={editingCategory ? 'Sửa danh mục' : 'Thêm danh mục'}
+        title={editingCategory ? 'Sửa product line' : 'Thêm product line'}
       >
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium mb-1">Tên danh mục *</label>
+            <label className="block text-xs font-medium mb-1">
+              Tên <span className="text-red-500">*</span>
+            </label>
             <input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
               className="input-field"
-              placeholder="VD: Cây Cảnh Trong Nhà"
+              placeholder="VD: ROSIN MODIFIED MALEIC RESIN"
             />
           </div>
 
@@ -330,8 +411,38 @@ const CategoryList = () => {
               value={formData.nameEn}
               onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
               className="input-field"
-              placeholder="English name (tùy chọn)"
+              placeholder="English name (optional)"
             />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1">Slug (tự động nếu trống)</label>
+            <input
+              type="text"
+              value={formData.slug}
+              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+              className="input-field"
+              placeholder="rosin-modified-maleic-resin"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-1">Ngành hàng</label>
+            <select
+              value={formData.mainTree}
+              onChange={(e) => setFormData({ ...formData, mainTree: e.target.value })}
+              className="input-field"
+            >
+              <option value="">— Chọn ngành hàng —</option>
+              {mainTrees.map((t) => (
+                <option key={t._id} value={t._id}>
+                  {t.name} {t.nameEn ? `(${t.nameEn})` : ''}
+                </option>
+              ))}
+            </select>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Optional. Có thể để trống nếu product line đứng độc lập.
+            </p>
           </div>
 
           <div>
@@ -347,28 +458,37 @@ const CategoryList = () => {
 
           <div>
             <label className="block text-xs font-medium mb-1">Mô tả</label>
-            <textarea
+            <RichEditor
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              className="input-field resize-none"
-              placeholder="Mô tả ngắn về danh mục..."
+              onChange={(value) => setFormData({ ...formData, description: value })}
+              placeholder="Mô tả..."
+              minHeight={140}
             />
           </div>
 
           <div>
             <label className="block text-xs font-medium mb-1">Mô tả tiếng Anh</label>
-            <textarea
+            <RichEditor
               value={formData.descriptionEn}
-              onChange={(e) => setFormData({ ...formData, descriptionEn: e.target.value })}
-              rows={3}
-              className="input-field resize-none"
-              placeholder="English description (tùy chọn)"
+              onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
+              placeholder="English description"
+              minHeight={140}
             />
           </div>
 
-          <div>
-            <label className="flex items-center gap-2 cursor-pointer select-none">
+          <div className="flex items-center gap-3">
+            <div>
+              <label className="block text-xs font-medium mb-1">Thứ tự</label>
+              <input
+                type="number"
+                value={formData.order}
+                onChange={(e) =>
+                  setFormData({ ...formData, order: Number(e.target.value) || 0 })
+                }
+                className="input-field w-24"
+              />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
               <input
                 type="checkbox"
                 checked={formData.isActive}
@@ -377,9 +497,6 @@ const CategoryList = () => {
               />
               <span className="text-xs font-medium">Đang hoạt động</span>
             </label>
-            <p className="text-[10px] text-gray-400 mt-0.5 ml-5">
-              Bỏ chọn để tạm ẩn danh mục khỏi trang công khai
-            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t">

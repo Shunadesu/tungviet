@@ -15,8 +15,6 @@ const emptyForm = () => ({
   isActive: true, publishedAt: '',
 });
 
-const CATEGORIES = ['Tin cong nghe', 'Huong dan su dung', 'Tin khuyen mai', 'Tin tu van', 'Chia se'];
-
 const PostForm = () => {
   const { addNotification } = useNotification();
   const navigate = useNavigate();
@@ -29,6 +27,14 @@ const PostForm = () => {
   const [uploadingThumb, setUploadingThumb] = useState(false);
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [showSeo, setShowSeo] = useState(false);
+  const [categories, setCategories] = useState([]);
+
+  useEffect(() => {
+    adminApi
+      .getPostCategories()
+      .then((res) => setCategories(res.data?.data || []))
+      .catch(() => setCategories([]));
+  }, []);
 
   useEffect(() => {
     if (isEdit) {
@@ -43,7 +49,9 @@ const PostForm = () => {
             content: d.content || '',
             thumbnail: d.thumbnail || '',
             images: d.images || [],
-            category: d.category || '',
+            // Backend populate -> d.category là object { _id, name, ... }
+            // Hoặc data cũ vẫn là string
+            category: d.category?._id || d.category || '',
             facebookUrl: d.facebookUrl || '',
             seoTitle: d.seoTitle || '',
             seoDescription: d.seoDescription || '',
@@ -210,8 +218,13 @@ const PostForm = () => {
               <label className="block text-sm font-medium text-gray-700 mb-1">Danh muc</label>
               <select value={form.category} onChange={(e) => set('category', e.target.value)} className="input-field">
                 <option value="">-- Chon danh muc --</option>
-                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
+                {categories.map((c) => (
+                  <option key={c._id} value={c._id}>{c.name}</option>
+                ))}
               </select>
+              <p className="text-[10px] text-gray-400 mt-0.5">
+                Quan ly danh muc tai /post-categories
+              </p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Link Facebook</label>

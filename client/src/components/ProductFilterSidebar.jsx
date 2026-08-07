@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiFilter, FiRefreshCw } from 'react-icons/fi';
+import { FiX, FiFilter, FiRefreshCw, FiLayers, FiPackage } from 'react-icons/fi';
 import FilterChip from './FilterChip';
 import publicApi from '../api/publicApi';
 
 /**
- * Sidebar filter cho trang sản phẩm: markets + softening point range.
+ * Sidebar filter cho trang sản phẩm: MainTree + ProductLine (dependent) + softening point range.
  * Mobile: drawer full-screen.
  */
 const ProductFilterSidebar = ({
@@ -18,17 +18,32 @@ const ProductFilterSidebar = ({
   activeCount,
 }) => {
   const { t, i18n } = useTranslation();
-  const [markets, setMarkets] = useState([]);
-  const [loadingMarkets, setLoadingMarkets] = useState(true);
+  const [mainTrees, setMainTrees] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loadingMain, setLoadingMain] = useState(true);
+  const [loadingCat, setLoadingCat] = useState(true);
 
   useEffect(() => {
-    setLoadingMarkets(true);
+    setLoadingMain(true);
     publicApi
-      .getMarkets({ lang: i18n.language, limit: 50 })
-      .then((r) => setMarkets(r?.data?.data || []))
-      .catch(() => setMarkets([]))
-      .finally(() => setLoadingMarkets(false));
+      .getMainTrees(i18n.language)
+      .then((r) => setMainTrees(r?.data?.data || []))
+      .catch(() => setMainTrees([]))
+      .finally(() => setLoadingMain(false));
   }, [i18n.language]);
+
+  useEffect(() => {
+    setLoadingCat(true);
+    const params = values.mainTree ? { mainTree: values.mainTree } : undefined;
+    publicApi
+      .getCategories(params)
+      .then((r) => {
+        const data = r?.data?.data;
+        setCategories(Array.isArray(data) ? data : data?.items || []);
+      })
+      .catch(() => setCategories([]))
+      .finally(() => setLoadingCat(false));
+  }, [i18n.language, values.mainTree]);
 
   const softeningRanges = [
     { value: '', label: t('product.filter.all') },
@@ -62,30 +77,68 @@ const ProductFilterSidebar = ({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-7 scrollbar-thin">
-        {/* Markets */}
+        {/* Ngành hàng (Main Tree) */}
         <section>
-          <h4 className="heading-eyebrow mb-3">{t('nav.markets')}</h4>
-          {loadingMarkets ? (
+          <h4 className="heading-eyebrow mb-3 flex items-center gap-1.5">
+            <FiLayers size={12} />
+            {t('product.filter.mainTree')}
+          </h4>
+          {loadingMain ? (
             <div className="space-y-2">
-              {Array.from({ length: 4 }).map((_, i) => (
+              {Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="skeleton h-7 w-full" />
               ))}
             </div>
-          ) : markets.length === 0 ? (
+          ) : mainTrees.length === 0 ? (
             <p className="text-xs text-gray-400">—</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {markets.map((m) => {
+              {mainTrees.map((m) => {
                 const label = i18n.language === 'en' && m.nameEn ? m.nameEn : m.name;
-                const active = values.market === m._id;
+                const active = values.mainTree === m._id;
                 return (
                   <FilterChip
                     key={m._id}
                     label={label}
                     active={active}
-                    onClick={() =>
-                      setParam('market', active ? '' : m._id)
-                    }
+                    onClick={() => setParam('mainTree', active ? '' : m._id)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Product line (dependent) */}
+        <section>
+          <h4 className="heading-eyebrow mb-3 flex items-center gap-1.5">
+            <FiPackage size={12} />
+            {t('product.filter.productLine')}
+          </h4>
+          {!values.mainTree && (
+            <p className="text-[10px] text-gray-400 mb-2">
+              {t('product.filter.selectMainTreeFirst')}
+            </p>
+          )}
+          {loadingCat ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="skeleton h-7 w-full" />
+              ))}
+            </div>
+          ) : categories.length === 0 ? (
+            <p className="text-xs text-gray-400">—</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => {
+                const label = i18n.language === 'en' && c.nameEn ? c.nameEn : c.name;
+                const active = values.category === c._id;
+                return (
+                  <FilterChip
+                    key={c._id}
+                    label={label}
+                    active={active}
+                    onClick={() => setParam('category', active ? '' : c._id)}
                   />
                 );
               })}

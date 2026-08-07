@@ -12,8 +12,8 @@ const useProductFilters = () => {
     () => ({
       search: searchParams.get('q') || searchParams.get('search') || '',
       sort: searchParams.get('sort') || '',
-      market: searchParams.get('market') || '',
-      category: searchParams.get('category') || '',
+      mainTree: searchParams.get('mainTree') || '',
+      category: searchParams.get('category') || searchParams.get('productLine') || '',
       softeningPoint: searchParams.get('softeningPoint') || '',
     }),
     [searchParams]
@@ -22,6 +22,10 @@ const useProductFilters = () => {
   const setParam = useCallback(
     (key, value) => {
       const next = new URLSearchParams(searchParams);
+      // Reset category when mainTree changes
+      if (key === 'mainTree' && value !== values.mainTree) {
+        next.delete('category');
+      }
       if (value === '' || value == null) {
         next.delete(key);
       } else {
@@ -29,7 +33,7 @@ const useProductFilters = () => {
       }
       setSearchParams(next, { replace: true });
     },
-    [searchParams, setSearchParams]
+    [searchParams, setSearchParams, values.mainTree]
   );
 
   const setMultiParam = useCallback(
@@ -49,7 +53,7 @@ const useProductFilters = () => {
   }, [setSearchParams]);
 
   const activeCount = useMemo(() => {
-    return ['market', 'category', 'softeningPoint'].filter(
+    return ['mainTree', 'category', 'softeningPoint'].filter(
       (k) => searchParams.get(k)
     ).length;
   }, [searchParams]);

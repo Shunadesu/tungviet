@@ -9,8 +9,11 @@
     "home": "Home",
     "products": "Products",
     "markets": "Markets",
+    "mainTrees": "Industries",
+    "marketTrees": "Market Trees",
     "about": "About",
     "contact": "Contact",
+    "news": "News",
     "quote": "Request quote",
     "account": "Account"
   },
@@ -150,7 +153,10 @@
       "title": "Filters",
       "active": "Filtering by",
       "clearAll": "Clear all",
-      "all": "All"
+      "all": "All",
+      "mainTree": "Industry",
+      "productLine": "Product line",
+      "selectMainTreeFirst": "Select an industry first to filter by product line."
     },
     "sort": {
       "label": "Sort",
@@ -165,6 +171,15 @@
     "breadcrumbProducts": "Products",
     "specifications": "Specifications",
     "noAttributes": "No specifications available",
+    "productCode": "Product code",
+    "price": "Price",
+    "priceVisible": "Show price",
+    "webStatus": {
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "targetAudience": "Target audience",
     "softeningPoint": "Softening Point",
     "acidValue": "Acid Value",
     "color": "Color",
@@ -197,8 +212,8 @@
     "preferredPhone": "By phone",
     "submit": "Send request",
     "submitting": "Sending...",
-    "success": "Request sent successfully!",
-    "successSubtitle": "We will respond within 24 hours via",
+    "success": "Request sent to our team!",
+    "successDetail": "We will review your request and get back to you via {{channel}} shortly.",
     "sendAnother": "Send another request",
     "sendViaEmail": "Open email app",
     "itemsCount": "{{n}} products"
@@ -415,7 +430,8 @@
       "submit": "Submit Request",
       "sending": "Sending..."
     },
-    "success": "Thank you! Your request has been sent successfully.",
+    "success": "Thank you! Your request has been sent to our team.",
+    "successDetail": "We will review and get back to you via email or phone.",
     "error": "Failed to send. Please try again.",
     "hotline": "Hotline"
   }

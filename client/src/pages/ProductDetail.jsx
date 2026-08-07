@@ -126,6 +126,11 @@ const ProductDetail = () => {
     .filter(({ value }) => value);
 
   const galleryImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
+  const priceLabel = product.priceVisible === false
+    ? t('product.contactUs')
+    : typeof product.price === 'number' && product.price > 0
+      ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(product.price)
+      : null;
 
   const breadcrumb = [
     { label: t('product.breadcrumbHome'), to: `/${lang}` },
@@ -163,6 +168,40 @@ const ProductDetail = () => {
 
           {/* Info - 2 cols */}
           <div className="lg:col-span-2 flex flex-col gap-6">
+            {/* Product code + price + target audience */}
+            <div className="card p-5 bg-gradient-to-br from-slate-50 to-white border border-slate-100">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                {product.productCode ? (
+                  <div>
+                    <div className="text-[11px] uppercase tracking-wider text-gray-500 font-medium mb-0.5">
+                      {t('product.productCode')}
+                    </div>
+                    <div className="font-mono text-base font-semibold text-slate-900">
+                      {product.productCode}
+                    </div>
+                  </div>
+                ) : null}
+                {priceLabel && (
+                  <div className="text-right">
+                    <div className="text-[11px] uppercase tracking-wider text-gray-500 font-medium mb-0.5">
+                      {product.priceVisible === false ? t('product.contactUs') : t('product.price')}
+                    </div>
+                    <div className={`text-base font-semibold ${product.priceVisible === false ? 'text-primary' : 'text-slate-900'}`}>
+                      {priceLabel}
+                    </div>
+                  </div>
+                )}
+              </div>
+              {product.targetAudience && (
+                <div className="mt-3 pt-3 border-t border-slate-100">
+                  <div className="text-[11px] uppercase tracking-wider text-gray-500 font-medium mb-1">
+                    {t('product.targetAudience')}
+                  </div>
+                  <p className="text-sm text-slate-700 leading-relaxed">{product.targetAudience}</p>
+                </div>
+              )}
+            </div>
+
             {/* Specifications card */}
             {dynamicAttributes.length > 0 && (
               <div className="card p-5">

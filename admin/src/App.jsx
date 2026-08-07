@@ -10,8 +10,8 @@ import Dashboard from './pages/Dashboard';
 import ProductList from './pages/products/ProductList';
 import ProductForm from './pages/products/ProductForm';
 import ProductColumnsSettings from './pages/products/ProductColumnsSettings';
-import MarketList from './pages/markets/MarketList';
-import MarketForm from './pages/markets/MarketForm';
+import MainTreeList from './pages/mainTrees/MainTreeList';
+import MarketTreeList from './pages/marketTrees/MarketTreeList';
 import MemberList from './pages/members/MemberList';
 import MemberForm from './pages/members/MemberForm';
 import LocationList from './pages/locations/LocationList';
@@ -23,15 +23,15 @@ import QuoteSubmissionList from './pages/quoteSection/QuoteSubmissionList';
 import PartnerList from './pages/partners/PartnerList';
 import PostList from './pages/posts/PostList';
 import PostForm from './pages/posts/PostForm';
+import PostCategoryList from './pages/postCategories/PostCategoryList';
 import CategoryList from './pages/categories/CategoryList';
 import OrderList from './pages/orders/OrderList';
 import Analytics from './pages/analytics/Analytics';
 import AppearanceOverview from './pages/settings/AppearanceOverview';
-import LogoSettings from './pages/settings/LogoSettings';
 import HeroSlidesSettings from './pages/settings/HeroSlidesSettings';
 import AboutSettings from './pages/settings/AboutSettings';
 import FooterSettings from './pages/settings/FooterSettings';
-import SEOSettings from './pages/settings/SEOSettings';
+import BrandSEOSettings from './pages/settings/BrandSEOSettings';
 import FloatingContactSettings from './pages/settings/FloatingContactSettings';
 import Login from './pages/Login';
 
@@ -93,19 +93,14 @@ function App() {
                   <ProductColumnsSettings />
                 </ProtectedRoute>
               } />
-              <Route path="/markets" element={
+              <Route path="/main-trees" element={
                 <ProtectedRoute>
-                  <MarketList />
+                  <MainTreeList />
                 </ProtectedRoute>
               } />
-              <Route path="/markets/new" element={
+              <Route path="/market-trees" element={
                 <ProtectedRoute>
-                  <MarketForm />
-                </ProtectedRoute>
-              } />
-              <Route path="/markets/:id/edit" element={
-                <ProtectedRoute>
-                  <MarketForm />
+                  <MarketTreeList />
                 </ProtectedRoute>
               } />
               <Route path="/members" element={
@@ -183,6 +178,11 @@ function App() {
                   <PostForm />
                 </ProtectedRoute>
               } />
+              <Route path="/post-categories" element={
+                <ProtectedRoute>
+                  <PostCategoryList />
+                </ProtectedRoute>
+              } />
               <Route path="/categories" element={
                 <ProtectedRoute>
                   <CategoryList />
@@ -205,7 +205,7 @@ function App() {
               } />
               <Route path="/settings/appearance/logo" element={
                 <ProtectedRoute>
-                  <LogoSettings />
+                  <Navigate to="/settings/appearance/seo" replace />
                 </ProtectedRoute>
               } />
               <Route path="/settings/appearance/hero" element={
@@ -225,7 +225,7 @@ function App() {
               } />
               <Route path="/settings/appearance/seo" element={
                 <ProtectedRoute>
-                  <SEOSettings />
+                  <BrandSEOSettings />
                 </ProtectedRoute>
               } />
               <Route path="/settings/appearance/floating-contacts" element={

@@ -135,6 +135,7 @@ const sanitizeSlide = (body = {}) => {
   return {
     imageUrl,
     title: localePair(body.title, 200),
+    description: localePair(body.description, 500),
     order,
     active,
   };

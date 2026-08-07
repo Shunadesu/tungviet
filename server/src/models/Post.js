@@ -8,7 +8,7 @@ const postSchema = new mongoose.Schema(
     content: { type: String, default: '' },
     thumbnail: { type: String, default: '' },
     images: [{ type: String }],
-    category: { type: String, default: '' },
+    category: { type: mongoose.Schema.Types.ObjectId, ref: 'PostCategory', default: null, index: true },
     facebookUrl: { type: String, default: '' },
     seoTitle: { type: String, default: '' },
     seoDescription: { type: String, default: '' },
@@ -21,7 +21,6 @@ const postSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-postSchema.index({ slug: 1 });
 postSchema.index({ isActive: 1, order: 1 });
 postSchema.index({ publishedAt: -1 });
 

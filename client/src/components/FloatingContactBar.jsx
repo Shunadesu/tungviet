@@ -7,37 +7,51 @@ import {
   FiGlobe,
   FiMapPin,
   FiClock,
+  FiFacebook,
+  FiInstagram,
+  FiYoutube,
+  FiTwitter,
+  FiLinkedin,
+  FiMessageSquare,
+  FiSend,
+  FiHeadphones,
+  FiHelpCircle,
 } from 'react-icons/fi';
-
-const ICON_MAP = {
-  FiPhone,
-  FiMessageCircle,
-  FiMail,
-  FiGlobe,
-  FiMapPin,
-  FiClock,
-};
-
-const ZaloIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm2.5-6.5c0 .83-.67 1.5-1.5 1.5H10V17h-2v-5h2v-1.5c0-2 2-2.5 3-2.5 1 0 2 .5 2 2v1h-1.5c-.28 0-.5.22-.5.5z"/>
-  </svg>
-);
-
-const MessengerIcon = () => (
-  <svg viewBox="0 0 24 24" className="w-5 h-5" fill="currentColor">
-    <path d="M12 2C6.48 2 2 6.48 2 12c0 4.25 2.67 7.9 6.44 9.34-.09-.79-.15-1.89-.03-2.65.03-.17.1-.29.23-.38.13-.09.26-.04.38.04l1.58.94c.09.05.18.08.26.08.12 0 .23-.05.32-.15l1.9-3.12c.2.05.41.08.62.08.5 0 .99-.09 1.45-.25l.52 1.89c.04.13.13.24.25.31.12.07.26.08.39.04l1.94-.97c.14-.07.22-.22.22-.38-.01-1.83-.56-3.53-1.5-4.93.18-.21.35-.44.5-.68.06-.1.09-.2.09-.32 0-.12-.04-.23-.1-.33l-.5-.86c-.05-.09-.08-.19-.08-.3 0-.11.03-.22.08-.32l.36-.62c.04-.07.06-.15.06-.24 0-.09-.02-.18-.06-.25l-.38-.66c-.05-.08-.07-.17-.07-.27 0-.1.02-.19.07-.27l.36-.62c.04-.07.06-.15.06-.24 0-.09-.02-.18-.06-.25l-.25-.43c-.04-.07-.06-.15-.06-.24 0-.09.02-.18.06-.25l-.09-.16c-.04-.07-.06-.15-.06-.24 0-.09.02-.18.06-.25l-.07-.12c-.04-.07-.06-.15-.06-.24 0-.09.02-.18.06-.25l-.04-.07c-.04-.07-.06-.15-.06-.24 0-.09.02-.18.06-.25l-.02-.04C15.5 5.5 16 5 16 4.5c0-.28-.22-.5-.5-.5H12c-.28 0-.5.22-.5.5 0 .28.22.5.5.5h2.5v.5H12c-.28 0-.5.22-.5.5 0 .28.22.5.5.5h2.5v.5H12c-.28 0-.5.22-.5.5 0 .28.22.5.5.5h2.5v.5H12c-.28 0-.5.22-.5.5 0 .28.22.5.5.5h.04l-.01.02z"/>
-  </svg>
-);
+import {
+  FaWhatsapp,
+  FaTelegram,
+  FaLine,
+  FaViber,
+  FaTiktok,
+  FaWeixin,
+} from 'react-icons/fa';
+import { SiZalo } from 'react-icons/si';
 
 const ICON_DISPLAY = {
-  FiPhone: { icon: FiPhone, color: 'text-green-500', label: 'Phone' },
-  FiMessageCircle: { icon: MessengerIcon, color: 'text-blue-500', label: 'Messenger' },
+  FiPhone: { icon: FiPhone, color: 'text-green-500', label: 'Điện thoại' },
+  FiMessageCircle: { icon: FiMessageCircle, color: 'text-blue-500', label: 'Messenger' },
   FiMail: { icon: FiMail, color: 'text-red-500', label: 'Email' },
-  FiGlobe: { icon: FiGlobe, color: 'text-blue-500', label: 'Website' },
-  FiMapPin: { icon: FiMapPin, color: 'text-red-500', label: 'Location' },
-  FiClock: { icon: FiClock, color: 'text-purple-500', label: 'Hours' },
-  Zalo: { icon: ZaloIcon, color: 'text-blue-500', label: 'Zalo' },
+  FiGlobe: { icon: FiGlobe, color: 'text-purple-500', label: 'Website' },
+  FiMapPin: { icon: FiMapPin, color: 'text-red-500', label: 'Địa chỉ' },
+  FiClock: { icon: FiClock, color: 'text-orange-500', label: 'Giờ mở cửa' },
+  FiFacebook: { icon: FiFacebook, color: 'text-blue-600', label: 'Facebook' },
+  FiInstagram: { icon: FiInstagram, color: 'text-pink-500', label: 'Instagram' },
+  FiYoutube: { icon: FiYoutube, color: 'text-red-600', label: 'YouTube' },
+  FiTwitter: { icon: FiTwitter, color: 'text-sky-500', label: 'X (Twitter)' },
+  FiLinkedin: { icon: FiLinkedin, color: 'text-blue-700', label: 'LinkedIn' },
+  FiMessageSquare: { icon: FiMessageSquare, color: 'text-indigo-500', label: 'Tin nhắn' },
+  FiSend: { icon: FiSend, color: 'text-cyan-500', label: 'Gửi' },
+  FiHeadphones: { icon: FiHeadphones, color: 'text-emerald-500', label: 'Hỗ trợ' },
+  FiHelpCircle: { icon: FiHelpCircle, color: 'text-amber-500', label: 'Hỏi đáp' },
+  FaWhatsapp: { icon: FaWhatsapp, color: 'text-green-500', label: 'WhatsApp' },
+  FaTelegram: { icon: FaTelegram, color: 'text-sky-500', label: 'Telegram' },
+  FaLine: { icon: FaLine, color: 'text-green-600', label: 'LINE' },
+  FaViber: { icon: FaViber, color: 'text-purple-600', label: 'Viber' },
+  FaTiktok: { icon: FaTiktok, color: 'text-gray-900', label: 'TikTok' },
+  FaWeixin: { icon: FaWeixin, color: 'text-green-600', label: 'WeChat' },
+  SiZalo: { icon: SiZalo, color: 'text-blue-500', label: 'Zalo' },
+  // Legacy key: dữ liệu cũ lưu "Zalo" thay vì "SiZalo".
+  Zalo: { icon: SiZalo, color: 'text-blue-500', label: 'Zalo' },
 };
 
 const FloatingContactBar = ({ contacts = [] }) => {
@@ -65,6 +79,9 @@ const FloatingContactBar = ({ contacts = [] }) => {
         {contacts.map((contact, index) => {
           const config = ICON_DISPLAY[contact.icon] || ICON_DISPLAY.FiPhone;
           const IconComponent = config.icon;
+          const isImageIcon =
+            typeof contact.icon === 'string' &&
+            (contact.icon.startsWith('http') || contact.icon.startsWith('/'));
           const key = getKey(contact, index);
           const isHovered = hoveredId === key;
 
@@ -83,10 +100,14 @@ const FloatingContactBar = ({ contacts = [] }) => {
                 href={contact.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className={`flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all duration-200 ${config.color} hover:scale-110`}
+                className={`flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all duration-200 ${isImageIcon ? '' : config.color} hover:scale-110`}
                 title={contact.label || config.label}
               >
-                <IconComponent />
+                {isImageIcon ? (
+                  <img src={contact.icon} alt="" className="w-6 h-6 object-contain" />
+                ) : (
+                  <IconComponent size={24} />
+                )}
               </a>
 
               <AnimatePresence>

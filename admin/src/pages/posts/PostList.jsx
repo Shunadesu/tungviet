@@ -109,7 +109,9 @@ const PostList = () => {
                       <div className="text-sm font-medium text-gray-800 line-clamp-1">{item.title}</div>
                       <div className="text-xs text-gray-400">{formatDate(item.publishedAt)}</div>
                     </td>
-                    <td className="px-3 py-2 text-sm text-gray-500">{item.category || '-'}</td>
+                    <td className="px-3 py-2 text-sm text-gray-500">
+                      {item.category?.name || (typeof item.category === 'string' ? item.category : null) || '-'}
+                    </td>
                     <td className="px-3 py-2 text-center">
                       <button onClick={() => handleToggleActive(item)} disabled={toggling === item._id}
                         className={`p-1.5 rounded transition-colors ${item.isActive ? 'text-green-500 hover:bg-green-50' : 'text-gray-300 hover:bg-gray-100'}`}>

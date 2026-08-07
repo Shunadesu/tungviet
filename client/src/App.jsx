@@ -10,8 +10,6 @@ import ScrollToTop from './components/ScrollToTop';
 
 // Pages
 import Home from './pages/Home';
-import Markets from './pages/Markets';
-import MarketDetail from './pages/MarketDetail';
 import ProductList from './pages/ProductList';
 import ProductDetail from './pages/ProductDetail';
 import QuoteBag from './pages/QuoteBag';
@@ -26,6 +24,8 @@ import Leadership from './pages/Leadership';
 import Contact from './pages/Contact';
 import News from './pages/News';
 import NewsDetail from './pages/NewsDetail';
+import Markets from './pages/Markets';
+import MarketDetail from './pages/MarketDetail';
 
 function App() {
   return (
@@ -39,8 +39,6 @@ function App() {
                 <Route path="/" element={<LocaleRedirect />} />
                 <Route path="/:lang" element={<LocaleGuard><Layout /></LocaleGuard>}>
                   <Route index element={<Home />} />
-                  <Route path="markets" element={<Markets />} />
-                  <Route path="markets/:id" element={<MarketDetail />} />
                   <Route path="products" element={<ProductList />} />
                   <Route path="products/:id" element={<ProductDetail />} />
                   <Route path="quote" element={<QuoteRequest />} />
@@ -56,6 +54,8 @@ function App() {
                   <Route path="contact" element={<Contact />} />
                   <Route path="news" element={<News />} />
                   <Route path="news/:slug" element={<NewsDetail />} />
+                  <Route path="markets" element={<Markets />} />
+                  <Route path="markets/:id" element={<MarketDetail />} />
                 </Route>
                 <Route path="*" element={<LocaleRedirect />} />
               </Routes>

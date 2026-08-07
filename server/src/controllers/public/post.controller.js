@@ -14,7 +14,8 @@ export const getPublicPost = async (req, res, next) => {
     const { slug } = req.params;
     const post = await postService.getPublicBySlug(slug);
     if (!post) return apiResponse.notFound(res, 'Khong tim thay bai viet');
-    const related = await postService.getRelated(post._id, post.category, 3);
+    const relatedCategoryId = post.category?._id || post.category || null;
+    const related = await postService.getRelated(post._id, relatedCategoryId, 3);
     return apiResponse.ok(res, { ...post, related });
   } catch (err) { next(err); }
 };

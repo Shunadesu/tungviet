@@ -164,17 +164,21 @@ const MemberForm = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium mb-1 text-gray-700">Mo ta ngan (VI) <span className="text-gray-400 font-normal">(hien thi tren the)</span></label>
-                <textarea value={form.description.vi}
-                  onChange={(e) => setField('description', 'vi', e.target.value)}
-                  className="input-field resize-none" rows={3}
-                  placeholder="Mot doan mo ta ngan ve thanh vien nay..." />
+                <RichEditor
+                  value={form.description.vi}
+                  onChange={(value) => setField('description', 'vi', value)}
+                  placeholder="Mot doan mo ta ngan ve thanh vien nay..."
+                  minHeight={120}
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1 text-gray-700">Short bio (EN) <span className="text-gray-400 font-normal">(shown on card)</span></label>
-                <textarea value={form.description.en}
-                  onChange={(e) => setField('description', 'en', e.target.value)}
-                  className="input-field resize-none" rows={3}
-                  placeholder="A brief bio in English..." />
+                <RichEditor
+                  value={form.description.en}
+                  onChange={(value) => setField('description', 'en', value)}
+                  placeholder="A brief bio in English..."
+                  minHeight={120}
+                />
               </div>
             </div>
 

@@ -36,9 +36,9 @@ export const submitQuote = async (req, res, next) => {
     if (!phone?.trim()) return apiResponse.badRequest(res, 'Số điện thoại là bắt buộc');
 
     const sanitizedItems = sanitizeItems(items);
-    if (sanitizedItems.length === 0) {
-      return apiResponse.badRequest(res, 'Vui lòng chọn ít nhất một sản phẩm');
-    }
+    // items[] là optional — chỉ bắt buộc với QuoteBag flow (QuoteRequest).
+    // Form CTA trên Home (QuoteSection.jsx) và form sidebar (QuoteForm) chỉ
+    // gửi productType/market hoặc product text, không có items[].
 
     const submission = new QuoteSubmission({
       name: String(name).trim().slice(0, 120),

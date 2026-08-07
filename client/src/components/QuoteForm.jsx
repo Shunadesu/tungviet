@@ -14,7 +14,7 @@ const QuoteForm = ({ postTitle, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!form.name.trim() || !form.phone.trim()) { setError(isVi ? 'Vui long dien day du thong tin' : 'Please fill in required fields'); return; }
+    if (!form.name.trim() || !form.email.trim() || !form.phone.trim()) { setError(isVi ? 'Vui lòng điền đầy đủ thông tin' : 'Please fill in required fields'); return; }
     setSaving(true);
     setError('');
     try {
@@ -22,15 +22,15 @@ const QuoteForm = ({ postTitle, onSuccess }) => {
       setDone(true);
       if (onSuccess) onSuccess();
     } catch (err) {
-      setError(isVi ? 'Gui yeu cau that bai' : 'Failed to submit');
+      setError(isVi ? 'Gửi yêu cầu thất bại' : 'Failed to submit');
     } finally { setSaving(false); }
   };
 
   if (done) return (
     <div className="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
       <div className="text-3xl mb-2">&#10003;</div>
-      <h3 className="font-semibold text-green-700 mb-1">{isVi ? 'Gui thanh cong!' : 'Submitted successfully!'}</h3>
-      <p className="text-sm text-green-600">{isVi ? 'Chung toi se lien he ban som nhat.' : 'We will contact you soon.'}</p>
+      <h3 className="font-semibold text-green-700 mb-1">{isVi ? 'Gửi thành công!' : 'Submitted successfully!'}</h3>
+      <p className="text-sm text-green-600">{isVi ? 'Yêu cầu đã được gửi tới đội ngũ. Chúng tôi sẽ xem xét và phản hồi cho bạn.' : 'Your request has been sent to our team. We will review and get back to you.'}</p>
     </div>
   );
 
@@ -49,7 +49,7 @@ const QuoteForm = ({ postTitle, onSuccess }) => {
         </div>
         <div>
           <input type="email" value={form.email} onChange={(e) => set('email', e.target.value)}
-            className="input-field text-sm" placeholder={isVi ? 'Email' : 'Email'} />
+            className="input-field text-sm" placeholder={isVi ? 'Email *' : 'Email *'} required />
         </div>
         <div>
           <input type="text" value={form.product} onChange={(e) => set('product', e.target.value)}

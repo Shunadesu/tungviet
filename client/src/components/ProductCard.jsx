@@ -6,6 +6,11 @@ import { SUPPORTED_LOCALES } from '../i18n';
 import { useQuoteBag } from '../context/QuoteBagContext';
 import placeholderProduct from '../assets/placeholder-product.svg';
 
+const formatPrice = (price) => {
+  if (typeof price !== 'number' || price <= 0) return null;
+  return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(price);
+};
+
 const ProductCard = ({ product, index = 0 }) => {
   const { lang: urlLang } = useParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
@@ -19,6 +24,10 @@ const ProductCard = ({ product, index = 0 }) => {
     addToQuoteBag(product);
   };
 
+  const priceLabel = product.priceVisible === false
+    ? t('product.contactUs')
+    : formatPrice(product.price);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -26,7 +35,6 @@ const ProductCard = ({ product, index = 0 }) => {
       transition={{ delay: index * 0.04, duration: 0.35 }}
       className="group card-elevated overflow-hidden flex flex-col h-full"
     >
-      {/* Image - fixed aspect ratio for consistency */}
       <Link
         to={`/${lang}/products/${product._id}`}
         className="relative block aspect-[4/3] overflow-hidden bg-gray-50 flex-shrink-0"
@@ -41,9 +49,16 @@ const ProductCard = ({ product, index = 0 }) => {
           }}
         />
 
-        {/* Top-left badges */}
-        {product.tdsUrl && (
+        {product.productCode && (
           <div className="absolute top-3 left-3">
+            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-slate-900/85 text-white text-[10px] font-mono font-semibold backdrop-blur-sm">
+              {product.productCode}
+            </span>
+          </div>
+        )}
+
+        {product.tdsUrl && (
+          <div className="absolute top-3 right-3">
             <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-accent text-white text-[10px] font-semibold backdrop-blur-sm">
               <FiFile size={10} />
               TDS
@@ -51,7 +66,6 @@ const ProductCard = ({ product, index = 0 }) => {
           </div>
         )}
 
-        {/* Hover overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/70 via-slate-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
           <span className="inline-flex items-center gap-1 text-white text-xs font-semibold">
             {t('product.viewDetails')}
@@ -60,9 +74,7 @@ const ProductCard = ({ product, index = 0 }) => {
         </div>
       </Link>
 
-      {/* Body - flex-col với flex-1 để CTA luôn ở dưới cùng */}
       <div className="flex-1 flex flex-col p-5">
-        {/* Title - cố định 2 dòng */}
         <Link
           to={`/${lang}/products/${product._id}`}
           className="block text-[15px] font-semibold text-slate-900 hover:text-primary transition-colors leading-snug line-clamp-2 min-h-[2.75rem]"
@@ -70,7 +82,6 @@ const ProductCard = ({ product, index = 0 }) => {
           {product.name}
         </Link>
 
-        {/* Specs - cố định chiều cao (chỗ trống nếu không có) */}
         <div className="mt-3 min-h-[28px] flex items-start">
           {(product.softeningPoint || product.color) && (
             <div className="flex flex-wrap gap-1.5">
@@ -88,10 +99,20 @@ const ProductCard = ({ product, index = 0 }) => {
           )}
         </div>
 
-        {/* Spacer đẩy CTA xuống dưới cùng */}
+        <div className="mt-2 min-h-[24px]">
+          {priceLabel && (
+            <div className="text-sm">
+              {product.priceVisible === false ? (
+                <span className="text-primary font-medium">{priceLabel}</span>
+              ) : (
+                <span className="text-slate-900 font-semibold">{priceLabel}</span>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="flex-1" />
 
-        {/* CTA - luôn ở dưới cùng */}
         <button
           type="button"
           onClick={handleAdd}

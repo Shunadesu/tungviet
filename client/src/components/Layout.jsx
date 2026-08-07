@@ -10,22 +10,23 @@ import publicApi from '../api/publicApi';
 
 const Layout = () => {
   const [products, setProducts] = useState([]);
-  const [markets, setMarkets] = useState([]);
+  const [mainTrees, setMainTrees] = useState([]);
   const [quoteSection, setQuoteSection] = useState(null);
   const { seo, faviconUrl, floatingContacts } = useSiteConfig();
 
   useEffect(() => {
-    publicApi.getProducts({ pageSize: 100 })
+    publicApi.getProducts({ limit: 100 })
       .then((res) => {
-        const items = res.data?.data?.products || res.data?.data || [];
+        const data = res.data?.data;
+        const items = Array.isArray(data) ? data : data?.items || [];
         setProducts(items.map((p) => ({ _id: p._id, name: p.name })));
       })
       .catch(() => {});
 
-    publicApi.getMarkets({ pageSize: 100 })
+    publicApi.getMainTrees()
       .then((res) => {
-        const items = res.data?.data?.markets || res.data?.data || [];
-        setMarkets(items.map((m) => ({ _id: m._id, name: m.name })));
+        const items = Array.isArray(res.data?.data) ? res.data.data : [];
+        setMainTrees(items.map((m) => ({ _id: m._id, name: m.name })));
       })
       .catch(() => {});
 
@@ -47,7 +48,7 @@ const Layout = () => {
         <QuoteSection
           data={quoteSection}
           products={products}
-          markets={markets}
+          mainTrees={mainTrees}
         />
       )}
       <FloatingContactBar contacts={floatingContacts} />

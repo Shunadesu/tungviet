@@ -36,15 +36,15 @@ const ProductList = () => {
     setLoading(true);
     fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, sort, values.market, values.category, values.softeningPoint, lang]);
+  }, [search, sort, values.mainTree, values.category, values.softeningPoint, lang]);
 
   const fetchProducts = async () => {
     try {
       const params = { lang };
       if (search) params.search = search;
       if (sort) params.sort = sort;
-      if (values.market) params.market = values.market;
-      if (values.category) params.category = values.category;
+      if (values.mainTree) params.mainTree = values.mainTree;
+      if (values.category) params.productLine = values.category;
       if (values.softeningPoint) params.softeningPoint = values.softeningPoint;
 
       const res = await publicApi.getProducts(params);

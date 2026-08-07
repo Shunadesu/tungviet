@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiArrowLeft, FiSave, FiX } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
+import RichEditor from '../../components/RichEditor';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -124,17 +125,21 @@ const LocationForm = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium mb-1 text-gray-700">Mo ta dia ly (VI)</label>
-                <textarea value={form.description.vi}
-                  onChange={(e) => setField('description', 'vi', e.target.value)}
-                  className="input-field resize-none" rows={3}
-                  placeholder="Vi tri, dac diem dia ly..." />
+                <RichEditor
+                  value={form.description.vi}
+                  onChange={(value) => setField('description', 'vi', value)}
+                  placeholder="Vi tri, dac diem dia ly..."
+                  minHeight={120}
+                />
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1 text-gray-700">Geographical description (EN)</label>
-                <textarea value={form.description.en}
-                  onChange={(e) => setField('description', 'en', e.target.value)}
-                  className="input-field resize-none" rows={3}
-                  placeholder="Location, geographical features..." />
+                <RichEditor
+                  value={form.description.en}
+                  onChange={(value) => setField('description', 'en', value)}
+                  placeholder="Location, geographical features..."
+                  minHeight={120}
+                />
               </div>
             </div>
 

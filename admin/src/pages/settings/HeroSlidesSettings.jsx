@@ -1,12 +1,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { FiPlus, FiEdit2, FiTrash2, FiArrowUp, FiArrowDown, FiX, FiUpload, FiEye, FiEyeOff, FiSave } from 'react-icons/fi';
 import HeaderWithBreadcrumb from './HeaderWithBreadcrumb';
+import RichEditor from '../../components/RichEditor';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
-const emptySlide = () => ({ imageUrl: '', title: { vi: '', en: '' }, active: true });
+const emptySlide = () => ({ imageUrl: '', title: { vi: '', en: '' }, description: { vi: '', en: '' }, active: true });
 
 export default function HeroSlidesSettings() {
   const { addNotification } = useNotification();
@@ -37,6 +38,7 @@ export default function HeroSlidesSettings() {
     setForm({
       imageUrl: slide.imageUrl || '',
       title: { vi: slide.title?.vi || '', en: slide.title?.en || '' },
+      description: { vi: slide.description?.vi || '', en: slide.description?.en || '' },
       active: slide.active !== false,
     });
     setEditing(String(slide._id || ''));
@@ -144,7 +146,8 @@ export default function HeroSlidesSettings() {
                 <img src={imageUrl(slide.imageUrl)} alt={slide.title?.vi || ''} className="w-32 h-16 object-cover rounded border bg-gray-50 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium truncate">{slide.title?.vi || <em className="text-gray-400">(chưa có tiêu đề VI)</em>}</p>
-                  {slide.title?.en && <p className="text-xs text-gray-500 truncate">{slide.title.en}</p>}
+                  {slide.description?.vi && <p className="text-xs text-gray-500 truncate">{slide.description.vi}</p>}
+                  {slide.title?.en && <p className="text-xs text-gray-400 truncate">{slide.title.en}</p>}
                   <div className="flex items-center gap-2 mt-1">
                     <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${slide.active !== false ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500'}`}>
                       {slide.active !== false ? 'Hiển thị' : 'Đã ẩn'}
@@ -179,7 +182,7 @@ export default function HeroSlidesSettings() {
               <div>
                 <label className="block text-xs font-medium mb-1">Ảnh nền *</label>
                 <div className="flex items-start gap-3">
-                  <div className="w-48 h-24 border rounded bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
+                  <div className="w-[280px] h-[140px] border rounded bg-gray-50 overflow-hidden flex items-center justify-center shrink-0">
                     {form.imageUrl ? (
                       <img src={imageUrl(form.imageUrl)} alt="preview" className="w-full h-full object-cover" />
                     ) : (
@@ -210,6 +213,26 @@ export default function HeroSlidesSettings() {
                 <div>
                   <label className="block text-xs font-medium mb-1">Title (EN)</label>
                   <input type="text" value={form.title.en} onChange={(e) => handleLocaleField('title', 'en', e.target.value)} className="input-field" maxLength={200} placeholder="One-line title" />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Mô tả (VI)</label>
+                  <RichEditor
+                    value={form.description.vi}
+                    onChange={(value) => handleLocaleField('description', 'vi', value)}
+                    placeholder="Mô tả hiển thị bên dưới tiêu đề"
+                    minHeight={120}
+                    maxLength={500}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium mb-1">Description (EN)</label>
+                  <RichEditor
+                    value={form.description.en}
+                    onChange={(value) => handleLocaleField('description', 'en', value)}
+                    placeholder="Description shown below the title"
+                    minHeight={120}
+                    maxLength={500}
+                  />
                 </div>
               </div>
 

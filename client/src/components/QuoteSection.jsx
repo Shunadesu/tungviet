@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import publicApi from '../api/publicApi';
 import { sanitizeHtml } from '../utils/sanitize';
 
-const QuoteSection = ({ data, products, markets }) => {
+const QuoteSection = ({ data, products, mainTrees }) => {
   const { t } = useTranslation();
   const [form, setForm] = useState({
     name: '',
@@ -81,6 +81,7 @@ const QuoteSection = ({ data, products, markets }) => {
               >
                 <FiCheckCircle size={48} className="text-green-500" />
                 <p className="text-base font-medium text-gray-800">{t('quoteSection.success')}</p>
+                <p className="text-sm text-gray-500 px-2">{t('quoteSection.successDetail')}</p>
                 <button
                   onClick={() => setSubmitted(false)}
                   className="text-sm text-primary hover:underline mt-2"
@@ -167,7 +168,7 @@ const QuoteSection = ({ data, products, markets }) => {
                     className="w-full px-4 py-2.5 rounded-lg border border-gray-200 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all text-sm bg-white"
                   >
                     <option value="">{t('quoteSection.form.marketPlaceholder')}</option>
-                    {markets.map((m) => (
+                    {(mainTrees || []).map((m) => (
                       <option key={m._id} value={m.name}>{m.name}</option>
                     ))}
                   </select>

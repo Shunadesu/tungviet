@@ -7,6 +7,7 @@ import {
   deleteCategory,
   restoreCategory,
   batchDeleteCategories,
+  reorderCategories,
 } from '../../controllers/admin/category.controller.js';
 import { adminAuth } from '../../middlewares/auth.js';
 
@@ -30,6 +31,18 @@ const router = express.Router();
  */
 router.get('/', adminAuth, getAllCategories);
 router.post('/', adminAuth, createCategory);
+
+/**
+ * @openapi
+ * /api/admin/categories/reorder:
+ *   post:
+ *     tags: [Admin - Categories]
+ *     summary: Cập nhật thứ tự danh mục
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
+ */
+router.post('/reorder', adminAuth, reorderCategories);
 
 /**
  * @openapi

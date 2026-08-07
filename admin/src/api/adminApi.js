@@ -50,23 +50,30 @@ export const adminApi = {
   restoreProductColumn: (id) => axiosClient.post(`/admin/product-columns/${id}/restore`),
   reorderProductColumns: (order) => axiosClient.post('/admin/product-columns/reorder', { order }),
 
-  // Categories
-  getCategories: () => axiosClient.get('/admin/categories'),
+  // Categories (Product Line)
+  getCategories: (params) => axiosClient.get('/admin/categories', { params }),
   getCategory: (id) => axiosClient.get(`/admin/categories/${id}`),
   createCategory: (data) => axiosClient.post('/admin/categories', data),
   updateCategory: (id, data) => axiosClient.put(`/admin/categories/${id}`, data),
   deleteCategory: (id) => axiosClient.delete(`/admin/categories/${id}`),
   deleteCategories: (ids) => axiosClient.post('/admin/categories/batch-delete', { ids }),
+  reorderCategories: (order) => axiosClient.post('/admin/categories/reorder', { order }),
 
-  // Markets
-  getMarkets: (params) => axiosClient.get('/admin/markets', { params }),
-  getMarket: (id) => axiosClient.get(`/admin/markets/${id}`),
-  createMarket: (data) => axiosClient.post('/admin/markets', data),
-  updateMarket: (id, data) => axiosClient.put(`/admin/markets/${id}`, data),
-  deleteMarket: (id) => axiosClient.delete(`/admin/markets/${id}`),
-  restoreMarket: (id) => axiosClient.post(`/admin/markets/${id}/restore`),
-  addProductsToMarket: (id, productIds) => axiosClient.post(`/admin/markets/${id}/products`, { productIds }),
-  removeProductsFromMarket: (id, productIds) => axiosClient.delete(`/admin/markets/${id}/products`, { data: { productIds } }),
+  // Main Trees (Industries)
+  getMainTrees: (params) => axiosClient.get('/admin/main-trees', { params }),
+  getMainTree: (id) => axiosClient.get(`/admin/main-trees/${id}`),
+  createMainTree: (data) => axiosClient.post('/admin/main-trees', data),
+  updateMainTree: (id, data) => axiosClient.put(`/admin/main-trees/${id}`, data),
+  deleteMainTree: (id) => axiosClient.delete(`/admin/main-trees/${id}`),
+  reorderMainTrees: (order) => axiosClient.post('/admin/main-trees/reorder', { order }),
+
+  // Market Trees (parent/child within a main tree)
+  getMarketTrees: (params) => axiosClient.get('/admin/market-trees', { params }),
+  getMarketTree: (id) => axiosClient.get(`/admin/market-trees/${id}`),
+  createMarketTree: (data) => axiosClient.post('/admin/market-trees', data),
+  updateMarketTree: (id, data) => axiosClient.put(`/admin/market-trees/${id}`, data),
+  deleteMarketTree: (id) => axiosClient.delete(`/admin/market-trees/${id}`),
+  reorderMarketTrees: (order) => axiosClient.post('/admin/market-trees/reorder', { order }),
 
   // Orders
   getOrders: (params) => axiosClient.get('/admin/orders', { params }),
@@ -155,6 +162,14 @@ export const adminApi = {
   updatePost: (id, data) => axiosClient.put(`/admin/posts/${id}`, data),
   deletePost: (id) => axiosClient.delete(`/admin/posts/${id}`),
   reorderPosts: (order) => axiosClient.post('/admin/posts/reorder', { order }),
+
+  // Post Categories
+  getPostCategories: (params) => axiosClient.get('/admin/post-categories', { params }),
+  getPostCategory: (id) => axiosClient.get(`/admin/post-categories/${id}`),
+  createPostCategory: (data) => axiosClient.post('/admin/post-categories', data),
+  updatePostCategory: (id, data) => axiosClient.put(`/admin/post-categories/${id}`, data),
+  deletePostCategory: (id) => axiosClient.delete(`/admin/post-categories/${id}`),
+  reorderPostCategories: (order) => axiosClient.post('/admin/post-categories/reorder', { order }),
 
   // Analytics
   getOnlineUsers: () => axiosClient.get('/admin/analytics/online'),

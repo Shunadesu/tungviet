@@ -10,6 +10,7 @@ import { htmlToText } from '../utils/html';
 const NewsDetail = () => {
   const { t, i18n } = useTranslation();
   const isVi = i18n.language === 'vi';
+  const lang = isVi ? 'vi' : 'en';
   const { slug } = useParams();
   const navigate = useNavigate();
   const [post, setPost] = useState(null);
@@ -17,18 +18,33 @@ const NewsDetail = () => {
   const [loading, setLoading] = useState(true);
   const [lightbox, setLightbox] = useState(null);
 
+  const getCategoryLabel = (cat) => {
+    if (!cat) return '';
+    if (isVi) return cat.name || cat.nameEn || cat.slug;
+    return cat.nameEn || cat.name || cat.slug;
+  };
+
+  const getCategorySlug = (cat) => {
+    if (!cat) return '';
+    if (typeof cat === 'string') return cat;
+    return cat.slug || '';
+  };
+
+  const category = post?.category && typeof post.category === 'object' ? post.category : null;
+  const categorySlug = getCategorySlug(category);
+
   useEffect(() => {
     setLoading(true);
     publicApi.getPost(slug)
       .then((res) => {
         const data = res.data?.data;
-        if (!data) { navigate('/news', { replace: true }); return; }
+        if (!data) { navigate(`/${lang}/news`, { replace: true }); return; }
         setPost(data);
         setRelated(data.related || []);
       })
-      .catch(() => navigate('/news', { replace: true }))
+      .catch(() => navigate(`/${lang}/news`, { replace: true }))
       .finally(() => setLoading(false));
-  }, [slug, navigate]);
+  }, [slug, navigate, lang]);
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString(isVi ? 'vi-VN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
@@ -62,9 +78,17 @@ const NewsDetail = () => {
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to="/" className="hover:text-primary">{isVi ? 'Trang chu' : 'Home'}</Link>
+          <Link to={`/${lang}`} className="hover:text-primary">{isVi ? 'Trang chủ' : 'Home'}</Link>
           <span>/</span>
-          <Link to="/news" className="hover:text-primary">{isVi ? 'Tin tuc' : 'News'}</Link>
+          <Link to={`/${lang}/news`} className="hover:text-primary">{isVi ? 'Tin tức' : 'News'}</Link>
+          {categorySlug && (
+            <>
+              <span>/</span>
+              <Link to={`/${lang}/news?category=${categorySlug}`} className="hover:text-primary">
+                {getCategoryLabel(category)}
+              </Link>
+            </>
+          )}
           <span>/</span>
           <span className="text-gray-700 truncate">{post.title}</span>
         </nav>
@@ -80,12 +104,17 @@ const NewsDetail = () => {
 
             {/* Meta */}
             <div className="flex flex-wrap items-center gap-3 mb-4">
-              {post.category && (
-                <span className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full">{post.category}</span>
+              {categorySlug && (
+                <Link
+                  to={`/${lang}/news?category=${categorySlug}`}
+                  className="text-xs font-medium text-primary bg-primary/10 px-3 py-1 rounded-full hover:bg-primary/20 transition-colors"
+                >
+                  {getCategoryLabel(category)}
+                </Link>
               )}
               <span className="text-sm text-gray-400">{formatDate(post.publishedAt || post.createdAt)}</span>
               {post.viewCount > 0 && (
-                <span className="text-sm text-gray-400">{post.viewCount} {isVi ? 'luot xem' : 'views'}</span>
+                <span className="text-sm text-gray-400">{post.viewCount} {isVi ? 'lượt xem' : 'views'}</span>
               )}
             </div>
 

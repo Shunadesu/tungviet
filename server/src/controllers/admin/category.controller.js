@@ -1,13 +1,13 @@
 import { categoryService } from '../../services/category.service.js';
-import Category from '../../models/Category.js';
 import { apiResponse } from '../../utils/apiResponse.js';
 
 export const getAllCategories = async (req, res, next) => {
   try {
-    const { sort, page, limit } = req.query;
+    const { sort, page, limit, mainTree } = req.query;
     const { items, pagination } = await categoryService.listPaginated({
       includeInactive: true,
       sort,
+      mainTree,
       page,
       limit,
     });
@@ -70,6 +70,19 @@ export const batchDeleteCategories = async (req, res, next) => {
     }
     const result = await categoryService.batchDelete(ids);
     return apiResponse.ok(res, result, `Đã xóa ${result.deletedCount} danh mục`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const reorderCategories = async (req, res, next) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) {
+      return apiResponse.badRequest(res, 'order ph must be an array');
+    }
+    await categoryService.reorder(order);
+    return apiResponse.ok(res, null, 'Cập nhật thứ tự thành công');
   } catch (err) {
     next(err);
   }
