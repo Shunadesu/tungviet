@@ -1,5 +1,6 @@
 import multer from 'multer';
 import path from 'path';
+import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { AppError } from '../utils/AppError.js';
 
@@ -24,15 +25,27 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_PDF_MIME = ['application/pdf'];
 const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB
 
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.ico']);
+const ALLOWED_PDF_EXT = new Set(['.pdf']);
+
+/**
+ * Generate a safe unique filename using UUID v4 + sanitized extension.
+ * Returns: "<uuid>.<ext>" — guaranteed no path traversal, no dupe-risk timestamp.
+ */
+const buildFilename = (originalName, allowedExts) => {
+  const ext = path.extname(originalName || '').toLowerCase();
+  const safeExt = allowedExts.has(ext) ? ext : '';
+  // SVG is the only text-ish format; .ico is binary. Default to .jpg when ext unknown.
+  const finalExt = safeExt || '.jpg';
+  return `${randomUUID()}${finalExt}`;
+};
+
 const imageStorage = multer.diskStorage({
   destination(req, file, cb) {
     cb(null, UPLOAD_DIR);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const safeExt = ['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.ico'].includes(ext) ? ext : '.jpg';
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`;
-    cb(null, unique);
+    cb(null, buildFilename(file.originalname, ALLOWED_IMAGE_EXT));
   },
 });
 
@@ -41,10 +54,7 @@ const pdfStorage = multer.diskStorage({
     cb(null, UPLOAD_DIR);
   },
   filename(req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const safeExt = ext === '.pdf' ? ext : '.pdf';
-    const unique = `${Date.now()}-${Math.round(Math.random() * 1e9)}${safeExt}`;
-    cb(null, unique);
+    cb(null, buildFilename(file.originalname, ALLOWED_PDF_EXT));
   },
 });
 
@@ -71,19 +81,10 @@ export const uploadPDF = multer({
 });
 
 // Backward compatibility - export as 'upload' for existing code
-export const upload = multer({
-  storage: imageStorage,
-  limits: { fileSize: MAX_IMAGE_SIZE },
-  fileFilter(req, file, cb) {
-    if (!ALLOWED_IMAGE_MIME.includes(file.mimetype)) {
-      return cb(AppError.badRequest('Chỉ chấp nhận file ảnh (jpg, png, webp, gif, svg, ico)', 'INVALID_FILE_TYPE'));
-    }
-    cb(null, true);
-  },
-});
+export const upload = uploadImage;
 
 export const uploadSingle = (fieldName = 'file') => (req, res, next) => {
-  upload.single(fieldName)(req, res, (err) => {
+  uploadImage.single(fieldName)(req, res, (err) => {
     if (!err) return next();
     if (err instanceof AppError) return next(err);
     if (err.code === 'LIMIT_FILE_SIZE') {

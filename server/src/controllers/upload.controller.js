@@ -16,6 +16,11 @@ export const uploadService = {
     if (!filename) return;
     const safeName = path.basename(filename);
     const filePath = path.join(UPLOAD_DIR, safeName);
+    // Defensive: ensure resolved path is still inside UPLOAD_DIR
+    const resolved = path.resolve(filePath);
+    if (!resolved.startsWith(path.resolve(UPLOAD_DIR) + path.sep)) {
+      return;
+    }
     try {
       await fs.unlink(filePath);
     } catch (err) {

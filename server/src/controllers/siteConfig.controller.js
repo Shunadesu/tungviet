@@ -94,6 +94,27 @@ export const clearLogo = async (req, res, next) => {
   }
 };
 
+export const clearFavicon = async (req, res, next) => {
+  try {
+    const current = await siteConfigService.getConfig();
+    if (current.faviconFilename) {
+      await uploadService.remove(current.faviconFilename);
+    }
+    const config = await siteConfigService.clearFavicon();
+    return apiResponse.ok(
+      res,
+      {
+        faviconUrl: null,
+        faviconFilename: null,
+        updatedAt: config.updatedAt,
+      },
+      'Đã xoá favicon'
+    );
+  } catch (err) {
+    next(err);
+  }
+};
+
 const sanitizeFooter = (body = {}) => ({
   about: typeof body.about === 'string' ? body.about.slice(0, 1000) : '',
   phone: typeof body.phone === 'string' ? body.phone.slice(0, 50) : '',

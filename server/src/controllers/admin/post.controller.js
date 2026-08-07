@@ -48,11 +48,3 @@ export const reorderPosts = async (req, res, next) => {
     return apiResponse.ok(res, null, 'Sap xep thanh cong');
   } catch (err) { next(err); }
 };
-
-export const uploadPostImages = async (req, res, next) => {
-  try {
-    if (!req.file) return apiResponse.badRequest(res, 'Khong co file');
-    const url = `/uploads/${req.file.filename}`;
-    return apiResponse.created(res, { url }, 'Upload thanh cong');
-  } catch (err) { next(err); }
-};

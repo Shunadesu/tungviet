@@ -366,6 +366,16 @@ export const siteConfigService = {
     return config;
   },
 
+  async clearFavicon() {
+    const config = await SiteConfig.findByIdAndUpdate(
+      SITE_CONFIG_ID,
+      { faviconUrl: null, faviconFilename: null },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    invalidatePublicCache();
+    return config;
+  },
+
   async updateFloatingContacts(contacts) {
     const config = await SiteConfig.findByIdAndUpdate(
       SITE_CONFIG_ID,

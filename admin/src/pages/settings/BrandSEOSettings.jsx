@@ -152,7 +152,7 @@ const BrandSEOSettings = () => {
     if (!faviconUrl) return;
     if (!window.confirm('Xoá favicon hiện tại?')) return;
     try {
-      await adminApi.clearLogo();
+      await adminApi.clearFavicon();
       setFaviconUrl(null);
       setFaviconFilename(null);
       addNotification('Đã xoá favicon');

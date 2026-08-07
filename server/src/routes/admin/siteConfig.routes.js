@@ -18,6 +18,7 @@ import {
   updateCoreValues,
   updateSeo,
   uploadFavicon,
+  clearFavicon,
   updateFloatingContacts,
 } from '../../controllers/siteConfig.controller.js';
 import { adminAuth } from '../../middlewares/auth.js';
@@ -236,15 +237,22 @@ router.put('/seo', adminAuth, updateSeo);
 
 /**
  * @openapi
- * /api/admin/site-config/favicon:
+ * /api/admin/site-config/favicon/upload:
  *   post:
  *     tags: [Admin - Site Config]
  *     summary: Upload favicon
  *     security: [{ bearerAuth: [] }]
  *     responses:
  *       200: { description: OK }
+ *   delete:
+ *     tags: [Admin - Site Config]
+ *     summary: Xoá favicon
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
  */
-router.post('/favicon', adminAuth, uploadSingle('file'), uploadFavicon);
+router.post('/favicon/upload', adminAuth, uploadSingle('file'), uploadFavicon);
+router.delete('/favicon', adminAuth, clearFavicon);
 
 /**
  * @openapi

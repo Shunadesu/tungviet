@@ -113,7 +113,8 @@ export const adminApi = {
 
   // SEO & Favicon
   updateSeo: (data) => axiosClient.put('/admin/site-config/seo', data),
-  uploadFavicon: (file) => postUpload('/admin/site-config/favicon', file),
+  uploadFavicon: (file) => postUpload('/admin/site-config/favicon/upload', file),
+  clearFavicon: () => axiosClient.delete('/admin/site-config/favicon'),
 
   // Floating contacts
   updateFloatingContacts: (data) => axiosClient.put('/admin/site-config/floating-contacts', data),
