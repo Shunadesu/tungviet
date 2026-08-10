@@ -3,18 +3,48 @@
     "search": "Search products...",
     "viewAll": "View all",
     "contactUs": "Contact us",
-    "loading": "Loading..."
+    "loading": "Loading...",
+    "clearSearch": "Clear search",
+    "copyLink": "Copy link",
+    "maxCompareItems": "Maximum {{max}} products for comparison"
+  },
+  "search": {
+    "placeholder": "Search products by name, code or keyword...",
+    "recent": "Recent searches",
+    "clear": "Clear",
+    "trending": "Trending",
+    "suggestions": "Product suggestions",
+    "noResults": "No products found for \"{{q}}\"",
+    "typeToSearch": "Type at least 2 characters to start searching",
+    "navigate": "Navigate",
+    "select": "Select",
+    "poweredBy": "Press ESC to close",
+    "trendingHotmelt": "Hot melt",
+    "trendingRosin": "Rosin",
+    "trendingAdhesive": "Industrial adhesive"
+  },
+  "toast": {
+    "copied": "Link copied",
+    "copyFailed": "Could not copy. Please try again.",
+    "addedToWishlist": "Added to wishlist",
+    "removedFromWishlist": "Removed from wishlist",
+    "addedToCompare": "Added to compare",
+    "removedFromCompare": "Removed from compare"
   },
   "nav": {
     "home": "Home",
     "products": "Products",
     "markets": "Markets",
     "mainTrees": "Industries",
-    "marketTrees": "Market Trees",
+    "mainTreeMenuTitle": "Industries",
+    "marketTrees": "Application Markets",
+    "marketTreeMenuTitle": "Application Markets",
     "about": "About",
     "contact": "Contact",
     "news": "News",
     "quote": "Request quote",
+    "wishlist": "Wishlist",
+    "compare": "Compare",
     "account": "Account"
   },
   "header": {
@@ -128,6 +158,7 @@
   },
   "home": {
     "featuredProducts": "Featured Products",
+    "featuredEyebrow": "Featured Products",
     "featuredProductsSubtitle": "Our most popular rosin and resin products",
     "featuredEmpty": "No featured products yet",
     "featuredEmptyDesc": "Please check back later.",
@@ -137,6 +168,47 @@
     "marketsSubtitle": "Explore rosin solutions by industry",
     "ctaTitle": "Need a quote?",
     "ctaSubtitle": "Our technical team will respond within 24 hours"
+  },
+  "hero": {
+    "fallback": {
+      "eyebrow": "Tung Viet",
+      "title": "Leading Industrial Rosin Supplier",
+      "description": "Premium rosin, resin, and industrial chemical solutions for construction, road infrastructure, packaging, and more.",
+      "ctaPrimary": "Explore Products",
+      "ctaSecondary": "Request a Quote",
+      "scrollHint": "Scroll down to learn more"
+    },
+    "loading": "Loading..."
+  },
+  "mainTree": {
+    "title": "Industries",
+    "subtitle": "Industrial rosin product lines from Tung Viet",
+    "breadcrumbHome": "Home",
+    "breadcrumbMainTrees": "Industries",
+    "noMainTrees": "No industries yet",
+    "noMainTreesHint": "Industry list will be updated soon.",
+    "notFound": "Industry not found",
+    "backToList": "View all industries",
+    "noDescription": "No description for this industry yet.",
+    "subCategories": "Sub-categories",
+    "subCategoriesEyebrow": "Categories",
+    "noSubCategories": "No sub-categories yet",
+    "noSubCategoriesHint": "Product lines within this industry will appear here.",
+    "productsInMainTree": "Products in this industry",
+    "viewAllProducts": "View all products",
+    "explore": "Explore"
+  },
+  "category": {
+    "title": "Product Line",
+    "subtitle": "Industrial rosin products belonging to this product line.",
+    "notFound": "Product line not found",
+    "backToList": "View all product lines",
+    "breadcrumbHome": "Home",
+    "breadcrumbCategory": "Product line",
+    "noDescription": "No description for this product line yet.",
+    "noProducts": "No products in this product line yet.",
+    "productsInCategory": "Products in this product line",
+    "viewAll": "View all products"
   },
   "product": {
     "description": "Description",
@@ -152,6 +224,7 @@
     "filter": {
       "title": "Filters",
       "active": "Filtering by",
+      "activeFilters": "Filtering by",
       "clearAll": "Clear all",
       "all": "All",
       "mainTree": "Industry",
@@ -160,10 +233,16 @@
     },
     "sort": {
       "label": "Sort",
+      "title": "Sort",
       "default": "Default",
       "nameAsc": "Name: A-Z",
-      "newest": "Newest"
+      "nameDesc": "Name: Z-A",
+      "priceAsc": "Price: low to high",
+      "priceDesc": "Price: high to low",
+      "newest": "Newest",
+      "popular": "Most popular"
     },
+    "loadMore": "Load more products",
     "noResults": "No products found",
     "noResultsHint": "Try changing the filters or search keyword.",
     "searchResultsFor": "Results for: {{q}}",
@@ -434,5 +513,40 @@
     "successDetail": "We will review and get back to you via email or phone.",
     "error": "Failed to send. Please try again.",
     "hotline": "Hotline"
+  },
+  "wishlist": {
+    "title": "My Wishlist",
+    "subtitle": "Products you saved for later",
+    "empty": "No items in wishlist yet",
+    "emptyHint": "Tap the heart icon on any product to add it here",
+    "remove": "Remove from wishlist",
+    "clearAll": "Clear all",
+    "add": "Add to wishlist",
+    "viewAll": "View wishlist",
+    "count": "{{n}} items"
+  },
+  "compare": {
+    "title": "Compare Products",
+    "subtitle": "Side-by-side comparison of product specs",
+    "empty": "No products to compare",
+    "emptyHint": "Select up to 4 products from the list to compare specifications",
+    "add": "Add to compare",
+    "remove": "Remove from compare",
+    "viewCompare": "Compare now",
+    "itemsSelected": "{{n}} selected",
+    "maxReached": "Maximum {{max}} products reached",
+    "fields": {
+      "name": "Product name",
+      "productCode": "Product code",
+      "price": "Price",
+      "softeningPoint": "Softening point",
+      "acidValue": "Acid value",
+      "color": "Color",
+      "mainTree": "Industry",
+      "productLine": "Product line",
+      "applications": "Applications",
+      "benefits": "Benefits",
+      "targetAudience": "Target audience"
+    }
   }
 }

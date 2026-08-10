@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import MainTree from '../models/MainTree.js';
 import Category from '../models/Category.js';
+import MarketTree from '../models/MarketTree.js';
 import { AppError } from '../utils/AppError.js';
 import { buildPagination } from '../utils/apiResponse.js';
 import { invalidatePublicCache } from '../utils/cache.js';
@@ -12,6 +13,7 @@ const SORT_MAP = {
   newest: { createdAt: -1 },
   price_asc: { price: 1 },
   price_desc: { price: -1 },
+  popularity: { viewCount: -1 },
 };
 
 const invalidate = () => invalidatePublicCache();
@@ -37,6 +39,7 @@ export const productService = {
     sort,
     mainTree,
     productLine,
+    market,
     page = 1,
     limit = 20,
   } = {}) {
@@ -48,6 +51,9 @@ export const productService = {
 
     const productLineId = await resolveIdOrSlug(productLine, Category);
     if (productLineId) query.productLine = productLineId;
+
+    const marketId = await resolveIdOrSlug(market, MarketTree);
+    if (marketId) query.marketIds = marketId;
 
     const sortOption = SORT_MAP[sort] || { createdAt: -1 };
     const skip = (page - 1) * limit;
@@ -70,6 +76,7 @@ export const productService = {
     webStatus,
     mainTree,
     productLine,
+    market,
     page = 1,
     limit = 20,
   } = {}) {
@@ -84,12 +91,16 @@ export const productService = {
     const productLineId = await resolveIdOrSlug(productLine, Category);
     if (productLineId) query.productLine = productLineId;
 
+    const marketId = await resolveIdOrSlug(market, MarketTree);
+    if (marketId) query.marketIds = marketId;
+
     const sortOption = SORT_MAP['newest'];
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       Product.find(query)
         .populate('mainTree', 'name nameEn slug')
         .populate('productLine', 'name nameEn slug')
+        .populate('marketIds', 'title titleEn slug')
         .sort(sortOption)
         .skip(skip)
         .limit(limit)
@@ -136,6 +147,7 @@ export const productService = {
       imageUrl = '',
       mainTree = null,
       productLine = null,
+      marketIds = [],
       price = 0,
       priceVisible = true,
       webStatus = 'draft',
@@ -155,6 +167,10 @@ export const productService = {
         ? attributes
         : {};
 
+    const sanitizedMarketIds = Array.isArray(marketIds)
+      ? marketIds.filter(Boolean)
+      : [];
+
     const product = new Product({
       productCode: productCode ? productCode.toUpperCase() : '',
       name,
@@ -164,6 +180,7 @@ export const productService = {
       imageUrl,
       mainTree: mainTree || null,
       productLine: productLine || null,
+      marketIds: sanitizedMarketIds,
       price: Number(price) || 0,
       priceVisible: priceVisible !== false,
       webStatus: ['draft', 'published', 'archived'].includes(webStatus) ? webStatus : 'draft',
@@ -185,7 +202,7 @@ export const productService = {
   async update(id, payload) {
     const allowedFields = [
       'productCode', 'name', 'nameEn', 'description', 'descriptionEn', 'imageUrl',
-      'mainTree', 'productLine', 'price', 'priceVisible', 'webStatus', 'targetAudience',
+      'mainTree', 'productLine', 'marketIds', 'price', 'priceVisible', 'webStatus', 'targetAudience',
       'softeningPoint', 'acidValue', 'color', 'benefits', 'applications', 'tdsUrl',
       'attributes', 'isActive',
     ];
@@ -200,6 +217,10 @@ export const productService = {
           updateData.productCode = payload.productCode ? payload.productCode.toUpperCase() : '';
         } else if (field === 'price') {
           updateData.price = Number(payload.price) || 0;
+        } else if (field === 'marketIds') {
+          updateData.marketIds = Array.isArray(payload.marketIds)
+            ? payload.marketIds.filter(Boolean)
+            : [];
         } else {
           updateData[field] = payload[field];
         }

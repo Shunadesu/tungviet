@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { htmlToText } from '../utils/html';
+import { buildBreadcrumbJsonLd } from '../utils/breadcrumbSchema';
 
 const OG_LOCALE = { vi: 'vi_VN', en: 'en_US' };
 
@@ -17,6 +18,7 @@ const SEO = ({
   url,
   type = 'website',
   noindex = false,
+  breadcrumb,
 }) => {
   const { t } = useTranslation();
   const { lang: urlLang } = useParams();
@@ -37,6 +39,8 @@ const SEO = ({
     hreflang: code,
     href: `${siteUrl}/${code}${pathWithoutLocale}`,
   }));
+
+  const breadcrumbJson = breadcrumb ? buildBreadcrumbJsonLd(breadcrumb, lang) : null;
 
   return (
     <Helmet>
@@ -65,6 +69,10 @@ const SEO = ({
       <meta name="twitter:title" content={finalTitle} />
       <meta name="twitter:description" content={finalDescription} />
       <meta name="twitter:image" content={finalImage} />
+
+      {breadcrumbJson && (
+        <script type="application/ld+json">{JSON.stringify(breadcrumbJson)}</script>
+      )}
     </Helmet>
   );
 };

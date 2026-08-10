@@ -1,5 +1,5 @@
 import express from 'express';
-import { getAllProducts, getProductById } from '../../controllers/public/product.controller.js';
+import { getAllProducts, getProductById, incrementView } from '../../controllers/public/product.controller.js';
 
 const router = express.Router();
 
@@ -49,5 +49,21 @@ router.get('/', getAllProducts);
  *       404: { description: Không tìm thấy }
  */
 router.get('/:id', getProductById);
+
+/**
+ * @openapi
+ * /api/public/products/{id}/view:
+ *   post:
+ *     tags: [Public]
+ *     summary: Tăng viewCount cho sản phẩm (fire-and-forget)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *     responses:
+ *       204: { description: OK }
+ */
+router.post('/:id/view', incrementView);
 
 export default router;

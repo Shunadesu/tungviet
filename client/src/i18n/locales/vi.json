@@ -3,18 +3,48 @@
     "search": "Tìm sản phẩm...",
     "viewAll": "Xem tất cả",
     "contactUs": "Liên hệ tư vấn",
-    "loading": "Đang tải..."
+    "loading": "Đang tải...",
+    "clearSearch": "Xóa tìm kiếm",
+    "copyLink": "Sao chép liên kết",
+    "maxCompareItems": "Đã đạt tối đa {{max}} sản phẩm để so sánh"
+  },
+  "search": {
+    "placeholder": "Tìm sản phẩm theo tên, mã hoặc từ khóa...",
+    "recent": "Tìm kiếm gần đây",
+    "clear": "Xóa",
+    "trending": "Xu hướng",
+    "suggestions": "Gợi ý sản phẩm",
+    "noResults": "Không tìm thấy sản phẩm cho \"{{q}}\"",
+    "typeToSearch": "Nhập ít nhất 2 ký tự để bắt đầu tìm kiếm",
+    "navigate": "Di chuyển",
+    "select": "Chọn",
+    "poweredBy": "Nhấn ESC để đóng",
+    "trendingHotmelt": "Hot melt",
+    "trendingRosin": "Rosin",
+    "trendingAdhesive": "Keo dán công nghiệp"
+  },
+  "toast": {
+    "copied": "Đã sao chép liên kết",
+    "copyFailed": "Không thể sao chép. Vui lòng thử lại.",
+    "addedToWishlist": "Đã thêm vào yêu thích",
+    "removedFromWishlist": "Đã xoá khỏi yêu thích",
+    "addedToCompare": "Đã thêm vào so sánh",
+    "removedFromCompare": "Đã xoá khỏi so sánh"
   },
   "nav": {
     "home": "Trang chủ",
     "products": "Sản phẩm",
     "markets": "Thị trường",
-    "mainTrees": "Ngành hàng",
-    "marketTrees": "Cây ngành",
+    "mainTrees": "Cây ngành",
+    "mainTreeMenuTitle": "Cây ngành",
+    "marketTrees": "Cây ngành thị trường",
+    "marketTreeMenuTitle": "Cây ngành thị trường",
     "about": "Giới thiệu",
     "contact": "Liên hệ",
     "news": "Tin tức",
     "quote": "Yêu cầu báo giá",
+    "wishlist": "Yêu thích",
+    "compare": "So sánh",
     "account": "Tài khoản"
   },
   "header": {
@@ -128,6 +158,7 @@
   },
   "home": {
     "featuredProducts": "Sản phẩm nổi bật",
+    "featuredEyebrow": "Sản phẩm nổi bật",
     "featuredProductsSubtitle": "Những sản phẩm nhựa thông được quan tâm nhiều nhất",
     "featuredEmpty": "Chưa có sản phẩm nổi bật",
     "featuredEmptyDesc": "Vui lòng quay lại sau.",
@@ -137,6 +168,47 @@
     "marketsSubtitle": "Khám phá giải pháp nhựa thông theo từng ngành",
     "ctaTitle": "Bạn cần báo giá?",
     "ctaSubtitle": "Đội ngũ tư vấn kỹ thuật sẽ phản hồi trong vòng 24 giờ"
+  },
+  "hero": {
+    "fallback": {
+      "eyebrow": "Tùng Việt",
+      "title": "Nhựa thông công nghiệp hàng đầu",
+      "description": "Giải pháp nguyên liệu nhựa thông, rosin và hóa chất công nghiệp cho xây dựng, đường bộ, bao bì và hơn thế nữa.",
+      "ctaPrimary": "Khám phá sản phẩm",
+      "ctaSecondary": "Yêu cầu báo giá",
+      "scrollHint": "Cuộn xuống để xem thêm"
+    },
+    "loading": "Đang tải..."
+  },
+  "mainTree": {
+    "title": "Ngành hàng",
+    "subtitle": "Danh mục các ngành hàng nhựa thông công nghiệp của Tùng Việt",
+    "breadcrumbHome": "Trang chủ",
+    "breadcrumbMainTrees": "Ngành hàng",
+    "noMainTrees": "Chưa có ngành hàng nào",
+    "noMainTreesHint": "Danh sách ngành hàng sẽ được cập nhật sớm.",
+    "notFound": "Không tìm thấy ngành hàng",
+    "backToList": "Xem tất cả ngành hàng",
+    "noDescription": "Chưa có mô tả cho ngành hàng này.",
+    "subCategories": "Danh mục con",
+    "subCategoriesEyebrow": "Danh mục",
+    "noSubCategories": "Chưa có danh mục con nào",
+    "noSubCategoriesHint": "Các dòng sản phẩm thuộc ngành hàng này sẽ được hiển thị ở đây.",
+    "productsInMainTree": "Sản phẩm trong ngành hàng",
+    "viewAllProducts": "Xem tất cả sản phẩm",
+    "explore": "Khám phá"
+  },
+  "category": {
+    "title": "Ngành hàng sản phẩm",
+    "subtitle": "Các dòng sản phẩm nhựa thông công nghiệp thuộc ngành hàng này.",
+    "notFound": "Không tìm thấy ngành hàng",
+    "backToList": "Xem tất cả ngành hàng",
+    "breadcrumbHome": "Trang chủ",
+    "breadcrumbCategory": "Ngành hàng",
+    "noDescription": "Chưa có mô tả cho ngành hàng này.",
+    "noProducts": "Chưa có sản phẩm nào trong ngành hàng này.",
+    "productsInCategory": "Sản phẩm trong ngành hàng",
+    "viewAll": "Xem tất cả sản phẩm"
   },
   "product": {
     "description": "Mô tả",
@@ -152,6 +224,7 @@
     "filter": {
       "title": "Bộ lọc",
       "active": "Đang lọc",
+      "activeFilters": "Đang lọc theo",
       "clearAll": "Xóa bộ lọc",
       "all": "Tất cả",
       "mainTree": "Ngành hàng",
@@ -160,10 +233,16 @@
     },
     "sort": {
       "label": "Sắp xếp",
+      "title": "Sắp xếp",
       "default": "Mặc định",
       "nameAsc": "Tên: A-Z",
-      "newest": "Mới nhất"
+      "nameDesc": "Tên: Z-A",
+      "priceAsc": "Giá: thấp → cao",
+      "priceDesc": "Giá: cao → thấp",
+      "newest": "Mới nhất",
+      "popular": "Phổ biến nhất"
     },
+    "loadMore": "Xem thêm sản phẩm",
     "noResults": "Không tìm thấy sản phẩm nào",
     "noResultsHint": "Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm.",
     "searchResultsFor": "Kết quả cho: {{q}}",
@@ -434,5 +513,40 @@
     "successDetail": "Chúng tôi sẽ xem xét và phản hồi lại cho bạn qua email hoặc điện thoại.",
     "error": "Gửi thất bại. Vui lòng thử lại.",
     "hotline": "Hotline"
+  },
+  "wishlist": {
+    "title": "Sản phẩm yêu thích",
+    "subtitle": "Danh sách sản phẩm bạn đã lưu để xem sau",
+    "empty": "Chưa có sản phẩm yêu thích",
+    "emptyHint": "Nhấn vào biểu tượng trái tim trên sản phẩm để thêm vào đây",
+    "remove": "Xoá khỏi yêu thích",
+    "clearAll": "Xoá tất cả",
+    "add": "Thêm vào yêu thích",
+    "viewAll": "Xem tất cả yêu thích",
+    "count": "{{n}} sản phẩm"
+  },
+  "compare": {
+    "title": "So sánh sản phẩm",
+    "subtitle": "So sánh chi tiết các sản phẩm cạnh nhau",
+    "empty": "Chưa có sản phẩm để so sánh",
+    "emptyHint": "Chọn tối đa 4 sản phẩm từ danh sách để so sánh thông số kỹ thuật",
+    "add": "Thêm vào so sánh",
+    "remove": "Xoá khỏi so sánh",
+    "viewCompare": "So sánh ngay",
+    "itemsSelected": "Đã chọn {{n}} sản phẩm",
+    "maxReached": "Đã đạt tối đa {{max}} sản phẩm",
+    "fields": {
+      "name": "Tên sản phẩm",
+      "productCode": "Mã sản phẩm",
+      "price": "Giá",
+      "softeningPoint": "Điểm làm mềm",
+      "acidValue": "Chỉ số axit",
+      "color": "Màu sắc",
+      "mainTree": "Ngành hàng",
+      "productLine": "Product line",
+      "applications": "Ứng dụng",
+      "benefits": "Lợi ích",
+      "targetAudience": "Đối tượng"
+    }
   }
 }

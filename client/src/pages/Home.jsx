@@ -34,7 +34,7 @@ const Home = () => {
       <WhyUsSection />
       <ProcessSection />
       <FeaturedProducts
-        eyebrow={lang === 'en' ? 'Featured Products' : 'Sản phẩm nổi bật'}
+        eyebrow={t('home.featuredEyebrow')}
         icon={FiBox}
         limit={8}
       />

@@ -7,6 +7,7 @@ import {
   FiCheck,
   FiArrowRight,
   FiFileText,
+  FiHeart,
 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
@@ -14,10 +15,13 @@ import ProductGallery from '../components/ProductGallery';
 import RelatedProducts from '../components/RelatedProducts';
 import PageHero from '../components/PageHero';
 import { useQuoteBag } from '../context/QuoteBagContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useToast } from '../context/ToastContext';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { sanitizeHtml } from '../utils/sanitize';
 import { htmlToText } from '../utils/html';
+import { getLocalizedField } from '../utils/i18nField';
 
 const LEGACY_COLUMNS = [
   { key: 'softeningPoint', name: 'Điểm làm mềm', nameEn: 'Softening Point', order: 1 },
@@ -37,9 +41,13 @@ const ProductDetail = () => {
   const [added, setAdded] = useState(false);
 
   const { addToQuoteBag } = useQuoteBag();
+  const { toggleWishlist, isInWishlist } = useWishlist();
+  const toast = useToast();
 
   useEffect(() => {
     fetchProduct();
+    // Fire-and-forget: increment view counter once per product detail open
+    publicApi.incrementView(id).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, lang]);
 
@@ -88,6 +96,15 @@ const ProductDetail = () => {
     setTimeout(() => setAdded(false), 2200);
   };
 
+  const handleToggleWishlist = () => {
+    if (!product) return;
+    const result = toggleWishlist(product);
+    if (result === true) toast.success(t('toast.addedToWishlist'));
+    else if (result === false) toast.info(t('toast.removedFromWishlist'));
+  };
+
+  const wished = product ? isInWishlist(product._id) : false;
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
@@ -129,14 +146,30 @@ const ProductDetail = () => {
   const priceLabel = product.priceVisible === false
     ? t('product.contactUs')
     : typeof product.price === 'number' && product.price > 0
-      ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(product.price)
+      ? new Intl.NumberFormat(lang === 'en' ? 'en-US' : 'vi-VN', {
+          style: 'currency',
+          currency: 'VND',
+          maximumFractionDigits: 0,
+        }).format(product.price)
       : null;
 
   const breadcrumb = [
     { label: t('product.breadcrumbHome'), to: `/${lang}` },
     { label: t('product.breadcrumbProducts'), to: `/${lang}/products` },
-    { label: product.name },
   ];
+  if (product.mainTree && product.mainTree._id) {
+    breadcrumb.push({
+      label: getLocalizedField(product.mainTree, lang, 'name', 'nameEn'),
+      to: `/${lang}/main-trees/${product.mainTree._id}`,
+    });
+  }
+  if (product.productLine && product.productLine._id) {
+    breadcrumb.push({
+      label: getLocalizedField(product.productLine, lang, 'name', 'nameEn'),
+      to: `/${lang}/categories/${product.productLine._id}`,
+    });
+  }
+  breadcrumb.push({ label: product.name });
 
   return (
     <motion.div
@@ -147,7 +180,9 @@ const ProductDetail = () => {
     >
       <SEO
         title={product.name}
-        description={htmlToText(product.description || `${product.name} -  Tungviet`).slice(0, 200)}
+        description={htmlToText(
+          getLocalizedField(product, lang, 'description', 'descriptionEn') || `${product.name} -  Tungviet`
+        ).slice(0, 200)}
         keywords={`${product.name}, rosin, resin, industrial,  Tungviet`}
         url={`/${lang}/products/${product._id}`}
         type="product"
@@ -159,7 +194,7 @@ const ProductDetail = () => {
         subtitle={product.shortDescription || t('product.requestQuoteSubtitle')}
       />
 
-      <section className="container-page py-12 md:py-16">
+      <section className="container-page py-12 md:py-16 pb-24 md:pb-16">
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Gallery - 3 cols */}
           <div className="lg:col-span-3">
@@ -257,28 +292,43 @@ const ProductDetail = () => {
 
             {/* CTA */}
             <div className="card p-5 bg-gradient-to-br from-primary-50/60 to-white">
-              <button
-                type="button"
-                onClick={handleAddToQuote}
-                className={`w-full inline-flex items-center justify-center gap-2 font-medium py-3 rounded-xl transition-all duration-200 active:scale-[0.98] ${
-                  added
-                    ? 'bg-primary text-white'
-                    : 'bg-slate-900 text-white hover:bg-primary'
-                }`}
-              >
-                {added ? (
-                  <>
-                    <FiCheck size={16} />
-                    {t('product.addedToQuote')}
-                  </>
-                ) : (
-                  <>
-                    <FiFileText size={16} />
-                    {t('product.requestQuote')}
-                    <FiArrowRight size={14} />
-                  </>
-                )}
-              </button>
+              <div className="flex items-stretch gap-2">
+                <button
+                  type="button"
+                  onClick={handleToggleWishlist}
+                  aria-label={wished ? t('wishlist.remove') : t('wishlist.add')}
+                  aria-pressed={wished}
+                  className={`shrink-0 inline-flex items-center justify-center w-12 rounded-xl border transition-all active:scale-[0.97] ${
+                    wished
+                      ? 'bg-rose-50 border-rose-200 text-rose-600 hover:bg-rose-100'
+                      : 'bg-white border-gray-200 text-slate-600 hover:border-rose-300 hover:text-rose-600'
+                  }`}
+                >
+                  <FiHeart size={18} className={wished ? 'fill-current' : ''} />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddToQuote}
+                  className={`flex-1 inline-flex items-center justify-center gap-2 font-medium py-3 rounded-xl transition-all duration-200 active:scale-[0.98] ${
+                    added
+                      ? 'bg-primary text-white'
+                      : 'bg-slate-900 text-white hover:bg-primary'
+                  }`}
+                >
+                  {added ? (
+                    <>
+                      <FiCheck size={16} />
+                      {t('product.addedToQuote')}
+                    </>
+                  ) : (
+                    <>
+                      <FiFileText size={16} />
+                      {t('product.requestQuote')}
+                      <FiArrowRight size={14} />
+                    </>
+                  )}
+                </button>
+              </div>
               {product.tdsUrl && (
                 <a
                   href={product.tdsUrl}
@@ -310,6 +360,34 @@ const ProductDetail = () => {
       </section>
 
       <RelatedProducts currentProduct={product} />
+
+      {/* Sticky mobile CTA */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs text-gray-500 truncate">{product.name}</div>
+            <div className="text-sm font-semibold text-slate-900 truncate">
+              {priceLabel || t('product.contactUs')}
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={handleAddToQuote}
+            className={`inline-flex items-center justify-center gap-2 font-medium py-3 px-5 rounded-xl transition-all duration-200 active:scale-[0.98] ${
+              added ? 'bg-primary text-white' : 'bg-slate-900 text-white hover:bg-primary'
+            }`}
+          >
+            {added ? (
+              <FiCheck size={16} />
+            ) : (
+              <>
+                <FiFileText size={16} />
+                {t('product.requestQuote')}
+              </>
+            )}
+          </button>
+        </div>
+      </div>
     </motion.div>
   );
 };

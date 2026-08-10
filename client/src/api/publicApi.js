@@ -18,6 +18,7 @@ export const publicApi = {
     return axiosClient.get('/public/products', { params: { lang: resolveLang(lang), ...rest } });
   },
   getProduct: (id, lang) => axiosClient.get(`/public/products/${id}`, { params: { lang: resolveLang(lang) } }),
+  incrementView: (id) => axiosClient.post(`/public/products/${id}/view`),
   getProductColumns: (lang) => axiosClient.get('/public/product-columns', { params: { lang: resolveLang(lang) } }),
   getCategories: (params) => {
     const { lang, ...rest } = params || {};
@@ -25,6 +26,7 @@ export const publicApi = {
   },
   getCategory: (id, lang) => axiosClient.get(`/public/categories/${id}`, { params: { lang: resolveLang(lang) } }),
   getMainTrees: (lang) => axiosClient.get('/public/main-trees', { params: { lang: resolveLang(lang) } }),
+  getMainTree: (id, lang) => axiosClient.get(`/public/main-trees/${id}`, { params: { lang: resolveLang(lang) } }),
   getMarketTrees: (params) => {
     const { lang, ...rest } = params || {};
     return axiosClient.get('/public/market-trees', { params: { lang: resolveLang(lang), ...rest } });

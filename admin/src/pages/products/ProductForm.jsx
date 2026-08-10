@@ -1,11 +1,91 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
+
+const MultiMarketSelect = ({ items, selected, onChange, disabled }) => {
+  const [open, setOpen] = useState(false);
+  const selectedIds = Array.isArray(selected) ? selected : [];
+  const selectedSet = new Set(selectedIds);
+  const selectedNodes = items.filter((m) => selectedSet.has(m._id));
+
+  const toggle = (id) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onChange(Array.from(next));
+  };
+
+  const remove = (id, e) => {
+    e.stopPropagation();
+    onChange(selectedIds.filter((x) => x !== id));
+  };
+
+  return (
+    <div className={`relative ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="input-field text-xs flex items-center justify-between w-full"
+        disabled={disabled}
+      >
+        <span className="truncate text-left flex-1">
+          {selectedNodes.length === 0
+            ? '— Chọn thị trường (có thể chọn nhiều) —'
+            : `Đã chọn ${selectedNodes.length} thị trường`}
+        </span>
+        {open ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+      </button>
+      {selectedNodes.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {selectedNodes.map((m) => (
+            <span
+              key={m._id}
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded-lg"
+            >
+              {m.title}
+              <button type="button" onClick={(e) => remove(m._id, e)} className="hover:text-red-500">
+                <FiX size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {open && !disabled && (
+        <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+          {items.length === 0 ? (
+            <p className="text-xs text-gray-400 px-3 py-3">
+              Chưa có cây ngành nào trong ngành này. Tạo cây ngành trước.
+            </p>
+          ) : (
+            <ul className="py-1">
+              {items.map((m) => (
+                <li key={m._id}>
+                  <label className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(m._id)}
+                      onChange={() => toggle(m._id)}
+                      className="rounded w-3.5 h-3.5"
+                    />
+                    <span className="flex-1 truncate">{m.title}</span>
+                    {m.titleEn && (
+                      <span className="text-[10px] text-gray-400 truncate">{m.titleEn}</span>
+                    )}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
 
 const emptyForm = {
   productCode: '',
@@ -16,6 +96,7 @@ const emptyForm = {
   imageUrl: '',
   mainTree: '',
   productLine: '',
+  marketIds: [],
   price: 0,
   priceVisible: true,
   webStatus: 'draft',
@@ -52,6 +133,7 @@ const ProductForm = () => {
   const [columns, setColumns] = useState([]);
   const [mainTrees, setMainTrees] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [marketTrees, setMarketTrees] = useState([]);
   const [benefitsTab, setBenefitsTab] = useState('list'); // 'list' | 'text'
   const [newBenefit, setNewBenefit] = useState('');
 
@@ -65,6 +147,14 @@ const ProductForm = () => {
 
   useEffect(() => {
     fetchCategories();
+  }, [formData.mainTree]);
+
+  useEffect(() => {
+    if (formData.mainTree) {
+      fetchMarketTrees(formData.mainTree);
+    } else {
+      setMarketTrees([]);
+    }
   }, [formData.mainTree]);
 
   const fetchColumns = async () => {
@@ -110,6 +200,10 @@ const ProductForm = () => {
       const product = res.data.data;
       const mainTreeId = product.mainTree?._id || product.mainTree || '';
       const productLineId = product.productLine?._id || product.productLine || '';
+      const marketIdsRaw = Array.isArray(product.marketIds) ? product.marketIds : [];
+      const marketIds = marketIdsRaw
+        .map((m) => (m && typeof m === 'object' ? m._id : m))
+        .filter(Boolean);
       setFormData({
         productCode: product.productCode || '',
         name: product.name || '',
@@ -119,6 +213,7 @@ const ProductForm = () => {
         imageUrl: product.imageUrl || '',
         mainTree: mainTreeId,
         productLine: productLineId,
+        marketIds,
         price: product.price ?? 0,
         priceVisible: product.priceVisible !== false,
         webStatus: product.webStatus || 'draft',
@@ -163,6 +258,7 @@ const ProductForm = () => {
         applications: (formData.applications || []).filter((a) => a.trim()),
         mainTree: formData.mainTree || null,
         productLine: formData.productLine || null,
+        marketIds: (formData.marketIds || []).filter(Boolean),
       };
       delete data.benefitsText;
 
@@ -312,7 +408,7 @@ const ProductForm = () => {
                 </label>
                 <select
                   value={formData.mainTree}
-                  onChange={(e) => setFormData({ ...formData, mainTree: e.target.value, productLine: '' })}
+                  onChange={(e) => setFormData({ ...formData, mainTree: e.target.value, productLine: '', marketIds: [] })}
                   className="input-field"
                 >
                   <option value="">— Chọn ngành hàng —</option>
@@ -346,6 +442,22 @@ const ProductForm = () => {
                   </p>
                 )}
               </div>
+            </div>
+
+            {/* Markets (multi-select) */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Thị trường ứng dụng
+              </label>
+              <MultiMarketSelect
+                items={marketTrees}
+                selected={formData.marketIds || []}
+                onChange={(ids) => setFormData({ ...formData, marketIds: ids })}
+                disabled={!formData.mainTree}
+              />
+              <p className="text-[10px] text-gray-400 mt-1">
+                Chọn các thị trường mà sản phẩm này được sử dụng. Chỉ hiển thị cây ngành thuộc ngành hàng đã chọn.
+              </p>
             </div>
 
             {/* Price + visibility */}

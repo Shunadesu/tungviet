@@ -10,6 +10,10 @@ import {
   FiImage,
   FiFolder,
   FiFolderPlus,
+  FiCpu,
+  FiPackage,
+  FiChevronDown,
+  FiChevronUp,
 } from 'react-icons/fi';
 import Header from '../../components/Header';
 import Modal from '../../components/Modal';
@@ -17,6 +21,17 @@ import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
+
+const emptySubDoc = {
+  title: '',
+  titleEn: '',
+  description: '',
+  descriptionEn: '',
+  imageUrl: '',
+  order: 0,
+  isActive: true,
+  productIds: [],
+};
 
 const emptyForm = {
   mainTree: '',
@@ -28,6 +43,175 @@ const emptyForm = {
   imageUrl: '',
   order: 0,
   isActive: true,
+  technologies: [],
+  applications: [],
+};
+
+const SubDocCard = ({ item, index, onUpdate, onRemove, onUpload, uploading }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/40">
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          {item.imageUrl ? (
+            <img
+              src={item.imageUrl}
+              alt=""
+              className="w-8 h-8 rounded object-cover border flex-shrink-0"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="w-8 h-8 rounded bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0">
+              <FiImage size={14} />
+            </div>
+          )}
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-gray-700 truncate">
+              #{index + 1} {item.title || '(Chưa đặt tên)'}
+            </div>
+            {item.titleEn && (
+              <div className="text-[10px] text-gray-400 truncate">{item.titleEn}</div>
+            )}
+          </div>
+        </div>
+        <div className="flex items-center gap-1 flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setExpanded((v) => !v)}
+            className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+            title={expanded ? 'Thu gọn' : 'Mở rộng'}
+          >
+            {expanded ? <FiChevronUp size={12} /> : <FiChevronDown size={12} />}
+          </button>
+          <button
+            type="button"
+            onClick={onRemove}
+            className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+            title="Xóa"
+          >
+            <FiTrash2 size={12} />
+          </button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="mt-3 space-y-2 border-t border-gray-200 pt-3">
+          <div className="grid md:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                Tiêu đề <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={item.title}
+                onChange={(e) => onUpdate({ ...item, title: e.target.value })}
+                className="input-field text-xs"
+                placeholder="VD: Công nghệ chống thấm"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                Tiêu đề tiếng Anh
+              </label>
+              <input
+                type="text"
+                value={item.titleEn}
+                onChange={(e) => onUpdate({ ...item, titleEn: e.target.value })}
+                className="input-field text-xs"
+                placeholder="English title"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-medium mb-0.5 text-gray-700">Mô tả</label>
+            <RichEditor
+              value={item.description}
+              onChange={(value) => onUpdate({ ...item, description: value })}
+              placeholder="Mô tả..."
+              minHeight={100}
+            />
+          </div>
+          <div>
+            <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+              Mô tả tiếng Anh
+            </label>
+            <RichEditor
+              value={item.descriptionEn}
+              onChange={(value) => onUpdate({ ...item, descriptionEn: value })}
+              placeholder="English description"
+              minHeight={100}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-medium mb-0.5 text-gray-700">Hình ảnh</label>
+            <div className="flex items-center gap-2">
+              {item.imageUrl ? (
+                <img
+                  src={item.imageUrl}
+                  alt=""
+                  className="w-10 h-10 rounded object-cover border"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                  <FiImage size={14} />
+                </div>
+              )}
+              <label className="btn-secondary text-[10px] flex items-center gap-1 cursor-pointer">
+                <FiUpload size={10} />
+                {uploading ? 'Đang upload...' : 'Upload'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) onUpload(file);
+                    e.target.value = '';
+                  }}
+                />
+              </label>
+              <input
+                type="url"
+                value={item.imageUrl}
+                onChange={(e) => onUpdate({ ...item, imageUrl: e.target.value })}
+                className="input-field text-[10px] flex-1"
+                placeholder="Hoặc URL"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div>
+              <label className="block text-[10px] font-medium mb-0.5 text-gray-700">Thứ tự</label>
+              <input
+                type="number"
+                value={item.order ?? 0}
+                onChange={(e) => onUpdate({ ...item, order: Number(e.target.value) || 0 })}
+                className="input-field w-20 text-xs"
+              />
+            </div>
+            <label className="flex items-center gap-1 cursor-pointer select-none mt-3.5">
+              <input
+                type="checkbox"
+                checked={item.isActive !== false}
+                onChange={(e) => onUpdate({ ...item, isActive: e.target.checked })}
+                className="rounded w-3 h-3"
+              />
+              <span className="text-[10px] font-medium">Hiển thị</span>
+            </label>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 };
 
 const MarketTreeList = () => {
@@ -39,7 +223,9 @@ const MarketTreeList = () => {
   const [editingNode, setEditingNode] = useState(null);
   const [formData, setFormData] = useState({ ...emptyForm });
   const [uploading, setUploading] = useState(false);
+  const [uploadingSubDoc, setUploadingSubDoc] = useState(false);
   const [search, setSearch] = useState('');
+  const [availableProducts, setAvailableProducts] = useState([]);
   const { addNotification } = useNotification();
 
   useEffect(() => {
@@ -49,8 +235,10 @@ const MarketTreeList = () => {
   useEffect(() => {
     if (selectedMainTree) {
       fetchNodes();
+      fetchProducts();
     } else {
       setNodes([]);
+      setAvailableProducts([]);
     }
   }, [selectedMainTree]);
 
@@ -77,6 +265,16 @@ const MarketTreeList = () => {
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchProducts = async () => {
+    try {
+      const res = await adminApi.getProducts({ mainTree: selectedMainTree, limit: 200 });
+      const items = Array.isArray(res.data?.data) ? res.data.data : [];
+      setAvailableProducts(items);
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -114,6 +312,8 @@ const MarketTreeList = () => {
       imageUrl: '',
       order: 0,
       isActive: true,
+      technologies: [],
+      applications: [],
     });
 
   const handleAddParent = () => {
@@ -141,6 +341,20 @@ const MarketTreeList = () => {
       imageUrl: node.imageUrl || '',
       order: node.order ?? 0,
       isActive: node.isActive !== false,
+      technologies: Array.isArray(node.technologies)
+        ? node.technologies.map((t) => ({
+            ...emptySubDoc,
+            ...t,
+            productIds: [],
+          }))
+        : [],
+      applications: Array.isArray(node.applications)
+        ? node.applications.map((a) => ({
+            ...emptySubDoc,
+            ...a,
+            productIds: Array.isArray(a.productIds) ? a.productIds.map((p) => p?._id || p) : [],
+          }))
+        : [],
     });
     setModalOpen(true);
   };
@@ -192,6 +406,63 @@ const MarketTreeList = () => {
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleSubDocImageUpload = async (file, kind, index) => {
+    setUploadingSubDoc(true);
+    try {
+      const res = await adminApi.uploadImage(file);
+      const url = res?.data?.data?.url;
+      if (url) {
+        setFormData((prev) => {
+          const list = [...(prev[kind] || [])];
+          list[index] = { ...list[index], imageUrl: url };
+          return { ...prev, [kind]: list };
+        });
+        addNotification('Upload ảnh thành công');
+      }
+    } catch (err) {
+      addNotification('Upload ảnh thất bại', 'error');
+    } finally {
+      setUploadingSubDoc(false);
+    }
+  };
+
+  const addSubDoc = (kind) => {
+    setFormData((prev) => ({
+      ...prev,
+      [kind]: [...(prev[kind] || []), { ...emptySubDoc, order: (prev[kind] || []).length }],
+    }));
+  };
+
+  const updateSubDoc = (kind, index, item) => {
+    setFormData((prev) => {
+      const list = [...(prev[kind] || [])];
+      list[index] = item;
+      return { ...prev, [kind]: list };
+    });
+  };
+
+  const removeSubDoc = (kind, index) => {
+    setFormData((prev) => {
+      const list = [...(prev[kind] || [])];
+      list.splice(index, 1);
+      return { ...prev, [kind]: list };
+    });
+  };
+
+  const toggleProductSelection = (appIndex, productId) => {
+    setFormData((prev) => {
+      const list = [...(prev.applications || [])];
+      const current = new Set(list[appIndex].productIds || []);
+      if (current.has(productId)) {
+        current.delete(productId);
+      } else {
+        current.add(productId);
+      }
+      list[appIndex] = { ...list[appIndex], productIds: Array.from(current) };
+      return { ...prev, applications: list };
+    });
   };
 
   return (
@@ -293,6 +564,16 @@ const MarketTreeList = () => {
                               Ẩn
                             </span>
                           )}
+                          {Array.isArray(parent.applications) && parent.applications.length > 0 && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded">
+                              {parent.applications.length} ứng dụng
+                            </span>
+                          )}
+                          {Array.isArray(parent.technologies) && parent.technologies.length > 0 && (
+                            <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">
+                              {parent.technologies.length} công nghệ
+                            </span>
+                          )}
                         </div>
                         {parent.description && (
                           <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
@@ -379,119 +660,227 @@ const MarketTreeList = () => {
         title={editingNode ? 'Sửa mục' : formData.parent ? 'Thêm mục con' : 'Thêm danh mục cha'}
         size="lg"
       >
-        <form onSubmit={handleSubmit} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-4">
           {formData.parent && (
             <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
               Đang thêm/sửa mục con của danh mục cha đã chọn.
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Tiêu đề <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                required
-                className="input-field"
-                placeholder="VD: Sơn PU"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Tiêu đề tiếng Anh</label>
-              <input
-                type="text"
-                value={formData.titleEn}
-                onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
-                className="input-field"
-                placeholder="PU Coatings"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Mô tả</label>
-            <RichEditor
-              value={formData.description}
-              onChange={(value) => setFormData({ ...formData, description: value })}
-              placeholder="Mô tả..."
-              minHeight={140}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Mô tả tiếng Anh</label>
-            <RichEditor
-              value={formData.descriptionEn}
-              onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
-              placeholder="English description"
-              minHeight={140}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Hình minh họa</label>
-            <div className="flex items-center gap-2">
-              {formData.imageUrl ? (
-                <img
-                  src={formData.imageUrl}
-                  alt=""
-                  className="w-12 h-12 rounded object-cover border"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                  <FiImage size={16} />
-                </div>
-              )}
-              <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
-                <FiUpload size={12} />
-                {uploading ? 'Đang upload...' : 'Upload'}
+          {/* Section: Thông tin cơ bản */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+              Thông tin cơ bản
+            </h3>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1">
+                  Tiêu đề <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) handleImageUpload(file);
-                    e.target.value = '';
-                  }}
+                  type="text"
+                  value={formData.title}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  required
+                  className="input-field"
+                  placeholder="VD: Sơn PU"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Tiêu đề tiếng Anh</label>
+                <input
+                  type="text"
+                  value={formData.titleEn}
+                  onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
+                  className="input-field"
+                  placeholder="PU Coatings"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1">Mô tả</label>
+              <RichEditor
+                value={formData.description}
+                onChange={(value) => setFormData({ ...formData, description: value })}
+                placeholder="Mô tả..."
+                minHeight={140}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1">Mô tả tiếng Anh</label>
+              <RichEditor
+                value={formData.descriptionEn}
+                onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
+                placeholder="English description"
+                minHeight={140}
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium mb-1">Hình minh họa</label>
+              <div className="flex items-center gap-2">
+                {formData.imageUrl ? (
+                  <img
+                    src={formData.imageUrl}
+                    alt=""
+                    className="w-12 h-12 rounded object-cover border"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : (
+                  <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                    <FiImage size={16} />
+                  </div>
+                )}
+                <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
+                  <FiUpload size={12} />
+                  {uploading ? 'Đang upload...' : 'Upload'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+              <input
+                type="url"
+                value={formData.imageUrl}
+                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                className="input-field mt-2 text-xs"
+                placeholder="Hoặc nhập URL"
+              />
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div>
+                <label className="block text-xs font-medium mb-1">Thứ tự</label>
+                <input
+                  type="number"
+                  value={formData.order}
+                  onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) || 0 })}
+                  className="input-field w-24"
+                />
+              </div>
+              <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
+                <input
+                  type="checkbox"
+                  checked={formData.isActive}
+                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                  className="rounded"
+                />
+                <span className="text-xs font-medium">Đang hoạt động</span>
               </label>
             </div>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              className="input-field mt-2 text-xs"
-              placeholder="Hoặc nhập URL"
-            />
           </div>
 
-          <div className="flex items-center gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">Thứ tự</label>
-              <input
-                type="number"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) || 0 })}
-                className="input-field w-24"
-              />
+          {/* Section: Technologies */}
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1">
+                <FiCpu size={14} />
+                Công nghệ
+              </h3>
+              <button
+                type="button"
+                onClick={() => addSubDoc('technologies')}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <FiPlus size={12} />
+                Thêm công nghệ
+              </button>
             </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded"
-              />
-              <span className="text-xs font-medium">Đang hoạt động</span>
-            </label>
+            {(formData.technologies || []).length === 0 ? (
+              <p className="text-[11px] text-gray-400 italic">Chưa có công nghệ nào.</p>
+            ) : (
+              <div className="space-y-2">
+                {formData.technologies.map((item, idx) => (
+                  <SubDocCard
+                    key={`tech-${idx}`}
+                    item={item}
+                    index={idx}
+                    onUpdate={(next) => updateSubDoc('technologies', idx, next)}
+                    onRemove={() => removeSubDoc('technologies', idx)}
+                    onUpload={(file) => handleSubDocImageUpload(file, 'technologies', idx)}
+                    uploading={uploadingSubDoc}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Section: Applications */}
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1">
+                <FiPackage size={14} />
+                Ứng dụng
+              </h3>
+              <button
+                type="button"
+                onClick={() => addSubDoc('applications')}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <FiPlus size={12} />
+                Thêm ứng dụng
+              </button>
+            </div>
+            {(formData.applications || []).length === 0 ? (
+              <p className="text-[11px] text-gray-400 italic">Chưa có ứng dụng nào.</p>
+            ) : (
+              <div className="space-y-2">
+                {formData.applications.map((item, idx) => (
+                  <div key={`app-${idx}`} className="space-y-2">
+                    <SubDocCard
+                      item={item}
+                      index={idx}
+                      onUpdate={(next) => updateSubDoc('applications', idx, next)}
+                      onRemove={() => removeSubDoc('applications', idx)}
+                      onUpload={(file) => handleSubDocImageUpload(file, 'applications', idx)}
+                      uploading={uploadingSubDoc}
+                    />
+                    {/* Product picker for this application */}
+                    <div className="ml-3 p-2 bg-white border border-gray-100 rounded">
+                      <label className="block text-[10px] font-medium mb-1 text-gray-600">
+                        Sản phẩm sử dụng ({(item.productIds || []).length} đã chọn)
+                      </label>
+                      {availableProducts.length === 0 ? (
+                        <p className="text-[10px] text-gray-400 italic">
+                          Chưa có sản phẩm trong ngành này.
+                        </p>
+                      ) : (
+                        <div className="max-h-40 overflow-y-auto border border-gray-100 rounded p-1 space-y-1">
+                          {availableProducts.map((p) => {
+                            const checked = (item.productIds || []).includes(p._id);
+                            return (
+                              <label
+                                key={p._id}
+                                className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={checked}
+                                  onChange={() => toggleProductSelection(idx, p._id)}
+                                  className="rounded w-3 h-3"
+                                />
+                                <span className="truncate">{p.name}</span>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t">

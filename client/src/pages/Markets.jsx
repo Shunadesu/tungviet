@@ -66,7 +66,7 @@ const Markets = () => {
             animate="show"
           >
             {items.map((m) => {
-              const name = getLocalizedField(m, lang, 'name', 'nameEn');
+              const name = getLocalizedField(m, lang, 'title', 'titleEn');
               const description = getLocalizedField(
                 m,
                 lang,

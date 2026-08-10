@@ -91,7 +91,7 @@ const MarketsGridSection = () => {
             viewport={{ once: true, margin: '-80px' }}
           >
             {items.map((m, idx) => {
-              const name = getLocalizedField(m, lang, 'name', 'nameEn');
+              const name = getLocalizedField(m, lang, 'title', 'titleEn');
               const description = getLocalizedField(
                 m,
                 lang,

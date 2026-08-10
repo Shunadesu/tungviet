@@ -139,13 +139,31 @@ export const updateFooter = async (req, res, next) => {
   }
 };
 
+const trimText = (v, max) =>
+  typeof v === 'string' ? v.slice(0, max) : '';
+const localePair = (v, max) => ({
+  vi: trimText(v?.vi, max),
+  en: trimText(v?.en, max),
+});
+
+const VARIANTS = ['fullscreen', 'split', 'compact'];
+const THEMES = ['light', 'dark', 'auto'];
+const HEIGHTS = ['fullscreen', 'large', 'medium'];
+const ANIMATIONS = ['fade-up', 'fade', 'slide'];
+const CTA_STYLES = ['solid', 'outline', 'ghost'];
+
+const sanitizeCTA = (body = {}) => {
+  if (!body || typeof body !== 'object') return null;
+  const label = localePair(body.label, 80);
+  // CTA chỉ giữ khi có label và href hợp lệ
+  if (!label.vi && !label.en) return null;
+  const href = trimText(body.href, 500);
+  if (!href) return null;
+  const style = CTA_STYLES.includes(body.style) ? body.style : 'solid';
+  return { label, href, style };
+};
+
 const sanitizeSlide = (body = {}) => {
-  const trimText = (v, max) =>
-    typeof v === 'string' ? v.slice(0, max) : '';
-  const localePair = (v, max) => ({
-    vi: trimText(v?.vi, max),
-    en: trimText(v?.en, max),
-  });
   const imageUrl = trimText(body.imageUrl, 500);
   if (!imageUrl) {
     throw AppError.badRequest('imageUrl là bắt buộc', 'INVALID_FIELD');
@@ -153,12 +171,30 @@ const sanitizeSlide = (body = {}) => {
   let order = Number(body.order);
   if (!Number.isFinite(order)) order = 0;
   const active = body.active === false ? false : Boolean(body.active !== false);
+  const variant = VARIANTS.includes(body.variant) ? body.variant : 'fullscreen';
+  const theme = THEMES.includes(body.theme) ? body.theme : 'auto';
+  const height = HEIGHTS.includes(body.height) ? body.height : 'fullscreen';
+  const animationPreset = ANIMATIONS.includes(body.animationPreset) ? body.animationPreset : 'fade-up';
+  let overlay = Number(body.backgroundOverlay);
+  if (!Number.isFinite(overlay)) overlay = 50;
+  overlay = Math.max(0, Math.min(100, overlay));
+  const scrollHint = body.scrollHint === false ? false : Boolean(body.scrollHint !== false);
+
   return {
     imageUrl,
     title: localePair(body.title, 200),
     description: localePair(body.description, 500),
     order,
     active,
+    variant,
+    eyebrow: localePair(body.eyebrow, 80),
+    ctaPrimary: sanitizeCTA(body.ctaPrimary),
+    ctaSecondary: sanitizeCTA(body.ctaSecondary),
+    theme,
+    scrollHint,
+    height,
+    animationPreset,
+    backgroundOverlay: overlay,
   };
 };
 

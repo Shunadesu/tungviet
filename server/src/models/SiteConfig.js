@@ -2,6 +2,22 @@ import mongoose from 'mongoose';
 
 const SITE_ID = 'site';
 
+const heroCtaSchema = new mongoose.Schema(
+  {
+    label: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    href: { type: String, trim: true, default: '' },
+    style: {
+      type: String,
+      enum: ['solid', 'outline', 'ghost'],
+      default: 'solid',
+    },
+  },
+  { _id: false }
+);
+
 const heroSlideSchema = new mongoose.Schema(
   {
     imageUrl: { type: String, required: true },
@@ -15,6 +31,35 @@ const heroSlideSchema = new mongoose.Schema(
     },
     order: { type: Number, default: 0 },
     active: { type: Boolean, default: true },
+    // NEW: skeleton rebuild (Phase 1)
+    variant: {
+      type: String,
+      enum: ['fullscreen', 'split', 'compact'],
+      default: 'fullscreen',
+    },
+    eyebrow: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    ctaPrimary: { type: heroCtaSchema, default: null },
+    ctaSecondary: { type: heroCtaSchema, default: null },
+    theme: {
+      type: String,
+      enum: ['light', 'dark', 'auto'],
+      default: 'auto',
+    },
+    scrollHint: { type: Boolean, default: true },
+    height: {
+      type: String,
+      enum: ['fullscreen', 'large', 'medium'],
+      default: 'fullscreen',
+    },
+    animationPreset: {
+      type: String,
+      enum: ['fade-up', 'fade', 'slide'],
+      default: 'fade-up',
+    },
+    backgroundOverlay: { type: Number, default: 50, min: 0, max: 100 },
   },
   { _id: true, timestamps: true }
 );

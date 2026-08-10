@@ -15,6 +15,7 @@ const useProductFilters = () => {
       mainTree: searchParams.get('mainTree') || '',
       category: searchParams.get('category') || searchParams.get('productLine') || '',
       softeningPoint: searchParams.get('softeningPoint') || '',
+      page: searchParams.get('page') || '',
     }),
     [searchParams]
   );
@@ -52,6 +53,18 @@ const useProductFilters = () => {
     setSearchParams(new URLSearchParams(), { replace: true });
   }, [setSearchParams]);
 
+  /**
+   * Build a shareable URL from the current filter state.
+   * Strips the `page` param so the recipient always lands on page 1.
+   */
+  const getShareUrl = useCallback(() => {
+    const params = new URLSearchParams(searchParams);
+    params.delete('page');
+    const qs = params.toString();
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+    return `${window.location.origin}${path}${qs ? `?${qs}` : ''}`;
+  }, [searchParams]);
+
   const activeCount = useMemo(() => {
     return ['mainTree', 'category', 'softeningPoint'].filter(
       (k) => searchParams.get(k)
@@ -64,6 +77,7 @@ const useProductFilters = () => {
     setMultiParam,
     clearAll,
     activeCount,
+    getShareUrl,
   };
 };
 

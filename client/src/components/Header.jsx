@@ -13,6 +13,8 @@ import {
   FiSettings,
   FiBox,
   FiGrid,
+  FiHeart,
+  FiBarChart2,
   FiAward,
   FiUsers,
   FiMapPin,
@@ -22,82 +24,73 @@ import { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useQuoteBag } from '../context/QuoteBagContext';
+import { useWishlist } from '../context/WishlistContext';
+import { useCompare } from '../context/CompareContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { SUPPORTED_LOCALES } from '../i18n';
 import publicApi from '../api/publicApi';
 import { getLocalizedField } from '../utils/i18nField';
+import SearchModal from './SearchModal';
 
 const LOCALE_LABELS = { vi: 'VI', en: 'EN' };
 const SCROLL_THRESHOLD = 16;
-const DROPDOWN_LIMIT = 8;
 
-// ─── Dropdown nav (Markets / Products) ─────────────────────────────────────────
-const DropdownNav = ({ to, label, children, transparent }) => {
+// ─── Mega menu for Products (MainTree > Category) ───────────────────────────
+const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
   const [open, setOpen] = useState(false);
+  const [activeMainTreeId, setActiveMainTreeId] = useState(null);
   const ref = useRef(null);
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
+  const lang = i18n.language === 'en' ? 'en' : 'vi';
 
   useEffect(() => {
     const onClick = (e) => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
     };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
     document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
   }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveMainTreeId((prev) => prev || mainTrees[0]?._id || null);
+  }, [open, mainTrees]);
 
   const triggerClass = transparent
     ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
     : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
 
-  const panelClass =
-    'absolute top-full left-0 mt-2 w-64 max-h-[70vh] overflow-y-auto bg-white shadow-lg rounded-lg border border-gray-100 z-50';
-
-  const closeMenu = () => setOpen(false);
-
-  const handleLabelClick = (e) => {
-    // Middle-click / cmd-click / ctrl-click: let the browser handle navigation
-    if (e.metaKey || e.ctrlKey || e.button === 1) return;
-    e.preventDefault();
-    setOpen((v) => !v);
-  };
-
-  const handleLabelKeyDown = (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      setOpen((v) => !v);
-    }
-  };
-
-  const handleNavigate = () => {
-    closeMenu();
-    navigate(to);
-  };
+  const activeMainTree =
+    mainTrees.find((m) => String(m._id) === String(activeMainTreeId)) || mainTrees[0];
+  const activeCategories = (categories || []).filter(
+    (c) => String(c.mainTree) === String(activeMainTree?._id)
+  );
+  const close = () => setOpen(false);
 
   return (
     <div ref={ref} className="relative">
-      <div className="flex items-center">
-        <Link
-          to={to}
-          onClick={handleLabelClick}
-          onKeyDown={handleLabelKeyDown}
-          className={triggerClass}
-        >
-          {label}
-        </Link>
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-label={label}
-          aria-haspopup="true"
-          aria-expanded={open}
-          className={`${triggerClass} -ml-1 pl-1`}
-        >
-          <FiChevronDown
-            size={12}
-            className={`transition-transform ${open ? 'rotate-180' : ''}`}
-          />
-        </button>
-      </div>
+      <button
+        type="button"
+        className={triggerClass}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="true"
+        aria-expanded={open}
+      >
+        {t('nav.products')}
+        <FiChevronDown
+          size={12}
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
       <AnimatePresence>
         {open && (
           <>
@@ -106,17 +99,268 @@ const DropdownNav = ({ to, label, children, transparent }) => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-40"
-              onClick={closeMenu}
+              onClick={close}
             />
             <motion.div
-              initial={{ opacity: 0, y: -6 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.15 }}
-              className={panelClass}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="absolute top-full mt-2 w-[640px] bg-white shadow-xl rounded-xl border border-gray-100 overflow-hidden z-50"
               role="menu"
+              onMouseLeave={close}
             >
-              {children({ close: closeMenu, navigateAll: handleNavigate })}
+              {mainTrees.length === 0 ? (
+                <div className="px-6 py-10 text-center">
+                  <p className="text-xs text-gray-500 italic">{t('product.filter.all')}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      navigate(`/${lang}/products`);
+                    }}
+                    className="mt-3 text-xs font-semibold text-primary hover:underline"
+                  >
+                    {t('common.viewAll')} {t('nav.products')} →
+                  </button>
+                </div>
+              ) : (
+                <div className="flex">
+                  {/* Left column: MainTree list */}
+                  <div className="w-44 bg-slate-50 border-r border-gray-100 py-2 max-h-[420px] overflow-y-auto">
+                    {mainTrees.map((m) => {
+                      const isActive = String(activeMainTree?._id) === String(m._id);
+                      return (
+                        <button
+                          key={m._id}
+                          type="button"
+                          onMouseEnter={() => setActiveMainTreeId(m._id)}
+                          onFocus={() => setActiveMainTreeId(m._id)}
+                          onClick={() => {
+                            close();
+                            navigate(`/${lang}/main-trees/${m._id}`);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-xs font-medium truncate transition-colors ${
+                            isActive
+                              ? 'bg-white text-primary'
+                              : 'text-gray-600 hover:bg-white hover:text-primary'
+                          }`}
+                          title={getLocalizedField(m, lang, 'name', 'nameEn')}
+                        >
+                          {getLocalizedField(m, lang, 'name', 'nameEn')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Right column: Category list */}
+                  <div className="flex-1 p-4 max-h-[420px] overflow-y-auto">
+                    {activeCategories.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">
+                        {lang === 'en'
+                          ? 'No product lines yet for this industry.'
+                          : 'Chưa có ngành hàng nào trong cây ngành này.'}
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-1">
+                        {activeCategories.map((c) => (
+                          <Link
+                            key={c._id}
+                            to={`/${lang}/products?mainTree=${activeMainTree._id}&category=${c._id}`}
+                            onClick={close}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors truncate"
+                            title={getLocalizedField(c, lang, 'name', 'nameEn')}
+                          >
+                            <FiBox size={14} className="opacity-60 flex-shrink-0" />
+                            <span className="truncate">
+                              {getLocalizedField(c, lang, 'name', 'nameEn')}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {mainTrees.length > 0 && (
+                <div className="border-t border-gray-100 px-4 py-2 bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      navigate(`/${lang}/products`);
+                    }}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    {t('common.viewAll')} {t('nav.products')} →
+                  </button>
+                </div>
+              )}
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+// ─── Mega menu for Markets (MarketTree parent > child) ──────────────────────
+const MegaMenuMarkets = ({ transparent, marketTrees }) => {
+  const [open, setOpen] = useState(false);
+  const [activeParentId, setActiveParentId] = useState(null);
+  const ref = useRef(null);
+  const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
+  const lang = i18n.language === 'en' ? 'en' : 'vi';
+
+  useEffect(() => {
+    const onClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    const onKey = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    setActiveParentId((prev) => prev || marketTrees[0]?._id || null);
+  }, [open, marketTrees]);
+
+  const triggerClass = transparent
+    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
+    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
+
+  const activeParent =
+    marketTrees.find((p) => String(p._id) === String(activeParentId)) || marketTrees[0];
+  const activeChildren = activeParent?.children || [];
+  const close = () => setOpen(false);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        className={triggerClass}
+        onClick={() => setOpen((v) => !v)}
+        aria-haspopup="true"
+        aria-expanded={open}
+      >
+        {t('nav.marketTrees')}
+        <FiChevronDown
+          size={12}
+          className={`transition-transform ${open ? 'rotate-180' : ''}`}
+        />
+      </button>
+
+      <AnimatePresence>
+        {open && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-40"
+              onClick={close}
+            />
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.18 }}
+              className="absolute top-full mt-2 w-[640px] bg-white shadow-xl rounded-xl border border-gray-100 overflow-hidden z-50"
+              role="menu"
+              onMouseLeave={close}
+            >
+              {marketTrees.length === 0 ? (
+                <div className="px-6 py-10 text-center">
+                  <p className="text-xs text-gray-500 italic">{t('market.noMarkets')}</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      navigate(`/${lang}/markets`);
+                    }}
+                    className="mt-3 text-xs font-semibold text-primary hover:underline"
+                  >
+                    {t('common.viewAll')} {t('nav.marketTrees')} →
+                  </button>
+                </div>
+              ) : (
+                <div className="flex">
+                  {/* Left column: MarketTree parent list */}
+                  <div className="w-44 bg-slate-50 border-r border-gray-100 py-2 max-h-[420px] overflow-y-auto">
+                    {marketTrees.map((p) => {
+                      const isActive = String(activeParent?._id) === String(p._id);
+                      return (
+                        <button
+                          key={p._id}
+                          type="button"
+                          onMouseEnter={() => setActiveParentId(p._id)}
+                          onFocus={() => setActiveParentId(p._id)}
+                          onClick={() => {
+                            close();
+                            navigate(`/${lang}/markets/${p._id}`);
+                          }}
+                          className={`w-full text-left px-4 py-2.5 text-xs font-medium truncate transition-colors ${
+                            isActive
+                              ? 'bg-white text-primary'
+                              : 'text-gray-600 hover:bg-white hover:text-primary'
+                          }`}
+                          title={getLocalizedField(p, lang, 'title', 'titleEn')}
+                        >
+                          {getLocalizedField(p, lang, 'title', 'titleEn')}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {/* Right column: MarketTree children */}
+                  <div className="flex-1 p-4 max-h-[420px] overflow-y-auto">
+                    {activeChildren.length === 0 ? (
+                      <p className="text-xs text-gray-400 italic">
+                        {lang === 'en'
+                          ? 'No sub-markets yet.'
+                          : 'Chưa có cây ngành sản phẩm nào.'}
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-2 gap-1">
+                        {activeChildren.map((c) => (
+                          <Link
+                            key={c._id}
+                            to={`/${lang}/markets/${c._id}`}
+                            onClick={close}
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors truncate"
+                            title={getLocalizedField(c, lang, 'title', 'titleEn')}
+                          >
+                            <FiGitBranch size={14} className="opacity-60 flex-shrink-0" />
+                            <span className="truncate">
+                              {getLocalizedField(c, lang, 'title', 'titleEn')}
+                            </span>
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+              {marketTrees.length > 0 && (
+                <div className="border-t border-gray-100 px-4 py-2 bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      close();
+                      navigate(`/${lang}/markets`);
+                    }}
+                    className="text-xs font-semibold text-primary hover:underline"
+                  >
+                    {t('common.viewAll')} {t('nav.marketTrees')} →
+                  </button>
+                </div>
+              )}
             </motion.div>
           </>
         )}
@@ -327,6 +571,8 @@ const Header = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
   const { count } = useQuoteBag();
+  const { count: wishlistCount } = useWishlist();
+  const { count: compareCount } = useCompare();
   const { logoUrl } = useSiteConfig();
   const navigate = useNavigate();
   const location = useLocation();
@@ -334,72 +580,57 @@ const Header = () => {
   const currentLang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : i18n.language || 'vi';
 
   const [menuOpen, setMenuOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [desktopSearchOpen, setDesktopSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mainTrees, setMainTrees] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [marketTrees, setMarketTrees] = useState([]);
-  const [products, setProducts] = useState([]);
-  const searchInputRef = useRef(null);
-  const searchWrapperRef = useRef(null);
 
+  // Cmd+K / Ctrl+K to open search modal from anywhere
   useEffect(() => {
-    publicApi
-      .getMainTrees(currentLang)
-      .then((r) => {
-        setMainTrees(Array.isArray(r.data?.data) ? r.data.data : []);
-      })
-      .catch((err) => {
-        console.warn('[Header] getMainTrees failed:', err?.message || err);
-      });
-  }, [currentLang]);
-
-  useEffect(() => {
-    publicApi
-      .getMarketTrees({ lang: currentLang })
-      .then((r) => {
-        setMarketTrees(Array.isArray(r.data?.data) ? r.data.data : []);
-      })
-      .catch((err) => {
-        console.warn('[Header] getMarketTrees failed:', err?.message || err);
-      });
-  }, [currentLang]);
-
-  useEffect(() => {
-    publicApi
-      .getProducts({ lang: currentLang, limit: DROPDOWN_LIMIT })
-      .then((r) => {
-        setProducts(r.data?.data ?? []);
-      })
-      .catch((err) => {
-        console.warn('[Header] getProducts failed:', err?.message || err);
-      });
-  }, [currentLang]);
-
-  useEffect(() => {
-    if ((searchOpen || desktopSearchOpen) && searchInputRef.current) {
-      searchInputRef.current.focus();
-    }
-  }, [searchOpen, desktopSearchOpen]);
-
-  useEffect(() => {
-    if (!desktopSearchOpen) return undefined;
-    const onClick = (e) => {
-      if (searchWrapperRef.current && !searchWrapperRef.current.contains(e.target)) {
-        setDesktopSearchOpen(false);
+    const onKey = (e) => {
+      const isMac = typeof navigator !== 'undefined' && /Mac|iPod|iPhone|iPad/.test(navigator.platform);
+      const cmdOrCtrl = isMac ? e.metaKey : e.ctrlKey;
+      if (cmdOrCtrl && (e.key === 'k' || e.key === 'K')) {
+        e.preventDefault();
+        setSearchModalOpen(true);
+      } else if (e.key === '/' && !searchModalOpen) {
+        const tag = (e.target?.tagName || '').toLowerCase();
+        if (tag !== 'input' && tag !== 'textarea' && !e.target?.isContentEditable) {
+          e.preventDefault();
+          setSearchModalOpen(true);
+        }
       }
     };
-    const onKey = (e) => {
-      if (e.key === 'Escape') setDesktopSearchOpen(false);
-    };
-    document.addEventListener('mousedown', onClick);
     document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    Promise.allSettled([
+      publicApi.getMainTrees(currentLang),
+      publicApi.getCategories({ lang: currentLang, limit: 200 }),
+      publicApi.getMarketTrees({ lang: currentLang }),
+    ]).then(([mtRes, catRes, mktRes]) => {
+      if (cancelled) return;
+      if (mtRes.status === 'fulfilled') {
+        const data = mtRes.value?.data?.data;
+        setMainTrees(Array.isArray(data) ? data : []);
+      }
+      if (catRes.status === 'fulfilled') {
+        const raw = catRes.value?.data?.data;
+        setCategories(Array.isArray(raw) ? raw : raw?.items || []);
+      }
+      if (mktRes.status === 'fulfilled') {
+        const data = mktRes.value?.data?.data;
+        setMarketTrees(Array.isArray(data) ? data : []);
+      }
+    });
     return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('keydown', onKey);
+      cancelled = true;
     };
-  }, [desktopSearchOpen]);
+  }, [currentLang]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
@@ -412,15 +643,6 @@ const Header = () => {
     setScrolled(window.scrollY > SCROLL_THRESHOLD);
   }, [location.pathname]);
 
-  const handleSearchSubmit = (e) => {
-    e?.preventDefault?.();
-    const q = searchQuery.trim();
-    if (q.length < 2) return;
-    setDesktopSearchOpen(false);
-    setSearchOpen(false);
-    navigate(`/${currentLang}/products?q=${encodeURIComponent(q)}`);
-  };
-
   const switchLocale = (next) => {
     if (!SUPPORTED_LOCALES.includes(next) || next === currentLang) return;
     const rest = location.pathname.replace(/^\/[^/]+/, '') || '';
@@ -429,7 +651,7 @@ const Header = () => {
   };
 
   const isHome = location.pathname === `/${currentLang}` || location.pathname === `/${currentLang}/`;
-  const transparent = isHome && !scrolled && !menuOpen && !searchOpen && !desktopSearchOpen;
+  const transparent = isHome && !scrolled && !menuOpen && !searchModalOpen;
 
   const headerBase = 'sticky top-0 z-50 transition-all duration-300';
   const headerTheme = transparent
@@ -513,128 +735,16 @@ const Header = () => {
           <nav className="hidden md:flex col-span-5 items-center justify-center gap-4 lg:gap-5">
             <MegaMenuAbout transparent={transparent} isHomeTop={isHome && !scrolled} />
 
-            {/* Dropdown 1: Ngành hàng (MainTree) */}
-            <DropdownNav
-              to={`/${currentLang}/products`}
-              label={t('nav.mainTrees')}
+            <MegaMenuProducts
               transparent={transparent}
-            >
-              {({ close, navigateAll }) => (
-                <>
-                  {mainTrees.length === 0 ? (
-                    <div className="px-3 py-3 text-xs text-gray-500 italic">
-                      {t('product.filter.all')}
-                    </div>
-                  ) : (
-                    mainTrees.map((m) => (
-                      <Link
-                        key={m._id}
-                        to={`/${currentLang}/products?mainTree=${m._id}`}
-                        className={subLinkClass}
-                        onClick={close}
-                        role="menuitem"
-                      >
-                        {getLocalizedField(m, currentLang, 'name', 'nameEn')}
-                      </Link>
-                    ))
-                  )}
-                  <div className="border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={navigateAll}
-                      className={`${subLinkClass} w-full text-left text-primary font-medium`}
-                      role="menuitem"
-                    >
-                      {t('common.viewAll')} →
-                    </button>
-                  </div>
-                </>
-              )}
-            </DropdownNav>
+              mainTrees={mainTrees}
+              categories={categories}
+            />
 
-            {/* Dropdown 2: Cây ngành (MarketTree) */}
-            <DropdownNav
-              to={`/${currentLang}/markets`}
-              label={t('nav.marketTrees')}
+            <MegaMenuMarkets
               transparent={transparent}
-            >
-              {({ close, navigateAll }) => (
-                <>
-                  {marketTrees.length === 0 ? (
-                    <div className="px-3 py-3 text-xs text-gray-500 italic">
-                      {t('market.noMarkets')}
-                    </div>
-                  ) : (
-                    marketTrees.map((m) => (
-                      <Link
-                        key={m._id}
-                        to={`/${currentLang}/markets/${m._id}`}
-                        className={subLinkClass}
-                        onClick={close}
-                        role="menuitem"
-                      >
-                        {getLocalizedField(m, currentLang, 'name', 'nameEn')}
-                      </Link>
-                    ))
-                  )}
-                  <div className="border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={navigateAll}
-                      className={`${subLinkClass} w-full text-left text-primary font-medium`}
-                      role="menuitem"
-                    >
-                      {t('common.viewAll')} →
-                    </button>
-                  </div>
-                </>
-              )}
-            </DropdownNav>
-
-            {/* Dropdown 3: Sản phẩm (Product) */}
-            <DropdownNav
-              to={`/${currentLang}/products`}
-              label={t('nav.products')}
-              transparent={transparent}
-            >
-              {({ close, navigateAll }) => (
-                <>
-                  {products.length === 0 ? (
-                    <div className="px-3 py-3 text-xs text-gray-500 italic">
-                      {t('product.noProducts')}
-                    </div>
-                  ) : (
-                    products.map((p) => {
-                      const label =
-                        currentLang === 'en' && p.nameEn
-                          ? p.nameEn
-                          : p.name;
-                      return (
-                        <Link
-                          key={p._id}
-                          to={`/${currentLang}/products/${p._id}`}
-                          className={subLinkClass}
-                          onClick={close}
-                          role="menuitem"
-                        >
-                          {label}
-                        </Link>
-                      );
-                    })
-                  )}
-                  <div className="border-t border-gray-100">
-                    <button
-                      type="button"
-                      onClick={navigateAll}
-                      className={`${subLinkClass} w-full text-left text-primary font-medium`}
-                      role="menuitem"
-                    >
-                      {t('common.viewAll')} {t('nav.products')} →
-                    </button>
-                  </div>
-                </>
-              )}
-            </DropdownNav>
+              marketTrees={marketTrees}
+            />
 
             <Link
               to={`/${currentLang}/news`}
@@ -648,49 +758,53 @@ const Header = () => {
 
           {/* Right controls */}
           <div className="col-span-8 md:col-span-4 flex items-center justify-end gap-1">
-            {/* Desktop search */}
-            <div ref={searchWrapperRef} className="hidden md:flex items-center">
-              <AnimatePresence initial={false}>
-                {desktopSearchOpen && (
-                  <motion.form
-                    key="desktop-search"
-                    initial={{ width: 0, opacity: 0 }}
-                    animate={{ width: 200, opacity: 1 }}
-                    exit={{ width: 0, opacity: 0 }}
-                    transition={{ duration: 0.2, ease: 'easeOut' }}
-                    onSubmit={handleSearchSubmit}
-                    className={searchFormClass.replace('hidden md:flex', '')}
-                  >
-                    <input
-                      ref={searchInputRef}
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder={t('common.search')}
-                      className={searchInputClass}
-                      maxLength={120}
-                    />
-                  </motion.form>
-                )}
-              </AnimatePresence>
-              <button
-                type="button"
-                aria-label={t('common.search')}
-                aria-expanded={desktopSearchOpen}
-                onClick={() => {
-                  setDesktopSearchOpen((v) => !v);
-                  setTimeout(() => searchInputRef.current?.focus(), 60);
-                }}
-                className={searchButtonClass}
-              >
-                <FiSearch size={18} />
-              </button>
-            </div>
-
-            {/* Mobile search trigger */}
-            <button onClick={() => setSearchOpen(!searchOpen)} aria-label={t('common.search')} className={`md:hidden ${iconClass}`}>
+            {/* Desktop search — opens SearchModal */}
+            <button
+              type="button"
+              aria-label={t('common.search')}
+              onClick={() => setSearchModalOpen(true)}
+              className={searchButtonClass}
+            >
               <FiSearch size={18} />
             </button>
+
+            {/* Mobile search trigger — opens SearchModal */}
+            <button
+              type="button"
+              onClick={() => setSearchModalOpen(true)}
+              aria-label={t('common.search')}
+              className={`md:hidden ${iconClass}`}
+            >
+              <FiSearch size={18} />
+            </button>
+
+            <Link
+              to={`/${currentLang}/wishlist`}
+              className={`${iconClass} relative hidden sm:inline-flex`}
+              aria-label={t('nav.wishlist')}
+              title={t('nav.wishlist')}
+            >
+              <FiHeart size={18} />
+              {wishlistCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-medium">
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
+
+            <Link
+              to={`/${currentLang}/products/compare`}
+              className={`${iconClass} relative hidden sm:inline-flex`}
+              aria-label={t('nav.compare')}
+              title={t('nav.compare')}
+            >
+              <FiBarChart2 size={18} />
+              {compareCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 bg-primary text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-medium">
+                  {compareCount}
+                </span>
+              )}
+            </Link>
 
             <Link to={`/${currentLang}/quote`} className={`${iconClass} relative`} aria-label={t('nav.quote')}>
               <FiFileText size={18} />
@@ -746,33 +860,12 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Mobile search */}
-        <AnimatePresence>
-          {searchOpen && (
-            <motion.form
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              onSubmit={handleSearchSubmit}
-              className={`md:hidden overflow-hidden ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`}
-            >
-              <div className="flex items-center gap-2 py-2">
-                <FiSearch size={16} className={transparent ? 'text-white/70 ml-1' : 'text-gray-400 ml-1'} />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder={t('common.search')}
-                  className={`flex-1 outline-none text-sm bg-transparent ${transparent ? 'text-white placeholder-white/70' : 'text-gray-800'}`}
-                  autoFocus
-                />
-                <button type="button" onClick={() => setSearchOpen(false)} className={transparent ? 'p-1 text-white/70' : 'p-1 text-gray-400'}>
-                  <FiX size={16} />
-                </button>
-              </div>
-            </motion.form>
-          )}
-        </AnimatePresence>
+        {/* Global SearchModal (Cmd+K / Ctrl+K + header icon) */}
+        <SearchModal
+          open={searchModalOpen}
+          onClose={() => setSearchModalOpen(false)}
+          lang={currentLang}
+        />
 
         {/* Mobile menu */}
         <AnimatePresence>
@@ -793,12 +886,12 @@ const Header = () => {
                 {mainTrees.length > 0 && (
                   <>
                     <span className={`px-1 text-[10px] uppercase font-semibold tracking-wide ${transparent ? 'text-white/60' : 'text-gray-400'}`}>
-                      {t('nav.mainTrees')}
+                      {t('nav.mainTreeMenuTitle')}
                     </span>
                     {mainTrees.slice(0, 5).map((m) => (
                       <Link
                         key={m._id}
-                        to={`/${currentLang}/products?mainTree=${m._id}`}
+                        to={`/${currentLang}/main-trees/${m._id}`}
                         onClick={() => setMenuOpen(false)}
                         className={mobileLinkClass}
                       >
@@ -806,7 +899,7 @@ const Header = () => {
                       </Link>
                     ))}
                     <Link
-                      to={`/${currentLang}/products`}
+                      to={`/${currentLang}/main-trees`}
                       onClick={() => setMenuOpen(false)}
                       className={`${mobileLinkClass} text-primary font-medium ml-3`}
                     >
@@ -819,16 +912,16 @@ const Header = () => {
                 {marketTrees.length > 0 && (
                   <>
                     <span className={`px-1 text-[10px] uppercase font-semibold tracking-wide ${transparent ? 'text-white/60' : 'text-gray-400'}`}>
-                      {t('nav.marketTrees')}
+                      {t('nav.marketTreeMenuTitle')}
                     </span>
-                    {marketTrees.slice(0, 5).map((m) => (
+                    {marketTrees.slice(0, 5).map((p) => (
                       <Link
-                        key={m._id}
-                        to={`/${currentLang}/markets/${m._id}`}
+                        key={p._id}
+                        to={`/${currentLang}/markets/${p._id}`}
                         onClick={() => setMenuOpen(false)}
                         className={mobileLinkClass}
                       >
-                        <span className="ml-3">{getLocalizedField(m, currentLang, 'name', 'nameEn')}</span>
+                        <span className="ml-3">{getLocalizedField(p, currentLang, 'title', 'titleEn')}</span>
                       </Link>
                     ))}
                     <Link
@@ -842,22 +935,14 @@ const Header = () => {
                   </>
                 )}
 
-                {products.length > 0 && (
-                  <>
-                    <span className={`px-1 text-[10px] uppercase font-semibold tracking-wide ${transparent ? 'text-white/60' : 'text-gray-400'}`}>
-                      {t('nav.products')}
-                    </span>
-                    {products.slice(0, 5).map((p) => (
-                      <Link key={p._id} to={`/${currentLang}/products/${p._id}`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
-                        <span className="ml-3">{currentLang === 'en' && p.nameEn ? p.nameEn : p.name}</span>
-                      </Link>
-                    ))}
-                    <Link to={`/${currentLang}/products`} onClick={() => setMenuOpen(false)} className={`${mobileLinkClass} text-primary font-medium ml-3`}>
-                      {t('common.viewAll')} {t('nav.products')}
-                    </Link>
-                    <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
-                  </>
-                )}
+                <Link
+                  to={`/${currentLang}/products`}
+                  onClick={() => setMenuOpen(false)}
+                  className={`${mobileLinkClass} text-primary font-medium`}
+                >
+                  {t('common.viewAll')} {t('nav.products')} →
+                </Link>
+                <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
 
                 <Link to={`/${currentLang}/news`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
                   {t('nav.news')}

@@ -42,6 +42,10 @@ const productSchema = new mongoose.Schema({
     default: null,
     index: true,
   },
+  marketIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MarketTree',
+  }],
   price: {
     type: Number,
     default: 0,
@@ -107,6 +111,7 @@ productSchema.index({ createdAt: -1 });
 productSchema.index({ productCode: 1 }, { unique: true, partialFilterExpression: { productCode: { $type: 'string', $gt: '' } } });
 productSchema.index({ webStatus: 1, isActive: 1 });
 productSchema.index({ mainTree: 1, productLine: 1 });
+productSchema.index({ marketIds: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 

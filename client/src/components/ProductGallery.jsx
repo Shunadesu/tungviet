@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiZoomIn } from 'react-icons/fi';
 import placeholderProduct from '../assets/placeholder-product.svg';
@@ -13,6 +13,11 @@ const ProductGallery = ({ images = [], name = '', tdsUrl }) => {
   const [activeIdx, setActiveIdx] = useState(0);
   const [zoom, setZoom] = useState(false);
   const [origin, setOrigin] = useState('50% 50%');
+
+  // Reset active idx when image list changes (e.g. navigating to a different product)
+  useEffect(() => {
+    setActiveIdx(0);
+  }, [images.length, images[0]]);
 
   const current = safeImages[activeIdx] || null;
   const hasMultiple = safeImages.length > 1;

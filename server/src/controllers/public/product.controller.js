@@ -1,7 +1,9 @@
 import { productService } from '../../services/product.service.js';
+import Product from '../../models/Product.js';
 import { apiResponse } from '../../utils/apiResponse.js';
 import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
 import { localizeFields, resolveLocale } from '../../utils/i18n.js';
+import { invalidatePublicCache } from '../../utils/cache.js';
 
 const LOCALIZABLE_FIELDS = ['name', 'description'];
 
@@ -13,6 +15,7 @@ export const getAllProducts = async (req, res, next) => {
       sort: req.query.sort,
       mainTree: req.query.mainTree,
       productLine: req.query.productLine || req.query.category,
+      market: req.query.market || req.query.marketIds,
       page: req.query.page,
       limit: req.query.limit,
     };
@@ -48,6 +51,21 @@ export const getProductById = async (req, res, next) => {
     const product = await productService.getByIdLean(req.params.id, { onlyActive: true });
     const localized = localizeFields(product, locale, LOCALIZABLE_FIELDS);
     return apiResponse.ok(res, localized);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Fire-and-forget view counter. Always responds 204 so the client never blocks.
+ * Không cache; invalidate để lần GET tiếp theo thấy viewCount mới.
+ */
+export const incrementView = async (req, res, next) => {
+  try {
+    Product.updateOne({ _id: req.params.id }, { $inc: { viewCount: 1 } })
+      .catch((err) => console.warn('[incrementView] failed:', err?.message));
+    invalidatePublicCache();
+    return res.status(204).send();
   } catch (err) {
     next(err);
   }

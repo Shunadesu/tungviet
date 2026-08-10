@@ -12,6 +12,8 @@ const FilterChip = ({ label, active = false, onClick, onRemove, count }) => {
     <button
       type="button"
       onClick={handleClick}
+      aria-pressed={active}
+      aria-label={label}
       className={`group inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border ${
         active
           ? 'bg-primary text-white border-primary shadow-sm'

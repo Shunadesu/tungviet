@@ -3,6 +3,60 @@ import { invalidatePublicCache } from '../utils/cache.js';
 
 const invalidate = () => invalidatePublicCache();
 
+const PRODUCT_PREVIEW_FIELDS = 'name nameEn imageUrl slug';
+
+// Populate sub-doc productIds with minimal product fields
+const populateSubDocs = (node) => {
+  if (!node) return node;
+  if (Array.isArray(node.applications)) {
+    node.applications = node.applications.map((a) => {
+      const products = Array.isArray(a.products) ? a.products : [];
+      return { ...a, products };
+    });
+  }
+  if (Array.isArray(node.technologies)) {
+    // technologies doesn't reference products currently
+  }
+  return node;
+};
+
+const sortSubDocs = (node) => {
+  if (Array.isArray(node.applications)) {
+    node.applications = [...node.applications].sort((a, b) => {
+      const ao = a.order ?? 0;
+      const bo = b.order ?? 0;
+      if (ao !== bo) return ao - bo;
+      return (a.title || '').localeCompare(b.title || '');
+    });
+  }
+  if (Array.isArray(node.technologies)) {
+    node.technologies = [...node.technologies].sort((a, b) => {
+      const ao = a.order ?? 0;
+      const bo = b.order ?? 0;
+      if (ao !== bo) return ao - bo;
+      return (a.title || '').localeCompare(b.title || '');
+    });
+  }
+  return node;
+};
+
+const sanitizeSubDocs = (list = []) =>
+  (Array.isArray(list) ? list : [])
+    .filter((s) => s && s.title)
+    .map((s) => ({
+      _id: s._id,
+      title: s.title || '',
+      titleEn: s.titleEn || '',
+      description: s.description || '',
+      descriptionEn: s.descriptionEn || '',
+      imageUrl: s.imageUrl || '',
+      order: Number.isFinite(s.order) ? s.order : 0,
+      isActive: s.isActive !== false,
+      productIds: Array.isArray(s.productIds)
+        ? s.productIds.filter(Boolean)
+        : [],
+    }));
+
 const DEFAULT_MARKET_TREES = [
   // For "Sơn & lớp phủ"
   {
@@ -16,6 +70,24 @@ const DEFAULT_MARKET_TREES = [
     children: [
       { title: 'Sơn PU', titleEn: 'PU Coatings', order: 0 },
       { title: 'Sơn NC', titleEn: 'NC Coatings', order: 1 },
+    ],
+    technologies: [
+      {
+        title: 'Công nghệ chống thấm nano',
+        titleEn: 'Nano Waterproof Technology',
+        description: 'Công nghệ nano tạo lớp màng chống thấm trên bề mặt gỗ.',
+        descriptionEn: 'Nano technology that creates a waterproof film on wood surfaces.',
+        order: 0,
+      },
+    ],
+    applications: [
+      {
+        title: 'Sơn lót nội thất',
+        titleEn: 'Interior Primer',
+        description: 'Lớp lót tăng độ bám cho sơn phủ PU/NC trên nội thất gỗ.',
+        descriptionEn: 'Primer coat to improve adhesion for PU/NC topcoats on interior wood.',
+        order: 0,
+      },
     ],
   },
   // For "Keo & chất kết dính"
@@ -31,6 +103,24 @@ const DEFAULT_MARKET_TREES = [
       { title: 'Keo dán gỗ', titleEn: 'Wood Glue', order: 0 },
       { title: 'Keo công nghiệp', titleEn: 'Industrial Glue', order: 1 },
     ],
+    technologies: [
+      {
+        title: 'Công nghệ kết dính nhanh',
+        titleEn: 'Fast-Bond Technology',
+        description: 'Công nghệ đông cứng nhanh, rút ngắn thời gian ép.',
+        descriptionEn: 'Rapid curing technology that shortens pressing time.',
+        order: 0,
+      },
+    ],
+    applications: [
+      {
+        title: 'Dán gỗ công nghiệp',
+        titleEn: 'Engineered Wood Bonding',
+        description: 'Ứng dụng kết dính ván MDF, ván dăm, gỗ ghép.',
+        descriptionEn: 'Bonding applications for MDF, particle board, and laminated wood.',
+        order: 0,
+      },
+    ],
   },
 ];
 
@@ -40,6 +130,14 @@ export const marketTreeService = {
     if (mainTree) query.mainTree = mainTree;
     const flat = await MarketTree.find(query)
       .sort({ order: 1, title: 1 })
+      .populate({
+        path: 'applications.productIds',
+        select: PRODUCT_PREVIEW_FIELDS,
+      })
+      .populate({
+        path: 'technologies',
+        match: { isActive: true },
+      })
       .lean();
 
     // Build nested tree: parents with .children[]
@@ -52,10 +150,17 @@ export const marketTreeService = {
         childMap.get(parentId).push(node);
       }
     }
-    return parents.map((p) => ({
-      ...p,
-      children: childMap.get(String(p._id)) || [],
-    }));
+    return parents.map((p) => {
+      const node = {
+        ...p,
+        children: (childMap.get(String(p._id)) || []).map((c) => ({
+          ...c,
+          children: [],
+        })),
+      };
+      sortSubDocs(node);
+      return node;
+    });
   },
 
   async getAdmin({ mainTree } = {}) {
@@ -67,7 +172,12 @@ export const marketTreeService = {
   },
 
   async getById(id) {
-    return MarketTree.findById(id).lean();
+    return MarketTree.findById(id)
+      .populate({
+        path: 'applications.productIds',
+        select: PRODUCT_PREVIEW_FIELDS,
+      })
+      .lean();
   },
 
   async create(data) {
@@ -83,6 +193,8 @@ export const marketTreeService = {
       imageUrl: data.imageUrl || '',
       order,
       isActive: data.isActive !== false,
+      applications: sanitizeSubDocs(data.applications),
+      technologies: sanitizeSubDocs(data.technologies),
     });
     await doc.save();
     invalidate();
@@ -90,7 +202,14 @@ export const marketTreeService = {
   },
 
   async update(id, data) {
-    const doc = await MarketTree.findByIdAndUpdate(id, data, {
+    const updatePayload = { ...data };
+    if (data.applications !== undefined) {
+      updatePayload.applications = sanitizeSubDocs(data.applications);
+    }
+    if (data.technologies !== undefined) {
+      updatePayload.technologies = sanitizeSubDocs(data.technologies);
+    }
+    const doc = await MarketTree.findByIdAndUpdate(id, updatePayload, {
       new: true,
       runValidators: true,
     });
@@ -137,6 +256,8 @@ export const marketTreeService = {
         descriptionEn: def.descriptionEn || '',
         order: def.order ?? order++,
         isActive: true,
+        applications: sanitizeSubDocs(def.applications),
+        technologies: sanitizeSubDocs(def.technologies),
       });
       await parentDoc.save();
 

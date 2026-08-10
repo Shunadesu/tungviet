@@ -81,7 +81,7 @@ const ProductFilterSidebar = ({
         <section>
           <h4 className="heading-eyebrow mb-3 flex items-center gap-1.5">
             <FiLayers size={12} />
-            {t('product.filter.mainTree')}
+            {t('nav.mainTreeMenuTitle')}
           </h4>
           {loadingMain ? (
             <div className="space-y-2">

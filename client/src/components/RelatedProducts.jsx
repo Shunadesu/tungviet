@@ -27,6 +27,7 @@ const RelatedProducts = ({ currentProduct, limit = 4 }) => {
     };
     if (currentProduct.category) params.category = currentProduct.category;
     else if (currentProduct.market) params.market = currentProduct.market;
+    else if (currentProduct.mainTree) params.mainTree = currentProduct.mainTree;
 
     publicApi
       .getProducts(params)
