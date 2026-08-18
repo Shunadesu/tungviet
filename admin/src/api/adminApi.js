@@ -1,9 +1,10 @@
 import axiosClient from './axiosClient';
+import { compressImage } from '../utils/compressImage.js';
 
 const isFormData = (value) =>
   typeof FormData !== 'undefined' && value instanceof FormData;
 
-const toUploadFormData = (payload) => {
+const toUploadFormData = async (payload, { compress = true } = {}) => {
   if (isFormData(payload)) {
     const file = payload.get('file');
     if (!(file instanceof Blob)) {
@@ -16,12 +17,17 @@ const toUploadFormData = (payload) => {
     throw new TypeError('Vui lòng chọn file hợp lệ');
   }
 
+  const fileToSend = compress ? await compressImage(payload) : payload;
   const formData = new FormData();
-  formData.append('file', payload, payload.name || 'upload');
+  formData.append('file', fileToSend, fileToSend.name || payload.name || 'upload');
   return formData;
 };
 
-const postUpload = (url, payload) => axiosClient.post(url, toUploadFormData(payload));
+const postUpload = (url, payload, options = {}) =>
+  (async () => {
+    const formData = await toUploadFormData(payload, options);
+    return axiosClient.post(url, formData);
+  })();
 
 export const adminApi = {
   // Auth
@@ -29,7 +35,7 @@ export const adminApi = {
 
   // Upload
   uploadImage: (payload) => postUpload('/admin/upload', payload),
-  uploadPDF: (payload) => postUpload('/admin/upload/pdf', payload),
+  uploadPDF: (payload) => postUpload('/admin/upload/pdf', payload, { compress: false }),
 
   // Products
   getProducts: (params) => axiosClient.get('/admin/products', { params }),
@@ -38,7 +44,7 @@ export const adminApi = {
   updateProduct: (id, data) => axiosClient.put(`/admin/products/${id}`, data),
   deleteProduct: (id) => axiosClient.delete(`/admin/products/${id}`),
   deleteProducts: (ids) => axiosClient.post('/admin/products/batch-delete', { ids }),
-  uploadTDS: (id, file) => postUpload(`/admin/products/${id}/upload-tds`, file),
+  uploadTDS: (id, file) => postUpload(`/admin/products/${id}/upload-tds`, file, { compress: false }),
   getProductsForSelect: () => axiosClient.get('/admin/products/select'),
 
   // Product columns

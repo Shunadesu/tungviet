@@ -1,12 +1,17 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiX, FiFilter, FiRefreshCw, FiLayers, FiPackage } from 'react-icons/fi';
+import { FiX, FiFilter, FiRefreshCw, FiLayers, FiPackage, FiTarget } from 'react-icons/fi';
 import FilterChip from './FilterChip';
 import publicApi from '../api/publicApi';
 
 /**
- * Sidebar filter cho trang sản phẩm: MainTree + ProductLine (dependent) + softening point range.
+ * Sidebar filter cho trang sản phẩm:
+ *   - Ngành hàng (multi-select chips)
+ *   - Product line (dependent on the FIRST selected industry)
+ *   - Thị trường ứng dụng (multi-select chips)
+ *   - Softening point range
+ *
  * Mobile: drawer full-screen.
  */
 const ProductFilterSidebar = ({
@@ -20,8 +25,13 @@ const ProductFilterSidebar = ({
   const { t, i18n } = useTranslation();
   const [mainTrees, setMainTrees] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [marketTrees, setMarketTrees] = useState([]);
   const [loadingMain, setLoadingMain] = useState(true);
   const [loadingCat, setLoadingCat] = useState(true);
+  const [loadingMarket, setLoadingMarket] = useState(true);
+
+  const selectedIndustries = Array.isArray(values.industries) ? values.industries : [];
+  const selectedMarkets = Array.isArray(values.market) ? values.market : [];
 
   useEffect(() => {
     setLoadingMain(true);
@@ -33,8 +43,27 @@ const ProductFilterSidebar = ({
   }, [i18n.language]);
 
   useEffect(() => {
+    setLoadingMarket(true);
+    publicApi
+      .getMarketTrees({ lang: i18n.language })
+      .then((r) => {
+        const data = r?.data?.data;
+        // Service returns a flat list with `parent` set for children — flatten
+        // to top-level entries so we can render a single chip list.
+        const flat = Array.isArray(data) ? data : [];
+        const tops = flat.filter((m) => !m.parent);
+        setMarketTrees(tops.length ? tops : flat);
+      })
+      .catch(() => setMarketTrees([]))
+      .finally(() => setLoadingMarket(false));
+  }, [i18n.language]);
+
+  useEffect(() => {
     setLoadingCat(true);
-    const params = values.mainTree ? { mainTree: values.mainTree } : undefined;
+    // Product lines are loaded for the FIRST selected industry only — the
+    // dropdown is a single-select downstream. If none selected, leave empty.
+    const firstIndustry = selectedIndustries[0];
+    const params = firstIndustry ? { mainTree: firstIndustry } : undefined;
     publicApi
       .getCategories(params)
       .then((r) => {
@@ -43,7 +72,7 @@ const ProductFilterSidebar = ({
       })
       .catch(() => setCategories([]))
       .finally(() => setLoadingCat(false));
-  }, [i18n.language, values.mainTree]);
+  }, [i18n.language, selectedIndustries[0]]);
 
   const softeningRanges = [
     { value: '', label: t('product.filter.all') },
@@ -52,6 +81,17 @@ const ProductFilterSidebar = ({
     { value: '100-120', label: '100 – 120°C' },
     { value: '>120', label: '> 120°C' },
   ];
+
+  /**
+   * Toggle an id inside a CSV-backed multi-value param.
+   */
+  const toggleMulti = (key, id) => {
+    const current = key === 'industries' ? selectedIndustries : selectedMarkets;
+    const next = current.includes(id)
+      ? current.filter((x) => x !== id)
+      : [...current, id];
+    setParam(key, next);
+  };
 
   const Panel = (
     <div className="flex flex-col h-full bg-white">
@@ -77,7 +117,7 @@ const ProductFilterSidebar = ({
 
       {/* Body */}
       <div className="flex-1 overflow-y-auto px-5 py-5 space-y-7 scrollbar-thin">
-        {/* Ngành hàng (Main Tree) */}
+        {/* Ngành hàng (multi-select) */}
         <section>
           <h4 className="heading-eyebrow mb-3 flex items-center gap-1.5">
             <FiLayers size={12} />
@@ -95,13 +135,13 @@ const ProductFilterSidebar = ({
             <div className="flex flex-wrap gap-2">
               {mainTrees.map((m) => {
                 const label = i18n.language === 'en' && m.nameEn ? m.nameEn : m.name;
-                const active = values.mainTree === m._id;
+                const active = selectedIndustries.includes(m._id);
                 return (
                   <FilterChip
                     key={m._id}
                     label={label}
                     active={active}
-                    onClick={() => setParam('mainTree', active ? '' : m._id)}
+                    onClick={() => toggleMulti('industries', m._id)}
                   />
                 );
               })}
@@ -109,13 +149,13 @@ const ProductFilterSidebar = ({
           )}
         </section>
 
-        {/* Product line (dependent) */}
+        {/* Product line (dependent on first selected industry) */}
         <section>
           <h4 className="heading-eyebrow mb-3 flex items-center gap-1.5">
             <FiPackage size={12} />
             {t('product.filter.productLine')}
           </h4>
-          {!values.mainTree && (
+          {selectedIndustries.length === 0 && (
             <p className="text-[10px] text-gray-400 mb-2">
               {t('product.filter.selectMainTreeFirst')}
             </p>
@@ -139,6 +179,38 @@ const ProductFilterSidebar = ({
                     label={label}
                     active={active}
                     onClick={() => setParam('category', active ? '' : c._id)}
+                  />
+                );
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Thị trường ứng dụng (multi-select) */}
+        <section>
+          <h4 className="heading-eyebrow mb-3 flex items-center gap-1.5">
+            <FiTarget size={12} />
+            {t('nav.marketTrees')}
+          </h4>
+          {loadingMarket ? (
+            <div className="space-y-2">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="skeleton h-7 w-full" />
+              ))}
+            </div>
+          ) : marketTrees.length === 0 ? (
+            <p className="text-xs text-gray-400">—</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {marketTrees.map((m) => {
+                const label = i18n.language === 'en' && m.titleEn ? m.titleEn : m.title;
+                const active = selectedMarkets.includes(m._id);
+                return (
+                  <FilterChip
+                    key={m._id}
+                    label={label}
+                    active={active}
+                    onClick={() => toggleMulti('market', m._id)}
                   />
                 );
               })}

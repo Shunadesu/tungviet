@@ -1,24 +1,48 @@
 import MarketTree from '../models/MarketTree.js';
+import Product from '../models/Product.js';
 import { invalidatePublicCache } from '../utils/cache.js';
 
 const invalidate = () => invalidatePublicCache();
 
-const PRODUCT_PREVIEW_FIELDS = 'name nameEn imageUrl slug';
+const PRODUCT_PREVIEW_FIELDS =
+  'name nameEn imageUrl slug productCode applications';
 
-// Populate sub-doc productIds with minimal product fields
-const populateSubDocs = (node) => {
-  if (!node) return node;
-  if (Array.isArray(node.applications)) {
-    node.applications = node.applications.map((a) => {
-      const products = Array.isArray(a.products) ? a.products : [];
-      return { ...a, products };
-    });
-  }
-  if (Array.isArray(node.technologies)) {
-    // technologies doesn't reference products currently
-  }
-  return node;
-};
+const APPLICATION_PREVIEW_FIELDS =
+  '_id title titleEn description descriptionEn imageUrl';
+
+const sanitizeProductEntries = (entries = []) =>
+  (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      const productId =
+        entry && (entry.productId?._id || entry.productId)
+          ? String(entry.productId?._id || entry.productId)
+          : null;
+      const rawIndex =
+        entry && (entry.applicationIndex ?? entry.applicationIndex === 0)
+          ? entry.applicationIndex
+          : -1;
+      const applicationIndex = Number.isFinite(Number(rawIndex))
+        ? Number(rawIndex)
+        : -1;
+      if (!productId || applicationIndex < 0) return null;
+      return { productId, applicationIndex };
+    })
+    .filter(Boolean);
+
+const sanitizeSubDocs = (list = []) =>
+  (Array.isArray(list) ? list : [])
+    .filter((s) => s && s.title)
+    .map((s) => ({
+      _id: s._id,
+      title: s.title || '',
+      titleEn: s.titleEn || '',
+      description: s.description || '',
+      descriptionEn: s.descriptionEn || '',
+      imageUrl: s.imageUrl || '',
+      order: Number.isFinite(s.order) ? s.order : 0,
+      isActive: s.isActive !== false,
+      productEntries: sanitizeProductEntries(s.productEntries),
+    }));
 
 const sortSubDocs = (node) => {
   if (Array.isArray(node.applications)) {
@@ -40,37 +64,13 @@ const sortSubDocs = (node) => {
   return node;
 };
 
-const sanitizeSubDocs = (list = []) =>
-  (Array.isArray(list) ? list : [])
-    .filter((s) => s && s.title)
-    .map((s) => ({
-      _id: s._id,
-      title: s.title || '',
-      titleEn: s.titleEn || '',
-      description: s.description || '',
-      descriptionEn: s.descriptionEn || '',
-      imageUrl: s.imageUrl || '',
-      order: Number.isFinite(s.order) ? s.order : 0,
-      isActive: s.isActive !== false,
-      productIds: Array.isArray(s.productIds)
-        ? s.productIds.filter(Boolean)
-        : [],
-    }));
-
 const DEFAULT_MARKET_TREES = [
-  // For "Sơn & lớp phủ"
   {
-    mainTreeSlug: 'son-va-lop-phu',
-    parentTitle: null,
     title: 'Sơn gỗ',
     titleEn: 'Wood Coatings',
     description: 'Sơn và vecni dùng cho gỗ tự nhiên, gỗ công nghiệp.',
     descriptionEn: 'Paints and varnishes for natural and engineered wood.',
     order: 0,
-    children: [
-      { title: 'Sơn PU', titleEn: 'PU Coatings', order: 0 },
-      { title: 'Sơn NC', titleEn: 'NC Coatings', order: 1 },
-    ],
     technologies: [
       {
         title: 'Công nghệ chống thấm nano',
@@ -90,19 +90,12 @@ const DEFAULT_MARKET_TREES = [
       },
     ],
   },
-  // For "Keo & chất kết dính"
   {
-    mainTreeSlug: 'keo-va-chat-ket-dinh',
-    parentTitle: null,
     title: 'Keo công nghiệp',
     titleEn: 'Industrial Adhesives',
     description: 'Các dòng keo dùng trong sản xuất công nghiệp.',
     descriptionEn: 'Adhesive products for industrial manufacturing.',
-    order: 0,
-    children: [
-      { title: 'Keo dán gỗ', titleEn: 'Wood Glue', order: 0 },
-      { title: 'Keo công nghiệp', titleEn: 'Industrial Glue', order: 1 },
-    ],
+    order: 1,
     technologies: [
       {
         title: 'Công nghệ kết dính nhanh',
@@ -125,14 +118,19 @@ const DEFAULT_MARKET_TREES = [
 ];
 
 export const marketTreeService = {
-  async getPublic({ mainTree } = {}) {
+  async getPublic({ featuredOnly } = {}) {
     const query = { isActive: true };
-    if (mainTree) query.mainTree = mainTree;
+    if (featuredOnly) query.isFeatured = true;
+
     const flat = await MarketTree.find(query)
-      .sort({ order: 1, title: 1 })
+      .sort({ isFeatured: -1, order: 1, title: 1 })
       .populate({
-        path: 'applications.productIds',
+        path: 'applications.productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
+        populate: {
+          path: 'applications',
+          select: APPLICATION_PREVIEW_FIELDS,
+        },
       })
       .populate({
         path: 'technologies',
@@ -140,59 +138,71 @@ export const marketTreeService = {
       })
       .lean();
 
-    // Build nested tree: parents with .children[]
-    const parents = flat.filter((n) => !n.parent);
-    const childMap = new Map();
-    for (const node of flat) {
-      if (node.parent) {
-        const parentId = String(node.parent);
-        if (!childMap.has(parentId)) childMap.set(parentId, []);
-        childMap.get(parentId).push(node);
-      }
+    const ids = flat.map((n) => n._id);
+    let productCountMap = new Map();
+    if (ids.length > 0) {
+      const counts = await Product.aggregate([
+        {
+          $match: {
+            marketIds: { $in: ids },
+            isActive: true,
+            webStatus: 'published',
+          },
+        },
+        { $unwind: '$marketIds' },
+        { $match: { marketIds: { $in: ids } } },
+        { $group: { _id: '$marketIds', count: { $sum: 1 } } },
+      ]);
+      productCountMap = new Map(counts.map((c) => [String(c._id), c.count]));
     }
-    return parents.map((p) => {
-      const node = {
-        ...p,
-        children: (childMap.get(String(p._id)) || []).map((c) => ({
-          ...c,
-          children: [],
-        })),
+
+    return flat.map((node) => {
+      const enriched = {
+        ...node,
+        productCount: productCountMap.get(String(node._id)) || 0,
       };
-      sortSubDocs(node);
-      return node;
+      return sortSubDocs(enriched);
     });
   },
 
-  async getAdmin({ mainTree } = {}) {
+  async getAdmin({ search } = {}) {
     const filter = {};
-    if (mainTree) filter.mainTree = mainTree;
+    if (search) filter.title = { $regex: search, $options: 'i' };
     return MarketTree.find(filter)
-      .sort({ mainTree: 1, parent: 1, order: 1, title: 1 })
+      .sort({ order: 1, title: 1 })
       .lean();
   },
 
   async getById(id) {
     return MarketTree.findById(id)
       .populate({
-        path: 'applications.productIds',
+        path: 'applications.productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
+        populate: {
+          path: 'applications',
+          select: APPLICATION_PREVIEW_FIELDS,
+        },
       })
       .lean();
   },
 
   async create(data) {
-    const maxOrder = await MarketTree.findOne({ mainTree: data.mainTree }).sort({ order: -1 }).lean();
+    const maxOrder = await MarketTree.findOne().sort({ order: -1 }).lean();
     const order = data.order ?? (maxOrder ? maxOrder.order + 1 : 0);
     const doc = new MarketTree({
-      mainTree: data.mainTree || null,
-      parent: data.parent || null,
+      slug: data.slug || '',
       title: data.title,
       titleEn: data.titleEn || '',
       description: data.description || '',
       descriptionEn: data.descriptionEn || '',
+      introductions: {
+        vi: data?.introductions?.vi || '',
+        en: data?.introductions?.en || '',
+      },
       imageUrl: data.imageUrl || '',
       order,
       isActive: data.isActive !== false,
+      isFeatured: data.isFeatured === true,
       applications: sanitizeSubDocs(data.applications),
       technologies: sanitizeSubDocs(data.technologies),
     });
@@ -203,12 +213,24 @@ export const marketTreeService = {
 
   async update(id, data) {
     const updatePayload = { ...data };
+
+    if (data.introductions !== undefined) {
+      updatePayload.introductions = {
+        vi: data.introductions?.vi || '',
+        en: data.introductions?.en || '',
+      };
+    }
+
     if (data.applications !== undefined) {
       updatePayload.applications = sanitizeSubDocs(data.applications);
     }
     if (data.technologies !== undefined) {
       updatePayload.technologies = sanitizeSubDocs(data.technologies);
     }
+    if (data.isFeatured !== undefined) {
+      updatePayload.isFeatured = data.isFeatured === true;
+    }
+
     const doc = await MarketTree.findByIdAndUpdate(id, updatePayload, {
       new: true,
       runValidators: true,
@@ -218,8 +240,6 @@ export const marketTreeService = {
   },
 
   async remove(id) {
-    // Remove children too
-    await MarketTree.deleteMany({ parent: id });
     await MarketTree.findByIdAndDelete(id);
     invalidate();
   },
@@ -235,21 +255,13 @@ export const marketTreeService = {
     invalidate();
   },
 
-  async seedDefaults(mainTrees = []) {
+  async seedDefaults() {
     const count = await MarketTree.countDocuments();
     if (count > 0) return { skipped: true, total: count };
 
-    const MainTreeModule = await import('../models/MainTree.js');
-    const trees = mainTrees.length > 0 ? mainTrees : await MainTreeModule.default.find().lean();
-    const bySlug = new Map(trees.map((t) => [t.slug, t]));
-
     let order = 0;
     for (const def of DEFAULT_MARKET_TREES) {
-      const mt = bySlug.get(def.mainTreeSlug);
-      if (!mt) continue;
-      const parentDoc = new MarketTree({
-        mainTree: mt._id,
-        parent: null,
+      await new MarketTree({
         title: def.title,
         titleEn: def.titleEn || '',
         description: def.description || '',
@@ -258,22 +270,7 @@ export const marketTreeService = {
         isActive: true,
         applications: sanitizeSubDocs(def.applications),
         technologies: sanitizeSubDocs(def.technologies),
-      });
-      await parentDoc.save();
-
-      let childOrder = 0;
-      for (const child of def.children || []) {
-        await new MarketTree({
-          mainTree: mt._id,
-          parent: parentDoc._id,
-          title: child.title,
-          titleEn: child.titleEn || '',
-          description: child.description || '',
-          descriptionEn: child.descriptionEn || '',
-          order: child.order ?? childOrder++,
-          isActive: true,
-        }).save();
-      }
+      }).save();
     }
     return { skipped: false, total: await MarketTree.countDocuments() };
   },

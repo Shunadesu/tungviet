@@ -6,7 +6,8 @@
     "loading": "Đang tải...",
     "clearSearch": "Xóa tìm kiếm",
     "copyLink": "Sao chép liên kết",
-    "maxCompareItems": "Đã đạt tối đa {{max}} sản phẩm để so sánh"
+    "maxCompareItems": "Đã đạt tối đa {{max}} sản phẩm để so sánh",
+    "loadMore": "Xem thêm"
   },
   "search": {
     "placeholder": "Tìm sản phẩm theo tên, mã hoặc từ khóa...",
@@ -14,6 +15,7 @@
     "clear": "Xóa",
     "trending": "Xu hướng",
     "suggestions": "Gợi ý sản phẩm",
+    "relevantMarkets": "Thị trường phù hợp",
     "noResults": "Không tìm thấy sản phẩm cho \"{{q}}\"",
     "typeToSearch": "Nhập ít nhất 2 ký tự để bắt đầu tìm kiếm",
     "navigate": "Di chuyển",
@@ -217,6 +219,13 @@
     "productsCount": "{{n}} sản phẩm",
     "productsSubtitle": "Khám phá danh mục sản phẩm nhựa thông và nguyên liệu công nghiệp chất lượng cao.",
     "searchResultsSubtitle": "Danh sách sản phẩm phù hợp với từ khóa của bạn.",
+    "searchResultsFor": "Kết quả cho \"{{q}}\"",
+    "marketFilteredTitle": "Sản phẩm cho thị trường: {{market}}",
+    "marketFilteredSubtitle": "Danh sách sản phẩm được tuyển chọn cho thị trường này.",
+    "marketFilteredBadge": "Đang xem theo thị trường",
+    "viewMarket": "Xem thị trường",
+    "suggestMarketsTitle": "Hoặc khám phá các thị trường khác",
+    "featuredTag": "Nổi bật",
     "viewDetails": "Xem chi tiết",
     "requestQuoteSubtitle": "Sản phẩm nhựa thông chất lượng cao cho ứng dụng công nghiệp",
     "relatedProducts": "Sản phẩm liên quan",
@@ -381,6 +390,7 @@
     "downloadTds": "Tải TDS",
     "benefits": "Lợi ích",
     "applications": "Ứng dụng",
+    "applicationCta": "Xem sản phẩm ứng dụng này",
     "specifications": "Thông số kỹ thuật",
     "softeningPoint": "Điểm làm mềm",
     "acidValue": "Chỉ số axit",
@@ -397,6 +407,21 @@
     "searchResultsTitle": "Kết quả cho \"{{q}}\"",
     "searchResultsSubtitle": "Các thị trường ứng dụng phù hợp với từ khóa của bạn.",
     "cardsCount": "{{n}} thị trường",
+    "quoteCallout": {
+      "title": "Bạn cần giải pháp riêng cho thị trường này?",
+      "subtitle": "Gửi yêu cầu báo giá nhanh — chúng tôi sẽ tư vấn sản phẩm phù hợp cho thị trường \"{{market}}\" trong vòng 24 giờ.",
+      "cta": "Yêu cầu báo giá"
+    },
+    "tabs": {
+      "overview": "Tổng quan",
+      "technologies": "Công nghệ",
+      "applications": "Ứng dụng",
+      "products": "Sản phẩm"
+    },
+    "noTechnologies": "Chưa có công nghệ nào được mô tả cho thị trường này.",
+    "noApplications": "Chưa có ứng dụng nào được mô tả cho thị trường này.",
+    "breadcrumbHome": "Trang chủ",
+    "breadcrumbMarkets": "Tất cả thị trường",
     "techsCount": "{{n}} công nghệ",
     "appsCount": "{{n}} ứng dụng",
     "sort": {
@@ -414,20 +439,14 @@
       "next": "Trang sau",
       "page": "Trang {{n}} / {{total}}"
     },
-    "breadcrumbHome": "Trang chủ",
-    "breadcrumbMarkets": "Thị trường",
-    "tabs": {
-      "overview": "Tổng quan",
-      "technologies": "Công nghệ",
-      "applications": "Ứng dụng",
-      "products": "Sản phẩm"
-    },
     "whyThisMarket": "Vì sao chọn thị trường này",
     "requestQuoteForMarket": "Yêu cầu báo giá cho thị trường này",
     "keySpecs": "Thông số chính",
-    "noTechnologies": "Chưa cập nhật công nghệ",
-    "noApplications": "Chưa cập nhật ứng dụng",
-    "viewAllProducts": "Xem tất cả sản phẩm liên quan"
+    "viewAllProducts": "Xem tất cả sản phẩm liên quan",
+    "linkedProductLine": "Product line liên kết",
+    "linkedMainTree": "Ngành hàng liên kết",
+    "productLine": "Product line sử dụng",
+    "exploreApplication": "Khám phá ứng dụng"
   },
   "about": {
     "title": "Giới thiệu",

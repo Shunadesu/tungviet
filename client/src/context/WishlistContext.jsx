@@ -40,7 +40,7 @@ export const WishlistProvider = ({ children }) => {
         nameEn: product.nameEn,
         imageUrl: product.imageUrl || null,
         productCode: product.productCode || '',
-        mainTree: product.mainTree || null,
+        mainTree: product.mainTree || product.industries?.[0] || null,
         productLine: product.productLine || null,
         softeningPoint: product.softeningPoint || null,
         acidValue: product.acidValue || null,

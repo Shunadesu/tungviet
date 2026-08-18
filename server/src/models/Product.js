@@ -1,6 +1,19 @@
 import mongoose from 'mongoose';
 import mongooseDelete from 'mongoose-delete';
 
+const productApplicationSubSchema = new mongoose.Schema(
+  {
+    title: { type: String, required: true, trim: true },
+    titleEn: { type: String, default: '', trim: true },
+    description: { type: String, default: '' },
+    descriptionEn: { type: String, default: '' },
+    imageUrl: { type: String, default: '' },
+    order: { type: Number, default: 0 },
+    isActive: { type: Boolean, default: true },
+  },
+  { _id: true }
+);
+
 const productSchema = new mongoose.Schema({
   productCode: {
     type: String,
@@ -30,18 +43,16 @@ const productSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
-  mainTree: {
+  industries: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MainTree',
-    default: null,
     index: true,
-  },
-  productLine: {
+  }],
+  productLines: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Category',
-    default: null,
     index: true,
-  },
+  }],
   marketIds: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MarketTree',
@@ -81,8 +92,8 @@ const productSchema = new mongoose.Schema({
     default: []
   },
   applications: {
-    type: [String],
-    default: []
+    type: [productApplicationSubSchema],
+    default: [],
   },
   tdsUrl: {
     type: String,
@@ -110,7 +121,7 @@ productSchema.index({ isActive: 1 });
 productSchema.index({ createdAt: -1 });
 productSchema.index({ productCode: 1 }, { unique: true, partialFilterExpression: { productCode: { $type: 'string', $gt: '' } } });
 productSchema.index({ webStatus: 1, isActive: 1 });
-productSchema.index({ mainTree: 1, productLine: 1 });
+productSchema.index({ industries: 1, productLines: 1 });
 productSchema.index({ marketIds: 1 });
 
 const Product = mongoose.model('Product', productSchema);

@@ -215,7 +215,7 @@ const CategoryDetail = () => {
           />
           {products.length > 0 && (
             <Link
-              to={`/${lang}/products?category=${id}${mainTree ? `&mainTree=${mainTree._id}` : ''}`}
+              to={`/${lang}/products?category=${id}${mainTree ? `&industries=${mainTree._id}` : ''}`}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-700 transition-colors whitespace-nowrap"
             >
               {t('category.viewAll')}

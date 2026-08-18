@@ -6,8 +6,11 @@ import { useToast } from '../context/ToastContext';
 
 /**
  * Renders one FilterChip per active filter value with a remove button.
- * Resolves `mainTree` / `category` values to their localized names so the user
- * sees "Cây ngành: Nhựa thông" instead of the raw ObjectId.
+ * Resolves `industries` / `category` / `market` values to their localized names
+ * so the user sees "Cây ngành: Nhựa thông" instead of the raw ObjectId.
+ *
+ * `industries` and `market` are arrays (CSV in URL), each producing one chip
+ * per selected id.
  */
 const ActiveFilterChips = ({
   values,
@@ -16,6 +19,7 @@ const ActiveFilterChips = ({
   getShareUrl,
   mainTrees = [],
   categories = [],
+  marketTrees = [],
   softeningPointRanges = [],
 }) => {
   const { t, i18n } = useTranslation();
@@ -23,17 +27,20 @@ const ActiveFilterChips = ({
   const toast = useToast();
 
   const chips = [];
+  const selectedIndustries = Array.isArray(values.industries) ? values.industries : [];
+  const selectedMarkets = Array.isArray(values.market) ? values.market : [];
 
-  if (values.mainTree) {
-    const m = mainTrees.find((x) => x._id === values.mainTree);
-    if (m) {
-      chips.push({
-        key: 'mainTree',
-        label: `${t('nav.mainTreeMenuTitle')}: ${getLocalizedField(m, lang, 'name', 'nameEn')}`,
-        onRemove: () => setParam('mainTree', ''),
-      });
-    }
-  }
+  selectedIndustries.forEach((id) => {
+    const m = mainTrees.find((x) => x._id === id);
+    chips.push({
+      key: `industries-${id}`,
+      label: `${t('nav.mainTreeMenuTitle')}: ${getLocalizedField(m || {}, lang, 'name', 'nameEn') || id}`,
+      onRemove: () => {
+        const next = selectedIndustries.filter((x) => x !== id);
+        setParam('industries', next);
+      },
+    });
+  });
 
   if (values.category) {
     const c = categories.find((x) => x._id === values.category);
@@ -45,6 +52,18 @@ const ActiveFilterChips = ({
       });
     }
   }
+
+  selectedMarkets.forEach((id) => {
+    const m = marketTrees.find((x) => x._id === id);
+    chips.push({
+      key: `market-${id}`,
+      label: `${t('nav.marketTrees')}: ${getLocalizedField(m || {}, lang, 'title', 'titleEn') || id}`,
+      onRemove: () => {
+        const next = selectedMarkets.filter((x) => x !== id);
+        setParam('market', next);
+      },
+    });
+  });
 
   if (values.softeningPoint) {
     const range = softeningPointRanges.find((r) => r.value === values.softeningPoint);

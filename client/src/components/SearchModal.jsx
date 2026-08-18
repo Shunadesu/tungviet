@@ -11,6 +11,7 @@ import {
   FiCornerDownLeft,
   FiTrash2,
   FiTrendingUp,
+  FiBox,
 } from 'react-icons/fi';
 import publicApi from '../api/publicApi';
 import { useRecentSearches } from '../hooks/useRecentSearches';
@@ -52,6 +53,7 @@ const SearchModal = ({ open, onClose, lang }) => {
   const [query, setQuery] = useState('');
   const [debounced, setDebounced] = useState('');
   const [suggestions, setSuggestions] = useState([]);
+  const [marketMatches, setMarketMatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -70,6 +72,7 @@ const SearchModal = ({ open, onClose, lang }) => {
       setQuery('');
       setDebounced('');
       setSuggestions([]);
+      setMarketMatches([]);
       setActiveIndex(-1);
       setTimeout(() => inputRef.current?.focus(), 60);
     }
@@ -81,31 +84,62 @@ const SearchModal = ({ open, onClose, lang }) => {
     return () => clearTimeout(handle);
   }, [query]);
 
-  // Fetch suggestions when debounced changes
+  // Fetch suggestions + relevant markets when debounced changes
   useEffect(() => {
     if (!open) return;
     if (debounced.length < MIN_QUERY) {
       setSuggestions([]);
+      setMarketMatches([]);
       setLoading(false);
       return;
     }
     let cancelled = false;
     setLoading(true);
-    publicApi
+    const lower = debounced.toLowerCase();
+
+    // Kick off both fetches in parallel
+    const productsP = publicApi
       .getProducts({ lang, search: debounced, limit: MAX_SUGGESTIONS })
       .then((res) => {
-        if (cancelled) return;
+        if (cancelled) return [];
         const items = Array.isArray(res.data?.data) ? res.data.data : [];
         setSuggestions(items);
+        return items;
       })
       .catch((err) => {
-        if (cancelled) return;
+        if (cancelled) return [];
         console.warn('[SearchModal] suggestion fetch failed:', err);
         setSuggestions([]);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        return [];
       });
+
+    const marketsP = publicApi
+      .getMarketTrees({ lang })
+      .then((res) => {
+        if (cancelled) return [];
+        const items = Array.isArray(res.data?.data) ? res.data.data : [];
+        // Client-side filter by title/titleEn — backend doesn't expose a
+        // search query on /public/market-trees.
+        const matches = items
+          .filter((m) => {
+            const vi = (m.title || '').toLowerCase();
+            const en = (m.titleEn || '').toLowerCase();
+            return vi.includes(lower) || en.includes(lower);
+          })
+          .slice(0, 3);
+        setMarketMatches(matches);
+        return matches;
+      })
+      .catch((err) => {
+        if (cancelled) return [];
+        console.warn('[SearchModal] markets fetch failed:', err);
+        setMarketMatches([]);
+        return [];
+      });
+
+    Promise.allSettled([productsP, marketsP]).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
     };
@@ -124,6 +158,13 @@ const SearchModal = ({ open, onClose, lang }) => {
     addRecent(query.trim() || product.name);
     onClose();
     navigate(`/${lang}/products/${product._id}`);
+  };
+
+  const handleSelectMarket = (market) => {
+    if (!market || !market._id) return;
+    addRecent(query.trim() || market.title || market.titleEn || '');
+    onClose();
+    navigate(`/${lang}/markets/${market._id}`);
   };
 
   const handleKeyDown = (e) => {
@@ -153,7 +194,10 @@ const SearchModal = ({ open, onClose, lang }) => {
   const showRecents = debounced.length < MIN_QUERY && recents.length > 0;
   const showEmpty = debounced.length < MIN_QUERY && recents.length === 0;
   const showNoResults =
-    debounced.length >= MIN_QUERY && !loading && suggestions.length === 0;
+    debounced.length >= MIN_QUERY &&
+    !loading &&
+    suggestions.length === 0 &&
+    marketMatches.length === 0;
 
   const trending = useMemo(
     () => [
@@ -495,9 +539,9 @@ const SearchModal = ({ open, onClose, lang }) => {
                                   {p.productCode}
                                 </span>
                               )}
-                              {p.mainTree && (
+                              {Array.isArray(p.industries) && p.industries.length > 0 && (
                                 <span style={{ fontSize: '11px', color: '#64748b' }}>
-                                  · {getLocalizedField(p.mainTree, lang, 'name', 'nameEn')}
+                                  · {getLocalizedField(p.industries[0], lang, 'name', 'nameEn')}
                                 </span>
                               )}
                             </div>
@@ -508,6 +552,89 @@ const SearchModal = ({ open, onClose, lang }) => {
                         </button>
                       </li>
                     ))}
+                  </ul>
+                </Section>
+              )}
+
+              {!loading && marketMatches.length > 0 && (
+                <Section title={t('search.relevantMarkets')} icon={FiBox}>
+                  <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                    {marketMatches.map((m) => {
+                      const name = getLocalizedField(m, lang, 'title', 'titleEn');
+                      const description = getLocalizedField(
+                        m,
+                        lang,
+                        'description',
+                        'descriptionEn'
+                      );
+                      return (
+                        <li key={m._id}>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectMarket(m)}
+                            style={{
+                              width: '100%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              padding: '10px 20px',
+                              background: 'transparent',
+                              border: 'none',
+                              textAlign: 'left',
+                              cursor: 'pointer',
+                              color: '#334155',
+                              fontSize: '14px',
+                            }}
+                            onMouseEnter={(e) => (e.currentTarget.style.background = '#f8fafc')}
+                            onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+                          >
+                            <span
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                width: '32px',
+                                height: '32px',
+                                borderRadius: '8px',
+                                background: '#ecfeff',
+                                color: '#0891b2',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <FiBox size={14} />
+                            </span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div
+                                style={{
+                                  fontSize: '13px',
+                                  fontWeight: 600,
+                                  color: '#0f172a',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {highlight(name, debounced)}
+                              </div>
+                              {description && (
+                                <div
+                                  style={{
+                                    fontSize: '11px',
+                                    color: '#94a3b8',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                  }}
+                                >
+                                  {description}
+                                </div>
+                              )}
+                            </div>
+                            <FiArrowRight size={12} color="#cbd5e1" />
+                          </button>
+                        </li>
+                      );
+                    })}
                   </ul>
                 </Section>
               )}

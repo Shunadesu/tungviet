@@ -10,7 +10,16 @@ const applicationSubSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
-    productIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+    productEntries: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+          required: true,
+        },
+        applicationIndex: { type: Number, required: true },
+      },
+    ],
   },
   { _id: true }
 );
@@ -30,25 +39,25 @@ const technologySubSchema = new mongoose.Schema(
 
 const marketTreeSchema = new mongoose.Schema(
   {
-    mainTree: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'MainTree',
-      default: null,
-      index: true,
-    },
-    parent: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'MarketTree',
-      default: null,
+    slug: {
+      type: String,
+      default: '',
+      trim: true,
+      lowercase: true,
       index: true,
     },
     title: { type: String, required: true, trim: true },
     titleEn: { type: String, default: '', trim: true },
     description: { type: String, default: '' },
     descriptionEn: { type: String, default: '' },
+    introductions: {
+      vi: { type: String, default: '' },
+      en: { type: String, default: '' },
+    },
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    isFeatured: { type: Boolean, default: false, index: true },
     applications: { type: [applicationSubSchema], default: [] },
     technologies: { type: [technologySubSchema], default: [] },
   },
@@ -59,7 +68,7 @@ marketTreeSchema.plugin(mongooseDelete, {
   deletedAt: true,
   overrideMethods: 'all',
 });
-marketTreeSchema.index({ mainTree: 1, parent: 1, order: 1 });
+marketTreeSchema.index({ order: 1, title: 1 });
 
 const MarketTree = mongoose.model('MarketTree', marketTreeSchema);
 

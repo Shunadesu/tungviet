@@ -4,12 +4,12 @@ import { uploadSinglePDF } from '../../middlewares/upload.js';
 
 export const getAllProducts = async (req, res, next) => {
   try {
-    const { search, status, webStatus, mainTree, productLine, page, limit } = req.query;
+    const { search, status, webStatus, industries, productLine, page, limit } = req.query;
     const { items, pagination } = await productService.listAdmin({
       search,
       status,
       webStatus,
-      mainTree,
+      industries,
       productLine,
       page,
       limit,

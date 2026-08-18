@@ -1,17 +1,19 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FiCheckCircle, FiTrash2, FiX, FiSend, FiAlertCircle, FiMail, FiPhone } from 'react-icons/fi';
+import { FiCheckCircle, FiTrash2, FiX, FiSend, FiAlertCircle, FiMail, FiPhone, FiBox } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import { useQuoteBag } from '../context/QuoteBagContext';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 import placeholderProduct from '../assets/placeholder-product.svg';
+import { getLocalizedField } from '../utils/i18nField';
 
 const QuoteRequest = () => {
   const { t, i18n } = useTranslation();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
+  const [searchParams] = useSearchParams();
 
   const { items, count, removeFromQuoteBag, clearQuoteBag } = useQuoteBag();
 
@@ -26,7 +28,42 @@ const QuoteRequest = () => {
     message: '',
     preferredContact: 'email',
   });
+  const [marketContext, setMarketContext] = useState(null);
   const [submittedContact, setSubmittedContact] = useState(null);
+
+  // Prefill market context when arriving from /markets/:id with ?market=<id>
+  useEffect(() => {
+    const marketId = searchParams.get('market');
+    if (!marketId) {
+      setMarketContext(null);
+      return;
+    }
+    let cancelled = false;
+    publicApi
+      .getMarketTree(marketId, lang)
+      .then((r) => {
+        if (cancelled) return;
+        const data = r?.data?.data;
+        if (!data) return;
+        const name = getLocalizedField(data, lang, 'title', 'titleEn');
+        setMarketContext({ id: data._id, name });
+        // Pre-fill the message with market context if user hasn't typed anything yet
+        setFormData((prev) =>
+          prev.message
+            ? prev
+            : {
+                ...prev,
+                message: `Tôi quan tâm đến các sản phẩm cho thị trường "${name}". Vui lòng tư vấn.`,
+              }
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setMarketContext(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams, lang]);
 
   useEffect(() => {
     document.title = t('quote.title');
@@ -51,7 +88,7 @@ const QuoteRequest = () => {
       setError('Vui lòng nhập số điện thoại');
       return;
     }
-    if (count === 0) {
+    if (count === 0 && !marketContext) {
       setError(t('quote.bagEmpty') || 'Vui lòng chọn ít nhất một sản phẩm');
       return;
     }
@@ -66,6 +103,9 @@ const QuoteRequest = () => {
         company: formData.company.trim(),
         message: formData.message.trim(),
         preferredContact: formData.preferredContact,
+        // When arriving from a market detail page, send the market label as
+        // context so the admin sees which segment the lead came from.
+        market: marketContext?.name || '',
         items: items.map((it) => ({
           productId: it._id || it.id || '',
           name: it.name || '',
@@ -142,6 +182,31 @@ const QuoteRequest = () => {
           <p className="text-xs text-white/70">{t('quote.subtitle')}</p>
         </div>
       </div>
+
+      {marketContext && (
+        <div className="max-w-7xl mx-auto px-2 pt-4">
+          <div className="inline-flex items-center gap-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-xs">
+            <FiBox size={14} />
+            <span>
+              Đang yêu cầu báo giá cho thị trường:{' '}
+              <Link
+                to={`/${lang}/markets/${marketContext.id}`}
+                className="font-semibold underline hover:text-amber-900"
+              >
+                {marketContext.name}
+              </Link>
+            </span>
+            <button
+              type="button"
+              onClick={() => setMarketContext(null)}
+              className="ml-1 hover:text-amber-900"
+              aria-label="Bỏ thị trường"
+            >
+              <FiX size={12} />
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="max-w-7xl mx-auto px-2 py-4 grid lg:grid-cols-3 gap-4">
         {/* Form */}
@@ -250,7 +315,7 @@ const QuoteRequest = () => {
 
           <button
             type="submit"
-            disabled={sending || count === 0}
+            disabled={sending || (count === 0 && !marketContext)}
             className="btn-primary w-full py-3 flex items-center justify-center gap-2 disabled:opacity-60"
           >
             {sending ? (
@@ -265,7 +330,7 @@ const QuoteRequest = () => {
               </>
             )}
           </button>
-          {count === 0 && !sending && (
+          {count === 0 && !marketContext && !sending && (
             <p className="text-xs text-red-600 text-center">{t('quote.bagEmpty') || 'Vui lòng chọn ít nhất một sản phẩm để gửi yêu cầu'}</p>
           )}
         </form>
@@ -291,10 +356,35 @@ const QuoteRequest = () => {
 
             {summaryItems.length === 0 ? (
               <div className="text-center py-6">
-                <p className="text-xs text-gray-500 mb-2">{t('quote.bagEmpty') || 'Chưa có sản phẩm nào'}</p>
-                <Link to={`/${lang}/products`} className="text-xs text-primary hover:underline">
-                  {t('quote.browseProducts') || 'Chọn sản phẩm'}
-                </Link>
+                {marketContext ? (
+                  <>
+                    <p className="text-xs text-amber-700 mb-2">
+                      Bạn đang yêu cầu báo giá cho thị trường{' '}
+                      <strong>{marketContext.name}</strong>.
+                    </p>
+                    <p className="text-[11px] text-gray-500 mb-2">
+                      Có thể gửi ngay hoặc bổ sung sản phẩm cụ thể:
+                    </p>
+                    <Link
+                      to={`/${lang}/products?market=${marketContext.id}`}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {t('quote.browseProducts') || 'Chọn sản phẩm'}
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-xs text-gray-500 mb-2">
+                      {t('quote.bagEmpty') || 'Chưa có sản phẩm nào'}
+                    </p>
+                    <Link
+                      to={`/${lang}/products`}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      {t('quote.browseProducts') || 'Chọn sản phẩm'}
+                    </Link>
+                  </>
+                )}
               </div>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">

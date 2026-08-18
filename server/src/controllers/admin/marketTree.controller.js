@@ -1,11 +1,24 @@
 import { marketTreeService } from '../../services/marketTree.service.js';
 import { apiResponse } from '../../utils/apiResponse.js';
 
-const toObjectIdOrNull = (value) => {
-  if (!value) return null;
-  if (typeof value !== 'string') return null;
-  return value;
-};
+const sanitizeProductEntries = (entries = []) =>
+  (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      const productId =
+        entry?.productId?._id || entry?.productId
+          ? String(entry.productId?._id || entry.productId)
+          : null;
+      const rawIndex =
+        entry && (entry.applicationIndex ?? entry.applicationIndex === 0)
+          ? entry.applicationIndex
+          : -1;
+      const applicationIndex = Number.isFinite(Number(rawIndex))
+        ? Number(rawIndex)
+        : -1;
+      if (!productId || applicationIndex < 0) return null;
+      return { productId, applicationIndex };
+    })
+    .filter(Boolean);
 
 const sanitizeSubDocPayload = (list) =>
   (Array.isArray(list) ? list : [])
@@ -19,15 +32,13 @@ const sanitizeSubDocPayload = (list) =>
       imageUrl: s.imageUrl || '',
       order: Number.isFinite(Number(s.order)) ? Number(s.order) : 0,
       isActive: s.isActive !== false,
-      productIds: Array.isArray(s.productIds)
-        ? s.productIds.map(toObjectIdOrNull).filter(Boolean)
-        : [],
+      productEntries: sanitizeProductEntries(s.productEntries),
     }));
 
 export const getAllMarketTrees = async (req, res, next) => {
   try {
-    const { mainTree } = req.query;
-    const items = await marketTreeService.getAdmin({ mainTree });
+    const { search } = req.query;
+    const items = await marketTreeService.getAdmin({ search });
     return apiResponse.ok(res, items);
   } catch (err) {
     next(err);

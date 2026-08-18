@@ -6,7 +6,8 @@
     "loading": "Loading...",
     "clearSearch": "Clear search",
     "copyLink": "Copy link",
-    "maxCompareItems": "Maximum {{max}} products for comparison"
+    "maxCompareItems": "Maximum {{max}} products for comparison",
+    "loadMore": "Load more"
   },
   "search": {
     "placeholder": "Search products by name, code or keyword...",
@@ -14,6 +15,7 @@
     "clear": "Clear",
     "trending": "Trending",
     "suggestions": "Product suggestions",
+    "relevantMarkets": "Relevant markets",
     "noResults": "No products found for \"{{q}}\"",
     "typeToSearch": "Type at least 2 characters to start searching",
     "navigate": "Navigate",
@@ -216,6 +218,14 @@
     "allProducts": "All products",
     "productsCount": "{{n}} products",
     "productsSubtitle": "Explore our catalog of premium rosin and industrial materials.",
+    "searchResultsSubtitle": "Products matching your keyword.",
+    "searchResultsFor": "Results for \"{{q}}\"",
+    "marketFilteredTitle": "Products for market: {{market}}",
+    "marketFilteredSubtitle": "A curated list of products suited to this market.",
+    "marketFilteredBadge": "Filtered by market",
+    "viewMarket": "View market",
+    "suggestMarketsTitle": "Or explore other markets",
+    "featuredTag": "Featured",
     "searchResultsSubtitle": "Products matching your search query.",
     "viewDetails": "View details",
     "requestQuoteSubtitle": "Premium rosin products for industrial applications",
@@ -381,6 +391,7 @@
     "downloadTds": "Download TDS",
     "benefits": "Benefits",
     "applications": "Applications",
+    "applicationCta": "View products for this application",
     "specifications": "Specifications",
     "softeningPoint": "Softening Point",
     "acidValue": "Acid Value",
@@ -399,6 +410,21 @@
     "cardsCount": "{{n}} markets",
     "techsCount": "{{n}} technologies",
     "appsCount": "{{n}} applications",
+    "quoteCallout": {
+      "title": "Need a tailored solution for this market?",
+      "subtitle": "Request a quote — we will recommend the right products for \"{{market}}\" within 24 hours.",
+      "cta": "Request quote"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "technologies": "Technologies",
+      "applications": "Applications",
+      "products": "Products"
+    },
+    "noTechnologies": "No technologies described for this market yet.",
+    "noApplications": "No applications described for this market yet.",
+    "breadcrumbHome": "Home",
+    "breadcrumbMarkets": "All markets",
     "sort": {
       "label": "Sort by",
       "default": "Default",
@@ -427,7 +453,11 @@
     "keySpecs": "Key specifications",
     "noTechnologies": "No technologies listed yet",
     "noApplications": "No applications listed yet",
-    "viewAllProducts": "View all related products"
+    "viewAllProducts": "View all related products",
+    "linkedProductLine": "Linked product line",
+    "linkedMainTree": "Linked industry",
+    "productLine": "Product line in use",
+    "exploreApplication": "Explore application"
   },
   "about": {
     "title": "About us",

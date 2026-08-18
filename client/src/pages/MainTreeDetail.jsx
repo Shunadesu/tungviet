@@ -53,7 +53,7 @@ const MainTreeDetail = () => {
     Promise.all([
       publicApi.getMainTree(id, lang).catch(() => null),
       publicApi.getCategories({ lang, mainTree: id }).catch(() => null),
-      publicApi.getProducts({ lang, mainTree: id, page, limit: PAGE_SIZE }).catch(() => null),
+      publicApi.getProducts({ lang, industries: id, page, limit: PAGE_SIZE }).catch(() => null),
     ])
       .then(([treeRes, catsRes, prodsRes]) => {
         if (!mounted) return;
@@ -251,7 +251,7 @@ const MainTreeDetail = () => {
           />
           {products.length > 0 && (
             <Link
-              to={`/${lang}/products?mainTree=${id}`}
+              to={`/${lang}/products?industries=${id}`}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-700 transition-colors whitespace-nowrap"
             >
               {t('mainTree.viewAllProducts')}

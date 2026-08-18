@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiPlus,
@@ -6,40 +7,20 @@ import {
   FiTrash2,
   FiSearch,
   FiX,
-  FiUpload,
-  FiImage,
   FiArrowUp,
   FiArrowDown,
 } from 'react-icons/fi';
 import Header from '../../components/Header';
-import Modal from '../../components/Modal';
-import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
-const emptyForm = {
-  name: '',
-  nameEn: '',
-  slug: '',
-  description: '',
-  descriptionEn: '',
-  imageUrl: '',
-  iconUrl: '',
-  order: 0,
-  isActive: true,
-};
-
 const MainTreeList = () => {
+  const navigate = useNavigate();
   const [trees, setTrees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingTree, setEditingTree] = useState(null);
-  const [formData, setFormData] = useState({ ...emptyForm });
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingIcon, setUploadingIcon] = useState(false);
   const { addNotification } = useNotification();
 
   useEffect(() => {
@@ -75,44 +56,6 @@ const MainTreeList = () => {
     return list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
   }, [trees, search, showInactive]);
 
-  const resetForm = () => setFormData({ ...emptyForm });
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = { ...formData };
-      if (editingTree) {
-        await adminApi.updateMainTree(editingTree._id, payload);
-        addNotification('Cập nhật ngành hàng thành công');
-      } else {
-        await adminApi.createMainTree(payload);
-        addNotification('Thêm ngành hàng thành công');
-      }
-      setModalOpen(false);
-      setEditingTree(null);
-      resetForm();
-      fetchTrees();
-    } catch (error) {
-      addNotification(error.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    }
-  };
-
-  const handleEdit = (tree) => {
-    setEditingTree(tree);
-    setFormData({
-      name: tree.name || '',
-      nameEn: tree.nameEn || '',
-      slug: tree.slug || '',
-      description: tree.description || '',
-      descriptionEn: tree.descriptionEn || '',
-      imageUrl: tree.imageUrl || '',
-      iconUrl: tree.iconUrl || '',
-      order: tree.order ?? 0,
-      isActive: tree.isActive !== false,
-    });
-    setModalOpen(true);
-  };
-
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa ngành hàng này?')) return;
     try {
@@ -143,27 +86,10 @@ const MainTreeList = () => {
     }
   };
 
-  const handleImageUpload = async (file, field) => {
-    const setter = field === 'iconUrl' ? setUploadingIcon : setUploadingImage;
-    setter(true);
-    try {
-      const res = await adminApi.uploadImage(file);
-      const url = res?.data?.data?.url;
-      if (url) {
-        setFormData((prev) => ({ ...prev, [field]: url }));
-        addNotification('Upload ảnh thành công');
-      }
-    } catch (err) {
-      addNotification('Upload ảnh thất bại', 'error');
-    } finally {
-      setter(false);
-    }
-  };
-
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <SEO title="Ngành hàng" description="Quản lý ngành hàng" url="/main-trees" />
-      <Header title="Quản lý ngành hàng" />
+      <SEO title="Cây ngành sản phẩm" description="Quản lý cây ngành sản phẩm" url="/main-trees" />
+      <Header title="Quản lý cây ngành sản phẩm" />
 
       <div className="p-4">
         <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
@@ -202,11 +128,7 @@ const MainTreeList = () => {
               )}
             </div>
             <button
-              onClick={() => {
-                resetForm();
-                setEditingTree(null);
-                setModalOpen(true);
-              }}
+              onClick={() => navigate('/main-trees/new')}
               className="btn-primary flex items-center gap-1 text-xs"
             >
               <FiPlus size={14} />
@@ -228,10 +150,7 @@ const MainTreeList = () => {
               </p>
               {!search && (
                 <button
-                  onClick={() => {
-                    resetForm();
-                    setModalOpen(true);
-                  }}
+                  onClick={() => navigate('/main-trees/new')}
                   className="text-xs text-primary hover:underline"
                 >
                   Thêm ngành hàng đầu tiên
@@ -310,7 +229,7 @@ const MainTreeList = () => {
                       <td className="px-2 py-2 text-right">
                         <div className="flex justify-end gap-1">
                           <button
-                            onClick={() => handleEdit(tree)}
+                            onClick={() => navigate(`/main-trees/${tree._id}/edit`)}
                             className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
                             title="Sửa"
                           >
@@ -333,190 +252,6 @@ const MainTreeList = () => {
           )}
         </div>
       </div>
-
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingTree ? 'Sửa ngành hàng' : 'Thêm ngành hàng'}
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div className="grid md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Tên ngành hàng <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                required
-                className="input-field"
-                placeholder="VD: Hóa chất công nghiệp"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1">Tên tiếng Anh</label>
-              <input
-                type="text"
-                value={formData.nameEn}
-                onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-                className="input-field"
-                placeholder="Industrial Chemicals"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Slug (tự động nếu trống)</label>
-            <input
-              type="text"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              className="input-field"
-              placeholder="hoa-chat-cong-nghiep"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Mô tả</label>
-            <RichEditor
-              value={formData.description}
-              onChange={(value) => setFormData({ ...formData, description: value })}
-              placeholder="Mô tả ngắn..."
-              minHeight={140}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Mô tả tiếng Anh</label>
-            <RichEditor
-              value={formData.descriptionEn}
-              onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
-              placeholder="English description"
-              minHeight={140}
-            />
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">Banner (imageUrl)</label>
-              <div className="flex items-center gap-2">
-                {formData.imageUrl ? (
-                  <img
-                    src={formData.imageUrl}
-                    alt=""
-                    className="w-12 h-12 rounded object-cover border"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                    <FiImage size={16} />
-                  </div>
-                )}
-                <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
-                  <FiUpload size={12} />
-                  {uploadingImage ? 'Đang upload...' : 'Upload'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, 'imageUrl');
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              </div>
-              <input
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                className="input-field mt-2 text-xs"
-                placeholder="Hoặc nhập URL"
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1">Icon</label>
-              <div className="flex items-center gap-2">
-                {formData.iconUrl ? (
-                  <img
-                    src={formData.iconUrl}
-                    alt=""
-                    className="w-12 h-12 rounded object-cover border"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                    <FiImage size={16} />
-                  </div>
-                )}
-                <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
-                  <FiUpload size={12} />
-                  {uploadingIcon ? 'Đang upload...' : 'Upload'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, 'iconUrl');
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              </div>
-              <input
-                type="url"
-                value={formData.iconUrl}
-                onChange={(e) => setFormData({ ...formData, iconUrl: e.target.value })}
-                className="input-field mt-2 text-xs"
-                placeholder="Hoặc nhập URL"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">Thứ tự</label>
-              <input
-                type="number"
-                value={formData.order}
-                onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) || 0 })}
-                className="input-field w-24"
-              />
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded"
-              />
-              <span className="text-xs font-medium">Đang hoạt động</span>
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="btn-secondary text-xs"
-            >
-              Hủy
-            </button>
-            <button type="submit" className="btn-primary text-xs">
-              {editingTree ? 'Cập nhật' : 'Thêm mới'}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </motion.div>
   );
 };

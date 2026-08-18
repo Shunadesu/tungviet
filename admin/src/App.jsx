@@ -11,7 +11,9 @@ import ProductList from './pages/products/ProductList';
 import ProductForm from './pages/products/ProductForm';
 import ProductColumnsSettings from './pages/products/ProductColumnsSettings';
 import MainTreeList from './pages/mainTrees/MainTreeList';
+import MainTreeForm from './pages/mainTrees/MainTreeForm';
 import MarketTreeList from './pages/marketTrees/MarketTreeList';
+import MarketTreeForm from './pages/marketTrees/MarketTreeForm';
 import MemberList from './pages/members/MemberList';
 import MemberForm from './pages/members/MemberForm';
 import LocationList from './pages/locations/LocationList';
@@ -25,6 +27,7 @@ import PostList from './pages/posts/PostList';
 import PostForm from './pages/posts/PostForm';
 import PostCategoryList from './pages/postCategories/PostCategoryList';
 import CategoryList from './pages/categories/CategoryList';
+import CategoryForm from './pages/categories/CategoryForm';
 import OrderList from './pages/orders/OrderList';
 import Analytics from './pages/analytics/Analytics';
 import AppearanceOverview from './pages/settings/AppearanceOverview';
@@ -98,9 +101,29 @@ function App() {
                   <MainTreeList />
                 </ProtectedRoute>
               } />
+              <Route path="/main-trees/new" element={
+                <ProtectedRoute>
+                  <MainTreeForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/main-trees/:id/edit" element={
+                <ProtectedRoute>
+                  <MainTreeForm />
+                </ProtectedRoute>
+              } />
               <Route path="/market-trees" element={
                 <ProtectedRoute>
                   <MarketTreeList />
+                </ProtectedRoute>
+              } />
+              <Route path="/market-trees/new" element={
+                <ProtectedRoute>
+                  <MarketTreeForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/market-trees/:id/edit" element={
+                <ProtectedRoute>
+                  <MarketTreeForm />
                 </ProtectedRoute>
               } />
               <Route path="/members" element={
@@ -186,6 +209,16 @@ function App() {
               <Route path="/categories" element={
                 <ProtectedRoute>
                   <CategoryList />
+                </ProtectedRoute>
+              } />
+              <Route path="/categories/new" element={
+                <ProtectedRoute>
+                  <CategoryForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/categories/:id/edit" element={
+                <ProtectedRoute>
+                  <CategoryForm />
                 </ProtectedRoute>
               } />
               <Route path="/orders" element={

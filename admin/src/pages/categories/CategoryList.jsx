@@ -1,38 +1,24 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX } from 'react-icons/fi';
 import Header from '../../components/Header';
-import Modal from '../../components/Modal';
-import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import DataTable from '../../components/DataTable';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
 const CategoryList = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [mainTrees, setMainTrees] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingCategory, setEditingCategory] = useState(null);
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
   const [selectedIds, setSelectedIds] = useState([]);
   const [deleting, setDeleting] = useState(false);
   const [filterMainTree, setFilterMainTree] = useState('');
   const { addNotification } = useNotification();
-
-  const [formData, setFormData] = useState({
-    name: '',
-    nameEn: '',
-    slug: '',
-    description: '',
-    descriptionEn: '',
-    imageUrl: '',
-    mainTree: '',
-    order: 0,
-    isActive: true,
-  });
 
   useEffect(() => {
     fetchMainTrees();
@@ -74,7 +60,9 @@ const CategoryList = () => {
   }, [mainTrees]);
 
   const filtered = useMemo(() => {
-    let list = [...categories].sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.name || '').localeCompare(b.name || ''));
+    let list = [...categories].sort(
+      (a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.name || '').localeCompare(b.name || '')
+    );
     if (!showInactive) {
       list = list.filter((c) => c.isActive !== false);
     }
@@ -138,9 +126,7 @@ const CategoryList = () => {
         render: (val) => {
           const mt = typeof val === 'object' ? val : mainTreeById.get(String(val));
           return (
-            <span className="text-xs text-gray-500">
-              {mt ? mt.name : '—'}
-            </span>
+            <span className="text-xs text-gray-500">{mt ? mt.name : '—'}</span>
           );
         },
       },
@@ -165,46 +151,6 @@ const CategoryList = () => {
     ],
     [mainTreeById]
   );
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        ...formData,
-        mainTree: formData.mainTree || null,
-      };
-      if (editingCategory) {
-        await adminApi.updateCategory(editingCategory._id, payload);
-        addNotification('Cập nhật thành công');
-      } else {
-        await adminApi.createCategory(payload);
-        addNotification('Thêm thành công');
-      }
-      setModalOpen(false);
-      setEditingCategory(null);
-      resetForm();
-      fetchCategories();
-    } catch (error) {
-      addNotification(error.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    }
-  };
-
-  const handleEdit = (category) => {
-    setEditingCategory(category);
-    const mtId = category.mainTree?._id || category.mainTree || '';
-    setFormData({
-      name: category.name,
-      nameEn: category.nameEn || '',
-      slug: category.slug || '',
-      description: category.description || '',
-      descriptionEn: category.descriptionEn || '',
-      imageUrl: category.imageUrl || '',
-      mainTree: mtId,
-      order: category.order ?? 0,
-      isActive: category.isActive !== false,
-    });
-    setModalOpen(true);
-  };
 
   const handleDelete = async (id) => {
     if (!confirm('Bạn có chắc muốn xóa?')) return;
@@ -233,24 +179,10 @@ const CategoryList = () => {
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      nameEn: '',
-      slug: '',
-      description: '',
-      descriptionEn: '',
-      imageUrl: '',
-      mainTree: filterMainTree || '',
-      order: 0,
-      isActive: true,
-    });
-  };
-
   const renderActions = (row) => (
     <>
       <button
-        onClick={() => handleEdit(row)}
+        onClick={() => navigate(`/categories/${row._id}/edit`)}
         className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
         title="Sửa"
       >
@@ -312,10 +244,7 @@ const CategoryList = () => {
               Hiện tạm ẩn
             </label>
             <div className="relative">
-              <FiSearch
-                size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+              <FiSearch size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Tìm tên, mô tả..."
@@ -333,11 +262,7 @@ const CategoryList = () => {
               )}
             </div>
             <button
-              onClick={() => {
-                resetForm();
-                setEditingCategory(null);
-                setModalOpen(true);
-              }}
+              onClick={() => navigate('/categories/new')}
               className="btn-primary flex items-center gap-1 text-xs"
             >
               <FiPlus size={14} />
@@ -355,16 +280,11 @@ const CategoryList = () => {
             <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
               <span className="text-3xl">📂</span>
               <p className="text-sm">
-                {search
-                  ? 'Không tìm thấy mục phù hợp'
-                  : 'Chưa có product line nào'}
+                {search ? 'Không tìm thấy mục phù hợp' : 'Chưa có product line nào'}
               </p>
               {!search && (
                 <button
-                  onClick={() => {
-                    resetForm();
-                    setModalOpen(true);
-                  }}
+                  onClick={() => navigate('/categories/new')}
                   className="text-xs text-primary hover:underline"
                 >
                   Thêm mục đầu tiên
@@ -383,136 +303,6 @@ const CategoryList = () => {
           )}
         </div>
       </div>
-
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingCategory ? 'Sửa product line' : 'Thêm product line'}
-      >
-        <form onSubmit={handleSubmit} className="space-y-3">
-          <div>
-            <label className="block text-xs font-medium mb-1">
-              Tên <span className="text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-              className="input-field"
-              placeholder="VD: ROSIN MODIFIED MALEIC RESIN"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Tên tiếng Anh</label>
-            <input
-              type="text"
-              value={formData.nameEn}
-              onChange={(e) => setFormData({ ...formData, nameEn: e.target.value })}
-              className="input-field"
-              placeholder="English name (optional)"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Slug (tự động nếu trống)</label>
-            <input
-              type="text"
-              value={formData.slug}
-              onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-              className="input-field"
-              placeholder="rosin-modified-maleic-resin"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Ngành hàng</label>
-            <select
-              value={formData.mainTree}
-              onChange={(e) => setFormData({ ...formData, mainTree: e.target.value })}
-              className="input-field"
-            >
-              <option value="">— Chọn ngành hàng —</option>
-              {mainTrees.map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.name} {t.nameEn ? `(${t.nameEn})` : ''}
-                </option>
-              ))}
-            </select>
-            <p className="text-[10px] text-gray-400 mt-1">
-              Optional. Có thể để trống nếu product line đứng độc lập.
-            </p>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Link ảnh</label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-              className="input-field"
-              placeholder="https://..."
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Mô tả</label>
-            <RichEditor
-              value={formData.description}
-              onChange={(value) => setFormData({ ...formData, description: value })}
-              placeholder="Mô tả..."
-              minHeight={140}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">Mô tả tiếng Anh</label>
-            <RichEditor
-              value={formData.descriptionEn}
-              onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
-              placeholder="English description"
-              minHeight={140}
-            />
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">Thứ tự</label>
-              <input
-                type="number"
-                value={formData.order}
-                onChange={(e) =>
-                  setFormData({ ...formData, order: Number(e.target.value) || 0 })
-                }
-                className="input-field w-24"
-              />
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
-              <input
-                type="checkbox"
-                checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                className="rounded"
-              />
-              <span className="text-xs font-medium">Đang hoạt động</span>
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="btn-secondary text-xs"
-            >
-              Hủy
-            </button>
-            <button type="submit" className="btn-primary text-xs">
-              {editingCategory ? 'Cập nhật' : 'Thêm mới'}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </motion.div>
   );
 };

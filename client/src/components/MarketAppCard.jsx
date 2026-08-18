@@ -5,7 +5,17 @@ import placeholderProduct from '../assets/placeholder-product.svg';
 import { htmlToText } from '../utils/html';
 
 const MarketAppCard = ({ app, index = 0, lang }) => {
-  const products = (app.products || []).filter(Boolean);
+  const entries = Array.isArray(app.productEntries)
+    ? app.productEntries
+        .map((entry) => ({
+          product: entry.productId,
+            application: Array.isArray(entry.productId?.applications)
+              ? entry.productId.applications[entry.applicationIndex] || null
+              : null,
+        }))
+        .filter((e) => e.product)
+    : [];
+  const products = entries.map((e) => e.product).filter(Boolean);
   const previewProducts = products.slice(0, 3);
 
   return (
@@ -47,9 +57,9 @@ const MarketAppCard = ({ app, index = 0, lang }) => {
         </div>
       </div>
 
-      {app.benefits && (
+      {(app.description || app.descriptionEn) && (
         <p className="text-sm text-slate-600 leading-relaxed line-clamp-3 break-words">
-          {htmlToText(app.benefits)}
+          {htmlToText(app.description || app.descriptionEn)}
         </p>
       )}
 
@@ -87,6 +97,39 @@ const MarketAppCard = ({ app, index = 0, lang }) => {
               {lang === 'en' ? 'Explore product' : 'Xem sản phẩm'}
               <FiArrowRight size={11} />
             </Link>
+          )}
+        </div>
+      )}
+
+      {entries.length > 0 && entries.some((e) => e.application) && (
+        <div className="flex flex-wrap gap-1.5">
+          {entries
+            .filter((e) => e.application)
+            .slice(0, 3)
+            .map((e, i) => (
+              <span
+                key={i}
+                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200"
+              >
+                {e.application.imageUrl ? (
+                  <img
+                    src={e.application.imageUrl}
+                    alt=""
+                    className="w-3 h-3 rounded-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none';
+                    }}
+                  />
+                ) : null}
+                <span className="truncate max-w-[120px]">
+                  {e.application.title || e.application.titleEn}
+                </span>
+              </span>
+            ))}
+          {entries.filter((e) => e.application).length > 3 && (
+            <span className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-50 text-slate-500">
+              +{entries.filter((e) => e.application).length - 3}
+            </span>
           )}
         </div>
       )}

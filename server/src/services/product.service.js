@@ -25,6 +25,26 @@ const resolveIdOrSlug = async (value, Model) => {
   return doc ? doc._id : null;
 };
 
+/**
+ * Normalize an incoming filter param that may arrive as:
+ *   - a single string  ("64f...")
+ *   - an array of strings (when express parses repeated query keys)
+ *   - a single comma-separated string ("64f,64e,64d")
+ * and produce an array of Mongo ObjectIds (with slugs resolved to ids).
+ */
+const resolveIdList = async (raw, Model) => {
+  if (raw === undefined || raw === null || raw === '') return [];
+  const parts = Array.isArray(raw) ? raw : String(raw).split(',');
+  const out = [];
+  for (const part of parts) {
+    const trimmed = String(part).trim();
+    if (!trimmed) continue;
+    const id = await resolveIdOrSlug(trimmed, Model);
+    if (id) out.push(String(id));
+  }
+  return out;
+};
+
 export const parseBenefitsText = (text) => {
   if (!text || typeof text !== 'string') return [];
   return text
@@ -33,11 +53,40 @@ export const parseBenefitsText = (text) => {
     .filter((line) => line.length > 0);
 };
 
+export const sanitizeApplications = (list = []) =>
+  (Array.isArray(list) ? list : [])
+    .filter((s) => s && (s.title || s.titleEn))
+    .map((s) => ({
+      _id: s._id || undefined,
+      title: s.title || '',
+      titleEn: s.titleEn || '',
+      description: s.description || '',
+      descriptionEn: s.descriptionEn || '',
+      imageUrl: s.imageUrl || '',
+      order: Number.isFinite(Number(s.order)) ? Number(s.order) : 0,
+      isActive: s.isActive !== false,
+    }));
+
+/**
+ * Build a `$in` query for a list of MainTree ids.
+ *   empty list  → no constraint (match all)
+ *   non-empty   → product.industries overlaps any of the ids
+ */
+const industriesMatch = (ids) => {
+  if (!ids || ids.length === 0) return null;
+  return { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
+};
+
+const marketMatch = (ids) => {
+  if (!ids || ids.length === 0) return null;
+  return { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
+};
+
 export const productService = {
   async listPublic({
     search,
     sort,
-    mainTree,
+    industries,
     productLine,
     market,
     page = 1,
@@ -46,21 +95,27 @@ export const productService = {
     const query = { isActive: true, webStatus: 'published' };
     if (search) query.name = { $regex: search, $options: 'i' };
 
-    const mainTreeId = await resolveIdOrSlug(mainTree, MainTree);
-    if (mainTreeId) query.mainTree = mainTreeId;
+    const industryIds = await resolveIdList(industries, MainTree);
+    const indMatch = industriesMatch(industryIds);
+    if (indMatch) query.industries = indMatch;
 
-    const productLineId = await resolveIdOrSlug(productLine, Category);
-    if (productLineId) query.productLine = productLineId;
+    const productLineIds = await resolveIdList(productLine, Category);
+    if (productLineIds.length > 0) {
+      query.productLines = {
+        $in: productLineIds.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
 
-    const marketId = await resolveIdOrSlug(market, MarketTree);
-    if (marketId) query.marketIds = marketId;
+    const marketIds = await resolveIdList(market, MarketTree);
+    const mktMatch = marketMatch(marketIds);
+    if (mktMatch) query.marketIds = mktMatch;
 
     const sortOption = SORT_MAP[sort] || { createdAt: -1 };
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       Product.find(query)
-        .populate('mainTree', 'name nameEn slug')
-        .populate('productLine', 'name nameEn slug')
+        .populate('industries', 'name nameEn slug')
+        .populate('productLines', 'name nameEn slug')
         .sort(sortOption)
         .skip(skip)
         .limit(limit)
@@ -74,7 +129,7 @@ export const productService = {
     search,
     status,
     webStatus,
-    mainTree,
+    industries,
     productLine,
     market,
     page = 1,
@@ -85,21 +140,27 @@ export const productService = {
     if (status !== undefined) query.isActive = status === true || status === 'true';
     if (webStatus) query.webStatus = webStatus;
 
-    const mainTreeId = await resolveIdOrSlug(mainTree, MainTree);
-    if (mainTreeId) query.mainTree = mainTreeId;
+    const industryIds = await resolveIdList(industries, MainTree);
+    const indMatch = industriesMatch(industryIds);
+    if (indMatch) query.industries = indMatch;
 
-    const productLineId = await resolveIdOrSlug(productLine, Category);
-    if (productLineId) query.productLine = productLineId;
+    const productLineIds = await resolveIdList(productLine, Category);
+    if (productLineIds.length > 0) {
+      query.productLines = {
+        $in: productLineIds.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
 
-    const marketId = await resolveIdOrSlug(market, MarketTree);
-    if (marketId) query.marketIds = marketId;
+    const marketIds = await resolveIdList(market, MarketTree);
+    const mktMatch = marketMatch(marketIds);
+    if (mktMatch) query.marketIds = mktMatch;
 
     const sortOption = SORT_MAP['newest'];
     const skip = (page - 1) * limit;
     const [items, total] = await Promise.all([
       Product.find(query)
-        .populate('mainTree', 'name nameEn slug')
-        .populate('productLine', 'name nameEn slug')
+        .populate('industries', 'name nameEn slug')
+        .populate('productLines', 'name nameEn slug')
         .populate('marketIds', 'title titleEn slug')
         .sort(sortOption)
         .skip(skip)
@@ -117,8 +178,8 @@ export const productService = {
     let q = Product.findOne(query);
     if (populate) {
       q = q
-        .populate('mainTree', 'name nameEn slug')
-        .populate('productLine', 'name nameEn slug');
+        .populate('industries', 'name nameEn slug')
+        .populate('productLines', 'name nameEn slug');
     }
     const product = await q.lean();
     if (!product) throw AppError.notFound('Sản phẩm không tồn tại');
@@ -130,8 +191,8 @@ export const productService = {
       ? { _id: id, isActive: true, webStatus: 'published' }
       : { _id: id };
     const product = await Product.findOne(query)
-      .populate('mainTree', 'name nameEn slug')
-      .populate('productLine', 'name nameEn slug')
+      .populate('industries', 'name nameEn slug')
+      .populate('productLines', 'name nameEn slug')
       .lean();
     if (!product) throw AppError.notFound('Sản phẩm không tồn tại');
     return product;
@@ -145,8 +206,8 @@ export const productService = {
       description = '',
       descriptionEn = '',
       imageUrl = '',
-      mainTree = null,
-      productLine = null,
+      industries = [],
+      productLines = [],
       marketIds = [],
       price = 0,
       priceVisible = true,
@@ -167,9 +228,19 @@ export const productService = {
         ? attributes
         : {};
 
+    const sanitizedIndustries = Array.isArray(industries)
+      ? industries.filter(Boolean).map(String)
+      : [];
+
+    const sanitizedProductLines = Array.isArray(productLines)
+      ? productLines.filter(Boolean).map(String)
+      : [];
+
     const sanitizedMarketIds = Array.isArray(marketIds)
       ? marketIds.filter(Boolean)
       : [];
+
+    const sanitizedApplications = sanitizeApplications(applications);
 
     const product = new Product({
       productCode: productCode ? productCode.toUpperCase() : '',
@@ -178,8 +249,8 @@ export const productService = {
       description,
       descriptionEn,
       imageUrl,
-      mainTree: mainTree || null,
-      productLine: productLine || null,
+      industries: sanitizedIndustries,
+      productLines: sanitizedProductLines,
       marketIds: sanitizedMarketIds,
       price: Number(price) || 0,
       priceVisible: priceVisible !== false,
@@ -189,7 +260,7 @@ export const productService = {
       acidValue,
       color,
       benefits,
-      applications,
+      applications: sanitizedApplications,
       tdsUrl,
       attributes: sanitizedAttributes,
       isActive,
@@ -202,7 +273,7 @@ export const productService = {
   async update(id, payload) {
     const allowedFields = [
       'productCode', 'name', 'nameEn', 'description', 'descriptionEn', 'imageUrl',
-      'mainTree', 'productLine', 'marketIds', 'price', 'priceVisible', 'webStatus', 'targetAudience',
+      'industries', 'productLines', 'marketIds', 'price', 'priceVisible', 'webStatus', 'targetAudience',
       'softeningPoint', 'acidValue', 'color', 'benefits', 'applications', 'tdsUrl',
       'attributes', 'isActive',
     ];
@@ -221,6 +292,16 @@ export const productService = {
           updateData.marketIds = Array.isArray(payload.marketIds)
             ? payload.marketIds.filter(Boolean)
             : [];
+        } else if (field === 'industries') {
+          updateData.industries = Array.isArray(payload.industries)
+            ? payload.industries.filter(Boolean).map(String)
+            : [];
+        } else if (field === 'productLines') {
+          updateData.productLines = Array.isArray(payload.productLines)
+            ? payload.productLines.filter(Boolean).map(String)
+            : [];
+        } else if (field === 'applications') {
+          updateData.applications = sanitizeApplications(payload.applications);
         } else {
           updateData[field] = payload[field];
         }

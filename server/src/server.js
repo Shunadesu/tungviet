@@ -40,6 +40,7 @@ import publicPostRoutes from './routes/public/post.routes.js';
 import publicPostCategoryRoutes from './routes/public/postCategory.routes.js';
 import adminPostCategoryRoutes from './routes/admin/postCategory.routes.js';
 import estimateRoutes from './routes/estimate.routes.js';
+import projectReportRoutes from './routes/projectReport.routes.js';
 import analyticsRoutes from './routes/admin/analytics.routes.js';
 import publicMainTreeRoutes from './routes/public/mainTree.routes.js';
 import adminMainTreeRoutes from './routes/admin/mainTree.routes.js';
@@ -51,6 +52,7 @@ import Category from './models/Category.js';
 import Order from './models/Order.js';
 import OrderDetail from './models/OrderDetail.js';
 import Estimate from './models/Estimate.js';
+import ProjectReport from './models/ProjectReport.js';
 import User from './models/User.js';
 import QuoteSection from './models/QuoteSection.js';
 import QuoteSubmission from './models/QuoteSubmission.js';
@@ -83,6 +85,7 @@ connectDB()
         Order.syncIndexes(),
         OrderDetail.syncIndexes(),
         Estimate.syncIndexes(),
+        ProjectReport.syncIndexes(),
         User.syncIndexes(),
         SiteConfig.syncIndexes(),
         Member.syncIndexes(),
@@ -220,6 +223,7 @@ app.use('/api/admin/main-trees', adminMainTreeRoutes);
 app.use('/api/admin/market-trees', adminMarketTreeRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/estimates', estimateRoutes);
+app.use('/api/project-reports', projectReportRoutes);
 
 app.get('/api/health', (req, res) => {
   return apiResponse.ok(res, { status: 'OK', message: 'Server is running' });

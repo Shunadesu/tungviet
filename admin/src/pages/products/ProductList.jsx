@@ -75,7 +75,7 @@ const ProductList = () => {
   const fetchProducts = async () => {
     try {
       const params = {};
-      if (filterMainTree) params.mainTree = filterMainTree;
+      if (filterMainTree) params.industries = filterMainTree;
       if (filterWebStatus) params.webStatus = filterWebStatus;
       const res = await adminApi.getProducts(params);
       const data = res.data?.data;
@@ -257,6 +257,7 @@ const ProductList = () => {
                     <th className="px-2 py-2 text-left text-xs">Tên</th>
                     <th className="px-2 py-2 text-left text-xs">Ngành hàng</th>
                     <th className="px-2 py-2 text-left text-xs">Product line</th>
+                    <th className="px-2 py-2 text-left text-xs">Ứng dụng</th>
                     <th className="px-2 py-2 text-left text-xs">Giá</th>
                     <th className="px-2 py-2 text-left text-xs">Web</th>
                     {columns.slice(0, 2).map((column) => (
@@ -269,9 +270,17 @@ const ProductList = () => {
                 </thead>
                 <tbody>
                   {filtered.map((product) => {
-                    const mt = product.mainTree?._id || product.mainTree;
-                    const pl = product.productLine?._id || product.productLine;
-                    const mtObj = mt ? mainTreeById.get(String(mt)) : null;
+                    const industriesList = Array.isArray(product.industries) ? product.industries : [];
+                    const plList = Array.isArray(product.productLines) ? product.productLines : [];
+                    const firstIndustryId =
+                      industriesList.length > 0
+                        ? industriesList[0]?._id || industriesList[0]
+                        : null;
+                    const mtObj = firstIndustryId ? mainTreeById.get(String(firstIndustryId)) : null;
+                    const productLineNames = plList
+                      .map((p) => (typeof p === 'object' ? p?.name : null))
+                      .filter(Boolean)
+                      .join(', ');
                     return (
                       <tr
                         key={product._id}
@@ -304,10 +313,15 @@ const ProductList = () => {
                           )}
                         </td>
                         <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap">
-                          {mtObj?.name || (typeof mt === 'object' ? mt?.name : '—')}
+                          {mtObj?.name || '—'}
                         </td>
                         <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap">
-                          {typeof pl === 'object' ? pl?.name : '—'}
+                          {productLineNames || '—'}
+                        </td>
+                        <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap">
+                          {Array.isArray(product.applications)
+                            ? product.applications.length
+                            : 0}
                         </td>
                         <td className="px-2 py-2 text-xs whitespace-nowrap">
                           {product.priceVisible ? (

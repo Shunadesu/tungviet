@@ -3,6 +3,7 @@ import path from 'path';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import { AppError } from '../utils/AppError.js';
+import { convertToWebP } from './webpConverter.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -84,8 +85,17 @@ export const uploadPDF = multer({
 export const upload = uploadImage;
 
 export const uploadSingle = (fieldName = 'file') => (req, res, next) => {
-  uploadImage.single(fieldName)(req, res, (err) => {
-    if (!err) return next();
+  uploadImage.single(fieldName)(req, res, async (err) => {
+    if (!err) {
+      if (req.file) {
+        try {
+          await convertToWebP(req.file);
+        } catch (e) {
+          console.warn('WebP convert failed:', e.message);
+        }
+      }
+      return next();
+    }
     if (err instanceof AppError) return next(err);
     if (err.code === 'LIMIT_FILE_SIZE') {
       return next(AppError.badRequest('File quá lớn (tối đa 5MB)', 'FILE_TOO_LARGE'));

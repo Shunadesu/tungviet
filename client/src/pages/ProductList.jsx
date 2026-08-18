@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
   FiGrid,
@@ -7,6 +7,8 @@ import {
   FiSearch,
   FiFilter,
   FiX,
+  FiBox,
+  FiArrowRight,
 } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import ProductCard from '../components/ProductCard';
@@ -19,6 +21,7 @@ import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 import useProductFilters from '../hooks/useProductFilters';
 import useDebounce from '../hooks/useDebounce';
+import { getLocalizedField } from '../utils/i18nField';
 import { SUPPORTED_LOCALES } from '../i18n';
 
 const SOFTENING_RANGES = [
@@ -45,6 +48,7 @@ const ProductList = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [mainTrees, setMainTrees] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [marketTrees, setMarketTrees] = useState([]);
 
   const search = values.search;
   const sort = values.sort;
@@ -70,20 +74,27 @@ const ProductList = () => {
   useEffect(() => {
     if (page !== 1) setParam('page', 1);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, sort, values.mainTree, values.category, values.softeningPoint]);
+  }, [search, sort, values.industries, values.category, values.market, values.softeningPoint]);
 
-  // Fetch mainTrees + categories for chip labels + UI hints
+  // Fetch mainTrees + categories + markets for chip labels + UI hints
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       publicApi.getMainTrees(lang).catch(() => null),
       publicApi.getCategories({ lang }).catch(() => null),
-    ]).then(([mtRes, catRes]) => {
+      publicApi.getMarketTrees({ lang }).catch(() => null),
+    ]).then(([mtRes, catRes, mktRes]) => {
       if (cancelled) return;
       if (mtRes?.data?.data) setMainTrees(Array.isArray(mtRes.data.data) ? mtRes.data.data : []);
       if (catRes?.data?.data) {
         const raw = catRes.data.data;
         setCategories(Array.isArray(raw) ? raw : raw?.items || []);
+      }
+      if (mktRes?.data?.data) {
+        const raw = mktRes.data.data;
+        const flat = Array.isArray(raw) ? raw : [];
+        const tops = flat.filter((m) => !m.parent);
+        setMarketTrees(tops.length ? tops : flat);
       }
     });
     return () => {
@@ -100,8 +111,13 @@ const ProductList = () => {
     const params = { lang, page, limit: PAGE_SIZE };
     if (search) params.search = search;
     if (sort) params.sort = sort;
-    if (values.mainTree) params.mainTree = values.mainTree;
+    if (values.industries && values.industries.length > 0) {
+      params.industries = values.industries.join(',');
+    }
     if (values.category) params.productLine = values.category;
+    if (values.market && values.market.length > 0) {
+      params.market = values.market.join(',');
+    }
     if (values.softeningPoint) params.softeningPoint = values.softeningPoint;
 
     publicApi
@@ -122,7 +138,7 @@ const ProductList = () => {
         setLoading(false);
         setLoadingMore(false);
       });
-  }, [lang, search, sort, values.mainTree, values.category, values.softeningPoint, page]);
+  }, [lang, search, sort, values.industries, values.category, values.market, values.softeningPoint, page]);
 
   const loadMore = () => {
     if (pagination.page < pagination.pages) {
@@ -147,12 +163,45 @@ const ProductList = () => {
     [lang, t]
   );
 
-  const heroTitle = search
-    ? t('product.searchResultsFor', { q: search })
-    : t('nav.products');
-  const heroSubtitle = search
-    ? t('product.searchResultsSubtitle')
-    : t('product.productsSubtitle');
+  // Determine active market context (first market in the filter, if any).
+  const activeMarket = useMemo(() => {
+    if (!values.market || values.market.length === 0) return null;
+    const id = values.market[0];
+    const found = marketTrees.find((m) => String(m._id) === String(id));
+    return found ? { id, ...found } : { id, name: '', description: '' };
+  }, [values.market, marketTrees]);
+
+  // Pick a few other markets to suggest when the current filter has no
+  // results. We prefer markets outside the current filter and prefer
+  // admin-featured markets first.
+  const suggestedMarkets = useMemo(() => {
+    if (!marketTrees || marketTrees.length === 0) return [];
+    const activeIds = new Set((values.market || []).map(String));
+    return [...marketTrees]
+      .filter((m) => !activeIds.has(String(m._id)))
+      .sort((a, b) => {
+        if (a.isFeatured === true && b.isFeatured !== true) return -1;
+        if (b.isFeatured === true && a.isFeatured !== true) return 1;
+        return 0;
+      })
+      .slice(0, 3);
+  }, [marketTrees, values.market]);
+
+  // Hero copy adapts to the active context so the user always knows why they
+  // landed here.
+  const heroTitle = (() => {
+    if (search) return t('product.searchResultsFor', { q: search });
+    if (activeMarket) {
+      const name = activeMarket.name || getLocalizedField(activeMarket, lang, 'title', 'titleEn');
+      return t('product.marketFilteredTitle', { market: name });
+    }
+    return t('nav.products');
+  })();
+  const heroSubtitle = (() => {
+    if (search) return t('product.searchResultsSubtitle');
+    if (activeMarket) return t('product.marketFilteredSubtitle');
+    return t('product.productsSubtitle');
+  })();
 
   const hasMore = pagination.page < pagination.pages;
 
@@ -172,6 +221,21 @@ const ProductList = () => {
       />
 
       <PageHero breadcrumb={breadcrumb} title={heroTitle} subtitle={heroSubtitle}>
+        {activeMarket && !search && (
+          <div className="mb-5">
+            <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full ring-1 ring-white/20">
+              <FiBox size={12} />
+              {t('product.marketFilteredBadge')}
+              <Link
+                to={`/${lang}/markets/${activeMarket.id}`}
+                className="ml-1 underline hover:text-white"
+              >
+                {t('product.viewMarket')}
+                <FiArrowRight className="inline ml-1" size={10} />
+              </Link>
+            </span>
+          </div>
+        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -284,6 +348,7 @@ const ProductList = () => {
           getShareUrl={getShareUrl}
           mainTrees={mainTrees}
           categories={categories}
+          marketTrees={marketTrees}
           softeningPointRanges={SOFTENING_RANGES.filter((r) => r.value)}
         />
 
@@ -305,20 +370,70 @@ const ProductList = () => {
                 ))}
               </div>
             ) : products.length === 0 ? (
-              <EmptyState
-                icon={FiSearch}
-                title={t('product.noResults')}
-                description={
-                  search
-                    ? t('product.searchResultsSubtitle')
-                    : t('product.noResultsHint')
-                }
-                action={
-                  <button type="button" onClick={clearAll} className="btn-secondary">
-                    {t('product.filter.clearAll')}
-                  </button>
-                }
-              />
+              <>
+                <EmptyState
+                  icon={FiSearch}
+                  title={t('product.noResults')}
+                  description={
+                    search
+                      ? t('product.searchResultsSubtitle')
+                      : t('product.noResultsHint')
+                  }
+                  action={
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      <button type="button" onClick={clearAll} className="btn-secondary">
+                        {t('product.filter.clearAll')}
+                      </button>
+                      {activeMarket && (
+                        <Link
+                          to={`/${lang}/markets/${activeMarket.id}`}
+                          className="btn-primary"
+                        >
+                          {t('product.viewMarket')}
+                        </Link>
+                      )}
+                    </div>
+                  }
+                />
+
+                {suggestedMarkets.length > 0 && (
+                  <div className="mt-10">
+                    <h3 className="text-sm font-semibold text-slate-900 mb-3 text-center">
+                      {t('product.suggestMarketsTitle')}
+                    </h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      {suggestedMarkets.map((m) => {
+                        const name = getLocalizedField(m, lang, 'title', 'titleEn');
+                        return (
+                          <Link
+                            key={m._id}
+                            to={`/${lang}/markets/${m._id}`}
+                            className="group flex items-center gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all"
+                          >
+                            <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 text-primary flex-shrink-0">
+                              <FiBox size={18} />
+                            </span>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-primary transition-colors">
+                                {name}
+                              </p>
+                              {m.isFeatured === true && (
+                                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wider">
+                                  {t('product.featuredTag')}
+                                </p>
+                              )}
+                            </div>
+                            <FiArrowRight
+                              size={14}
+                              className="text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0"
+                            />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
             ) : (
               <>
                 <div

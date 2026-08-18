@@ -22,6 +22,7 @@ import {
   FiFolder,
   FiLayers,
   FiList,
+  FiGlobe,
 } from 'react-icons/fi';
 import { GiPlantRoots } from 'react-icons/gi';
 import { useState } from 'react';
@@ -32,26 +33,59 @@ import { useAuth } from '../context/AuthContext';
 const productsMenu = {
   type: 'group',
   key: 'products',
-  label: 'Danh mục sản phẩm',
+  label: 'Cây ngành sản phẩm',
   icon: <FiPackage size={18} />,
   defaultPath: '/main-trees',
   isActive: (pathname) =>
-    pathname.startsWith('/products') ||
     pathname.startsWith('/main-trees') ||
-    pathname.startsWith('/market-trees') ||
+    pathname.startsWith('/products') ||
     pathname.startsWith('/categories'),
   children: [
-    { type: 'item', key: 'main-trees', label: 'Ngành hàng', path: '/main-trees', icon: <FiLayers size={14} /> },
-    { type: 'item', key: 'market-trees', label: 'Cây ngành', path: '/market-trees', icon: <FiList size={14} /> },
-    { type: 'item', key: 'categories', label: 'Product line', path: '/categories', icon: <FiGrid size={14} /> },
     {
-      type: 'group',
-      key: 'products-list',
-      label: 'Sản phẩm',
-      children: [
-        { type: 'item', key: 'products', label: 'Danh sách sản phẩm', path: '/products', icon: <FiPackage size={14} /> },
-        { type: 'item', key: 'products-columns', label: 'Cột thuộc tính', path: '/products/columns', icon: <FiSliders size={14} /> },
-      ],
+      type: 'item',
+      key: 'main-trees',
+      label: 'Danh sách ngành hàng',
+      path: '/main-trees',
+      icon: <FiLayers size={14} />,
+    },
+    {
+      type: 'item',
+      key: 'categories',
+      label: 'Category sản phẩm',
+      path: '/categories',
+      icon: <FiGrid size={14} />,
+    },
+    {
+      type: 'item',
+      key: 'products',
+      label: 'Danh sách sản phẩm',
+      path: '/products',
+      icon: <FiPackage size={14} />,
+    },
+    {
+      type: 'item',
+      key: 'products-columns',
+      label: 'Cột thuộc tính',
+      path: '/products/columns',
+      icon: <FiSliders size={14} />,
+    },
+  ],
+};
+
+const marketsMenu = {
+  type: 'group',
+  key: 'markets',
+  label: 'Thị trường',
+  icon: <FiGlobe size={18} />,
+  defaultPath: '/market-trees',
+  isActive: (pathname) => pathname.startsWith('/market-trees'),
+  children: [
+    {
+      type: 'item',
+      key: 'market-trees',
+      label: 'Cây ngành thị trường',
+      path: '/market-trees',
+      icon: <FiList size={14} />,
     },
   ],
 };
@@ -129,8 +163,20 @@ const standaloneItems = [
   { path: '/analytics', icon: <FiActivity size={18} />, label: 'Thống kê truy cập' },
 ];
 
-const isItemActive = (pathname, path) =>
-  pathname === path || pathname.startsWith(path + '/');
+// Match path với pathname. Cho phép:
+//  - exact match
+//  - path + "/" + "new" (các trang tạo mới)
+//  - path + "/" + ObjectId hex 24 ký tự (vd /products/6500.../edit)
+// Tránh match các top-level route riêng như /products/columns (vì columns không phải id/new).
+const isItemActive = (pathname, path) => {
+  if (!path) return false;
+  if (pathname === path) return true;
+  if (!pathname.startsWith(path + '/')) return false;
+  const rest = pathname.slice(path.length); // include leading "/"
+  if (rest === '/new') return true;
+  // /:id hoặc /:id/edit (ObjectId hex 24 ký tự)
+  return /^\/([a-f0-9]{24})(?:\/edit)?\/?$/i.test(rest);
+};
 
 const findActiveGroupKey = (node, pathname) => {
   if (node.type === 'item') return null;
@@ -152,7 +198,7 @@ const Sidebar = () => {
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [openKeys, setOpenKeys] = useState(() => {
-    const activeKeys = [productsMenu, postsMenu, interfaceMenu]
+    const activeKeys = [productsMenu, marketsMenu, postsMenu, interfaceMenu]
       .map((m) => findActiveGroupKey(m, location.pathname))
       .filter(Boolean);
     return new Set(activeKeys);
@@ -232,7 +278,7 @@ const Sidebar = () => {
 
   // TopLevelMenu component tái sử dụng cho mọi top-level dropdown
   const TopLevelMenu = ({ menu }) => {
-    const active = menu.isActive(location.pathname);
+    const isTopActive = location.pathname === menu.defaultPath;
     const open = openKeys.has(menu.key);
 
     if (collapsed) {
@@ -240,7 +286,7 @@ const Sidebar = () => {
         <Link
           to={menu.defaultPath}
           className={`flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors ${
-            active
+            isTopActive
               ? 'bg-primary text-white'
               : 'text-gray-600 hover:bg-primary-50 hover:text-primary'
           }`}
@@ -257,7 +303,7 @@ const Sidebar = () => {
           type="button"
           onClick={() => toggleKey(menu.key)}
           className={`w-full flex items-center gap-2 px-2 py-2 rounded-lg text-sm transition-colors ${
-            active
+            isTopActive
               ? 'bg-primary text-white'
               : 'text-gray-600 hover:bg-primary-50 hover:text-primary'
           }`}
@@ -338,7 +384,7 @@ const Sidebar = () => {
         </Link>
 
         {/* Top-level dropdowns */}
-        {[productsMenu, postsMenu, interfaceMenu].map((menu) => (
+        {[productsMenu, marketsMenu, postsMenu, interfaceMenu].map((menu) => (
           <TopLevelMenu key={menu.key} menu={menu} />
         ))}
 

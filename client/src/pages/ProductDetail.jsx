@@ -157,10 +157,15 @@ const ProductDetail = () => {
     { label: t('product.breadcrumbHome'), to: `/${lang}` },
     { label: t('product.breadcrumbProducts'), to: `/${lang}/products` },
   ];
-  if (product.mainTree && product.mainTree._id) {
+  // Product may belong to multiple industries; surface the first one in the
+  // breadcrumb to keep the path short and predictable.
+  const primaryIndustry = Array.isArray(product.industries) && product.industries.length > 0
+    ? product.industries[0]
+    : null;
+  if (primaryIndustry && primaryIndustry._id) {
     breadcrumb.push({
-      label: getLocalizedField(product.mainTree, lang, 'name', 'nameEn'),
-      to: `/${lang}/main-trees/${product.mainTree._id}`,
+      label: getLocalizedField(primaryIndustry, lang, 'name', 'nameEn'),
+      to: `/${lang}/main-trees/${primaryIndustry._id}`,
     });
   }
   if (product.productLine && product.productLine._id) {

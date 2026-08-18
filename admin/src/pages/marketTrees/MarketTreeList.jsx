@@ -1,265 +1,275 @@
 import { useState, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   FiPlus,
   FiEdit2,
   FiTrash2,
   FiSearch,
   FiX,
-  FiUpload,
-  FiImage,
   FiFolder,
-  FiFolderPlus,
-  FiCpu,
-  FiPackage,
   FiChevronDown,
   FiChevronUp,
+  FiCpu,
+  FiPackage,
+  FiImage,
+  FiExternalLink,
 } from 'react-icons/fi';
 import Header from '../../components/Header';
-import Modal from '../../components/Modal';
-import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
-const emptySubDoc = {
-  title: '',
-  titleEn: '',
-  description: '',
-  descriptionEn: '',
-  imageUrl: '',
-  order: 0,
-  isActive: true,
-  productIds: [],
-};
+const stripHtml = (html) =>
+  (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
 
-const emptyForm = {
-  mainTree: '',
-  parent: null,
-  title: '',
-  titleEn: '',
-  description: '',
-  descriptionEn: '',
-  imageUrl: '',
-  order: 0,
-  isActive: true,
-  technologies: [],
-  applications: [],
-};
+const truncate = (s, n = 280) => (s.length > n ? `${s.slice(0, n).trim()}…` : s);
 
-const SubDocCard = ({ item, index, onUpdate, onRemove, onUpload, uploading }) => {
-  const [expanded, setExpanded] = useState(false);
-
+const SubDocRow = ({ index, item, kind }) => {
+  const isApp = kind === 'applications';
+  const Icon = isApp ? FiPackage : FiCpu;
+  const active = item.isActive !== false;
   return (
-    <div className="border border-gray-200 rounded-lg p-3 bg-gray-50/40">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          {item.imageUrl ? (
-            <img
-              src={item.imageUrl}
-              alt=""
-              className="w-8 h-8 rounded object-cover border flex-shrink-0"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-              }}
-            />
-          ) : (
-            <div className="w-8 h-8 rounded bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0">
-              <FiImage size={14} />
-            </div>
-          )}
-          <div className="min-w-0">
-            <div className="text-xs font-semibold text-gray-700 truncate">
-              #{index + 1} {item.title || '(Chưa đặt tên)'}
-            </div>
-            {item.titleEn && (
-              <div className="text-[10px] text-gray-400 truncate">{item.titleEn}</div>
-            )}
-          </div>
+    <div className="flex items-start gap-2 p-2 bg-gray-50/60 border border-gray-100 rounded">
+      <div className="flex-shrink-0 mt-0.5">
+        <Icon size={12} className="text-gray-500" />
+      </div>
+      {item.imageUrl ? (
+        <img
+          src={item.imageUrl}
+          alt=""
+          className="w-8 h-8 rounded object-cover border flex-shrink-0"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : (
+        <div className="w-8 h-8 rounded bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0">
+          <FiImage size={12} />
         </div>
-        <div className="flex items-center gap-1 flex-shrink-0">
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-            title={expanded ? 'Thu gọn' : 'Mở rộng'}
-          >
-            {expanded ? <FiChevronUp size={12} /> : <FiChevronDown size={12} />}
-          </button>
-          <button
-            type="button"
-            onClick={onRemove}
-            className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-            title="Xóa"
-          >
-            <FiTrash2 size={12} />
-          </button>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-xs font-medium text-gray-800 truncate">
+          #{index + 1} {item.title || '(Chưa đặt tên)'}
+        </div>
+        {item.titleEn && (
+          <div className="text-[10px] text-gray-400 truncate">{item.titleEn}</div>
+        )}
+        {item.description && (
+          <div className="text-[11px] text-gray-500 mt-0.5 line-clamp-2">
+            {truncate(stripHtml(item.description), 180)}
+          </div>
+        )}
+      </div>
+      <div className="flex-shrink-0 text-right">
+        <span
+          className={`text-[10px] px-1.5 py-0.5 rounded ${
+            active ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-500'
+          }`}
+        >
+          {active ? 'Hiển thị' : 'Ẩn'}
+        </span>
+        {isApp && (
+          <div className="text-[10px] text-gray-400 mt-1">
+            {(item.productEntries || []).length} SP
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ProductEntryItem = ({ entry, index, product }) => {
+  const appIdx = entry.applicationIndex;
+  const appLabel =
+    Number.isFinite(appIdx) && appIdx >= 0
+      ? `Ứng dụng #${appIdx + 1}${product?.applications?.[appIdx]?.title ? ` — ${product.applications[appIdx].title}` : ''}`
+      : '— chưa gán ứng dụng —';
+  return (
+    <div className="flex items-center gap-2 p-1.5 bg-white border border-gray-100 rounded">
+      {product?.imageUrl ? (
+        <img
+          src={product.imageUrl}
+          alt=""
+          className="w-7 h-7 rounded object-cover border flex-shrink-0"
+          onError={(e) => {
+            e.currentTarget.style.display = 'none';
+          }}
+        />
+      ) : (
+        <div className="w-7 h-7 rounded bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0">
+          <FiPackage size={11} />
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-medium text-gray-800 truncate">
+          {product?.name || `Sản phẩm #${index + 1}`}
+        </div>
+        <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
+          {product?.productCode && (
+            <span className="font-mono">{product.productCode}</span>
+          )}
+          <span className="text-gray-300">•</span>
+          <span className="truncate">{appLabel}</span>
         </div>
       </div>
+    </div>
+  );
+};
 
-      {expanded && (
-        <div className="mt-3 space-y-2 border-t border-gray-200 pt-3">
-          <div className="grid md:grid-cols-2 gap-2">
-            <div>
-              <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                Tiêu đề <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={item.title}
-                onChange={(e) => onUpdate({ ...item, title: e.target.value })}
-                className="input-field text-xs"
-                placeholder="VD: Công nghệ chống thấm"
-              />
-            </div>
-            <div>
-              <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                Tiêu đề tiếng Anh
-              </label>
-              <input
-                type="text"
-                value={item.titleEn}
-                onChange={(e) => onUpdate({ ...item, titleEn: e.target.value })}
-                className="input-field text-xs"
-                placeholder="English title"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-medium mb-0.5 text-gray-700">Mô tả</label>
-            <RichEditor
-              value={item.description}
-              onChange={(value) => onUpdate({ ...item, description: value })}
-              placeholder="Mô tả..."
-              minHeight={100}
-            />
-          </div>
-          <div>
-            <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-              Mô tả tiếng Anh
-            </label>
-            <RichEditor
-              value={item.descriptionEn}
-              onChange={(value) => onUpdate({ ...item, descriptionEn: value })}
-              placeholder="English description"
-              minHeight={100}
-            />
-          </div>
-
-          <div>
-            <label className="block text-[10px] font-medium mb-0.5 text-gray-700">Hình ảnh</label>
-            <div className="flex items-center gap-2">
-              {item.imageUrl ? (
-                <img
-                  src={item.imageUrl}
-                  alt=""
-                  className="w-10 h-10 rounded object-cover border"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              ) : (
-                <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                  <FiImage size={14} />
-                </div>
-              )}
-              <label className="btn-secondary text-[10px] flex items-center gap-1 cursor-pointer">
-                <FiUpload size={10} />
-                {uploading ? 'Đang upload...' : 'Upload'}
-                <input
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) onUpload(file);
-                    e.target.value = '';
-                  }}
-                />
-              </label>
-              <input
-                type="url"
-                value={item.imageUrl}
-                onChange={(e) => onUpdate({ ...item, imageUrl: e.target.value })}
-                className="input-field text-[10px] flex-1"
-                placeholder="Hoặc URL"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <div>
-              <label className="block text-[10px] font-medium mb-0.5 text-gray-700">Thứ tự</label>
-              <input
-                type="number"
-                value={item.order ?? 0}
-                onChange={(e) => onUpdate({ ...item, order: Number(e.target.value) || 0 })}
-                className="input-field w-20 text-xs"
-              />
-            </div>
-            <label className="flex items-center gap-1 cursor-pointer select-none mt-3.5">
-              <input
-                type="checkbox"
-                checked={item.isActive !== false}
-                onChange={(e) => onUpdate({ ...item, isActive: e.target.checked })}
-                className="rounded w-3 h-3"
-              />
-              <span className="text-[10px] font-medium">Hiển thị</span>
-            </label>
-          </div>
-        </div>
+const PillsList = ({ items, color, accent = '' }) => {
+  if (!items || items.length === 0) {
+    return <span className="text-gray-300 text-[10px]">—</span>;
+  }
+  const visible = items.slice(0, 3);
+  const remaining = items.length - visible.length;
+  return (
+    <div className="flex flex-wrap gap-1 items-center">
+      {visible.map((item, idx) => (
+        <span
+          key={idx}
+          title={item.titleEn ? `${item.title} / ${item.titleEn}` : item.title || ''}
+          className={`inline-block max-w-[160px] truncate text-[10px] px-1.5 py-0.5 rounded border ${color} ${accent}`}
+        >
+          {item.title || `Mục #${idx + 1}`}
+        </span>
+      ))}
+      {remaining > 0 && (
+        <span className="text-[10px] text-gray-500 font-medium" title={items.slice(3).map((i) => i.title).filter(Boolean).join('\n')}>
+          +{remaining}
+        </span>
       )}
     </div>
   );
 };
 
+const ExpandedDetail = ({ node, productMap }) => {
+  const technologies = Array.isArray(node.technologies) ? node.technologies : [];
+  const applications = Array.isArray(node.applications) ? node.applications : [];
+  const descVi = truncate(stripHtml(node.description), 280);
+  const descEn = truncate(stripHtml(node.descriptionEn), 280);
+  const introVi = truncate(stripHtml(node.introductions?.vi), 280);
+  const introEn = truncate(stripHtml(node.introductions?.en), 280);
+
+  return (
+    <div className="bg-gray-50/50 border-t border-gray-200 px-4 py-4">
+      <div className="grid lg:grid-cols-2 gap-4">
+        {/* Basic info */}
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+              Thông tin cơ bản
+            </h4>
+            <dl className="space-y-1.5 text-[11px]">
+              <div>
+                <dt className="text-gray-500">Mô tả (VI)</dt>
+                <dd className="text-gray-700">{descVi || <span className="italic text-gray-400">—</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Mô tả (EN)</dt>
+                <dd className="text-gray-700">{descEn || <span className="italic text-gray-400">—</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Giới thiệu (VI)</dt>
+                <dd className="text-gray-700">{introVi || <span className="italic text-gray-400">—</span>}</dd>
+              </div>
+              <div>
+                <dt className="text-gray-500">Giới thiệu (EN)</dt>
+                <dd className="text-gray-700">{introEn || <span className="italic text-gray-400">—</span>}</dd>
+              </div>
+            </dl>
+          </div>
+        </div>
+
+        {/* Technologies & Applications */}
+        <div className="space-y-3">
+          <div>
+            <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <FiCpu size={11} />
+              Công nghệ ({technologies.length})
+            </h4>
+            {technologies.length === 0 ? (
+              <p className="text-[11px] text-gray-400 italic">Chưa có công nghệ nào.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {technologies.map((item, idx) => (
+                  <SubDocRow key={`tech-${idx}`} index={idx} item={item} kind="technologies" />
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <FiPackage size={11} />
+              Ứng dụng ({applications.length})
+            </h4>
+            {applications.length === 0 ? (
+              <p className="text-[11px] text-gray-400 italic">Chưa có ứng dụng nào.</p>
+            ) : (
+              <div className="space-y-2">
+                {applications.map((item, idx) => {
+                  const entries = Array.isArray(item.productEntries) ? item.productEntries : [];
+                  return (
+                    <div key={`app-${idx}`} className="space-y-1.5">
+                      <SubDocRow index={idx} item={item} kind="applications" />
+                      {entries.length > 0 && (
+                        <div className="ml-3 space-y-1">
+                          {entries.map((entry, eIdx) => {
+                            const productId = entry.productId?._id || entry.productId;
+                            return (
+                              <ProductEntryItem
+                                key={`entry-${idx}-${eIdx}`}
+                                index={eIdx}
+                                entry={entry}
+                                product={productMap.get(String(productId))}
+                              />
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const MarketTreeList = () => {
-  const [mainTrees, setMainTrees] = useState([]);
-  const [selectedMainTree, setSelectedMainTree] = useState('');
+  const navigate = useNavigate();
   const [nodes, setNodes] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editingNode, setEditingNode] = useState(null);
-  const [formData, setFormData] = useState({ ...emptyForm });
-  const [uploading, setUploading] = useState(false);
-  const [uploadingSubDoc, setUploadingSubDoc] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [availableProducts, setAvailableProducts] = useState([]);
+  const [expandedIds, setExpandedIds] = useState(() => new Set());
+  const [productMap, setProductMap] = useState(() => new Map());
   const { addNotification } = useNotification();
 
   useEffect(() => {
-    fetchMainTrees();
+    fetchNodes();
   }, []);
 
   useEffect(() => {
-    if (selectedMainTree) {
-      fetchNodes();
-      fetchProducts();
-    } else {
-      setNodes([]);
-      setAvailableProducts([]);
-    }
-  }, [selectedMainTree]);
-
-  const fetchMainTrees = async () => {
-    try {
-      const res = await adminApi.getMainTrees();
-      const data = res.data?.data;
-      const list = Array.isArray(data) ? data : [];
-      setMainTrees(list);
-      if (list.length > 0 && !selectedMainTree) {
-        setSelectedMainTree(list[0]._id);
+    const loadProducts = async () => {
+      try {
+        const res = await adminApi.getProducts({ limit: 200 });
+        const list = Array.isArray(res.data?.data) ? res.data.data : [];
+        setProductMap(new Map(list.map((p) => [String(p._id), p])));
+      } catch (err) {
+        console.error('Failed to load products', err);
       }
-    } catch (err) {
-      console.error(err);
-    }
-  };
+    };
+    loadProducts();
+  }, []);
 
   const fetchNodes = async () => {
     setLoading(true);
     try {
-      const res = await adminApi.getMarketTrees({ mainTree: selectedMainTree });
+      const res = await adminApi.getMarketTrees();
       setNodes(Array.isArray(res.data?.data) ? res.data.data : []);
     } catch (err) {
       console.error(err);
@@ -268,233 +278,94 @@ const MarketTreeList = () => {
     }
   };
 
-  const fetchProducts = async () => {
-    try {
-      const res = await adminApi.getProducts({ mainTree: selectedMainTree, limit: 200 });
-      const items = Array.isArray(res.data?.data) ? res.data.data : [];
-      setAvailableProducts(items);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
   const filtered = useMemo(() => {
-    if (!search.trim()) return nodes;
-    const q = search.toLowerCase();
-    return nodes.filter(
-      (n) =>
-        n.title?.toLowerCase().includes(q) ||
-        n.titleEn?.toLowerCase().includes(q)
-    );
+    const q = search.toLowerCase().trim();
+    if (!q) return nodes;
+    return nodes.filter((n) => {
+      const inTech = (n.technologies || []).some(
+        (t) =>
+          (t.title || '').toLowerCase().includes(q) ||
+          (t.titleEn || '').toLowerCase().includes(q)
+      );
+      const inApp = (n.applications || []).some(
+        (a) =>
+          (a.title || '').toLowerCase().includes(q) ||
+          (a.titleEn || '').toLowerCase().includes(q)
+      );
+      const inDesc =
+        stripHtml(n.description).toLowerCase().includes(q) ||
+        stripHtml(n.descriptionEn).toLowerCase().includes(q);
+      return (
+        (n.title || '').toLowerCase().includes(q) ||
+        (n.titleEn || '').toLowerCase().includes(q) ||
+        inDesc ||
+        inTech ||
+        inApp
+      );
+    });
   }, [nodes, search]);
 
-  const parents = useMemo(() => filtered.filter((n) => !n.parent), [filtered]);
-  const childMap = useMemo(() => {
-    const map = new Map();
-    for (const n of filtered) {
-      if (n.parent) {
-        const key = String(n.parent);
-        if (!map.has(key)) map.set(key, []);
-        map.get(key).push(n);
-      }
-    }
-    return map;
-  }, [filtered]);
-
-  const resetForm = () =>
-    setFormData({
-      mainTree: selectedMainTree,
-      parent: null,
-      title: '',
-      titleEn: '',
-      description: '',
-      descriptionEn: '',
-      imageUrl: '',
-      order: 0,
-      isActive: true,
-      technologies: [],
-      applications: [],
+  const toggleExpand = (id) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
     });
-
-  const handleAddParent = () => {
-    resetForm();
-    setEditingNode(null);
-    setModalOpen(true);
-  };
-
-  const handleAddChild = (parentNode) => {
-    resetForm();
-    setFormData((prev) => ({ ...prev, parent: parentNode._id }));
-    setEditingNode(null);
-    setModalOpen(true);
-  };
-
-  const handleEdit = (node) => {
-    setEditingNode(node);
-    setFormData({
-      mainTree: selectedMainTree,
-      parent: node.parent || null,
-      title: node.title || '',
-      titleEn: node.titleEn || '',
-      description: node.description || '',
-      descriptionEn: node.descriptionEn || '',
-      imageUrl: node.imageUrl || '',
-      order: node.order ?? 0,
-      isActive: node.isActive !== false,
-      technologies: Array.isArray(node.technologies)
-        ? node.technologies.map((t) => ({
-            ...emptySubDoc,
-            ...t,
-            productIds: [],
-          }))
-        : [],
-      applications: Array.isArray(node.applications)
-        ? node.applications.map((a) => ({
-            ...emptySubDoc,
-            ...a,
-            productIds: Array.isArray(a.productIds) ? a.productIds.map((p) => p?._id || p) : [],
-          }))
-        : [],
-    });
-    setModalOpen(true);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        ...formData,
-        mainTree: selectedMainTree,
-      };
-      if (editingNode) {
-        await adminApi.updateMarketTree(editingNode._id, payload);
-        addNotification('Cập nhật thành công');
-      } else {
-        await adminApi.createMarketTree(payload);
-        addNotification('Thêm thành công');
-      }
-      setModalOpen(false);
-      setEditingNode(null);
-      fetchNodes();
-    } catch (err) {
-      addNotification(err.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    }
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Xóa mục này? (Cả mục con cũng sẽ bị xóa)')) return;
+    if (!confirm('Xóa cây ngành thị trường này?')) return;
     try {
       await adminApi.deleteMarketTree(id);
       addNotification('Xóa thành công');
+      setExpandedIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       fetchNodes();
     } catch (err) {
       addNotification(err.response?.data?.message || 'Có lỗi xảy ra', 'error');
     }
-  };
-
-  const handleImageUpload = async (file) => {
-    setUploading(true);
-    try {
-      const res = await adminApi.uploadImage(file);
-      const url = res?.data?.data?.url;
-      if (url) {
-        setFormData((prev) => ({ ...prev, imageUrl: url }));
-        addNotification('Upload ảnh thành công');
-      }
-    } catch (err) {
-      addNotification('Upload ảnh thất bại', 'error');
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  const handleSubDocImageUpload = async (file, kind, index) => {
-    setUploadingSubDoc(true);
-    try {
-      const res = await adminApi.uploadImage(file);
-      const url = res?.data?.data?.url;
-      if (url) {
-        setFormData((prev) => {
-          const list = [...(prev[kind] || [])];
-          list[index] = { ...list[index], imageUrl: url };
-          return { ...prev, [kind]: list };
-        });
-        addNotification('Upload ảnh thành công');
-      }
-    } catch (err) {
-      addNotification('Upload ảnh thất bại', 'error');
-    } finally {
-      setUploadingSubDoc(false);
-    }
-  };
-
-  const addSubDoc = (kind) => {
-    setFormData((prev) => ({
-      ...prev,
-      [kind]: [...(prev[kind] || []), { ...emptySubDoc, order: (prev[kind] || []).length }],
-    }));
-  };
-
-  const updateSubDoc = (kind, index, item) => {
-    setFormData((prev) => {
-      const list = [...(prev[kind] || [])];
-      list[index] = item;
-      return { ...prev, [kind]: list };
-    });
-  };
-
-  const removeSubDoc = (kind, index) => {
-    setFormData((prev) => {
-      const list = [...(prev[kind] || [])];
-      list.splice(index, 1);
-      return { ...prev, [kind]: list };
-    });
-  };
-
-  const toggleProductSelection = (appIndex, productId) => {
-    setFormData((prev) => {
-      const list = [...(prev.applications || [])];
-      const current = new Set(list[appIndex].productIds || []);
-      if (current.has(productId)) {
-        current.delete(productId);
-      } else {
-        current.add(productId);
-      }
-      list[appIndex] = { ...list[appIndex], productIds: Array.from(current) };
-      return { ...prev, applications: list };
-    });
   };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <SEO title="Cây ngành" description="Quản lý cây ngành" url="/market-trees" />
-      <Header title="Quản lý cây ngành" />
+      <SEO
+        title="Cây ngành thị trường"
+        description="Quản lý cây ngành thị trường"
+        url="/market-trees"
+      />
+      <Header title="Quản lý cây ngành thị trường" />
 
       <div className="p-4">
         <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-gray-700">Cây ngành</h2>
-            <select
-              value={selectedMainTree}
-              onChange={(e) => setSelectedMainTree(e.target.value)}
-              className="input-field text-xs py-1.5 w-64"
-            >
-              {mainTrees.map((t) => (
-                <option key={t._id} value={t._id}>
-                  {t.name} {t.nameEn ? `(${t.nameEn})` : ''}
-                </option>
-              ))}
-            </select>
+            <h2 className="text-sm font-semibold text-gray-700">
+              Cây ngành ({filtered.length})
+            </h2>
+            {expandedIds.size > 0 && (
+              <button
+                onClick={() => setExpandedIds(new Set())}
+                className="text-[10px] text-gray-500 hover:text-gray-700 underline"
+              >
+                Thu gọn tất cả
+              </button>
+            )}
           </div>
           <div className="flex items-center gap-2">
             <div className="relative">
-              <FiSearch size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FiSearch
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 type="text"
-                placeholder="Tìm kiếm..."
+                placeholder="Tìm kiếm tiêu đề, công nghệ, ứng dụng..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className="input-field pl-8 pr-8 text-xs py-1.5 w-52"
+                className="input-field pl-8 pr-8 text-xs py-1.5 w-64"
               />
               {search && (
                 <button
@@ -506,397 +377,216 @@ const MarketTreeList = () => {
               )}
             </div>
             <button
-              onClick={handleAddParent}
+              onClick={() => navigate('/market-trees/new')}
               className="btn-primary flex items-center gap-1 text-xs"
-              disabled={!selectedMainTree}
             >
               <FiPlus size={14} />
-              Thêm danh mục cha
+              Thêm cây ngành
             </button>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card overflow-hidden p-0">
           {loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
             </div>
-          ) : parents.length === 0 ? (
+          ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
               <span className="text-3xl">🌿</span>
-              <p className="text-sm">Chưa có danh mục cha nào trong ngành này.</p>
+              <p className="text-sm">Chưa có cây ngành nào.</p>
               <button
-                onClick={handleAddParent}
+                onClick={() => navigate('/market-trees/new')}
                 className="text-xs text-primary hover:underline"
-                disabled={!selectedMainTree}
               >
-                Thêm danh mục cha đầu tiên
+                Thêm cây ngành đầu tiên
               </button>
             </div>
           ) : (
-            <div className="divide-y">
-              {parents.map((parent) => (
-                <div key={parent._id} className="p-3">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-start gap-2 flex-1 min-w-0">
-                      {parent.imageUrl ? (
-                        <img
-                          src={parent.imageUrl}
-                          alt=""
-                          className="w-9 h-9 rounded object-cover flex-shrink-0"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                          }}
-                        />
-                      ) : (
-                        <div className="w-9 h-9 rounded bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0">
-                          <FiFolder size={16} />
-                        </div>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium">{parent.title}</span>
-                          {parent.titleEn && (
-                            <span className="text-xs text-gray-400">{parent.titleEn}</span>
-                          )}
-                          {parent.isActive === false && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
-                              Ẩn
-                            </span>
-                          )}
-                          {Array.isArray(parent.applications) && parent.applications.length > 0 && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-amber-50 text-amber-600 rounded">
-                              {parent.applications.length} ứng dụng
-                            </span>
-                          )}
-                          {Array.isArray(parent.technologies) && parent.technologies.length > 0 && (
-                            <span className="text-[10px] px-1.5 py-0.5 bg-purple-50 text-purple-600 rounded">
-                              {parent.technologies.length} công nghệ
-                            </span>
-                          )}
-                        </div>
-                        {parent.description && (
-                          <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">
-                            {parent.description}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() => handleAddChild(parent)}
-                        className="p-1 bg-green-50 text-green-600 rounded hover:bg-green-100"
-                        title="Thêm mục con"
-                      >
-                        <FiFolderPlus size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleEdit(parent)}
-                        className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                        title="Sửa"
-                      >
-                        <FiEdit2 size={14} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(parent._id)}
-                        className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                        title="Xóa"
-                      >
-                        <FiTrash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Children */}
-                  {(childMap.get(String(parent._id)) || []).length > 0 && (
-                    <div className="ml-11 mt-2 space-y-1.5 border-l-2 border-gray-100 pl-3">
-                      {childMap.get(String(parent._id)).map((child) => (
-                        <div
-                          key={child._id}
-                          className="flex items-center justify-between gap-2 py-1.5"
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-gray-50 border-b border-gray-200 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    <th className="px-2 py-2 w-8"></th>
+                    <th className="px-2 py-2 w-10">#</th>
+                    <th className="px-2 py-2 w-14">Ảnh</th>
+                    <th className="px-2 py-2 min-w-[220px]">Tiêu đề</th>
+                    <th className="px-2 py-2 hidden lg:table-cell min-w-[180px]">Mô tả</th>
+                    <th className="px-2 py-2 text-center w-16">Nổi bật</th>
+                    <th className="px-2 py-2 text-center w-14">TT</th>
+                    <th className="px-2 py-2 text-center w-20">Hiển thị</th>
+                    <th className="px-2 py-2 min-w-[200px]">
+                      <span className="inline-flex items-center gap-1 normal-case">
+                        <FiCpu size={11} /> Công nghệ
+                      </span>
+                    </th>
+                    <th className="px-2 py-2 min-w-[200px]">
+                      <span className="inline-flex items-center gap-1 normal-case">
+                        <FiPackage size={11} /> Ứng dụng
+                      </span>
+                    </th>
+                    <th className="px-2 py-2 text-center w-14 hidden md:table-cell" title="Sản phẩm">
+                      SP
+                    </th>
+                    <th className="px-2 py-2 text-right w-24">Hành động</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filtered.map((node) => {
+                    const isOpen = expandedIds.has(node._id);
+                    const techCount = (node.technologies || []).length;
+                    const appCount = (node.applications || []).length;
+                    const productCount = (node.applications || []).reduce(
+                      (sum, a) => sum + (Array.isArray(a.productEntries) ? a.productEntries.length : 0),
+                      0
+                    );
+                    const descText = truncate(stripHtml(node.description), 120);
+                    return (
+                      <>
+                        <tr
+                          key={node._id}
+                          className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${
+                            isOpen ? 'bg-blue-50/40' : ''
+                          }`}
                         >
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className="text-gray-400">↳</span>
-                            <span className="text-xs font-medium">{child.title}</span>
-                            {child.titleEn && (
-                              <span className="text-xs text-gray-400">{child.titleEn}</span>
+                          <td className="px-2 py-2 align-middle">
+                            <button
+                              onClick={() => toggleExpand(node._id)}
+                              className="p-1 hover:bg-blue-100 text-blue-600 rounded transition-transform"
+                              title={isOpen ? 'Thu gọn' : 'Mở rộng'}
+                            >
+                              {isOpen ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+                            </button>
+                          </td>
+                          <td className="px-2 py-2 align-middle text-gray-400 font-mono text-[10px]">
+                            {node.order ?? 0}
+                          </td>
+                          <td className="px-2 py-2 align-middle">
+                            {node.imageUrl ? (
+                              <img
+                                src={node.imageUrl}
+                                alt=""
+                                className="w-9 h-9 rounded object-cover border"
+                                onError={(e) => {
+                                  e.currentTarget.style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <div className="w-9 h-9 rounded bg-blue-50 text-blue-600 flex items-center justify-center">
+                                <FiFolder size={16} />
+                              </div>
                             )}
-                            {child.isActive === false && (
+                          </td>
+                          <td className="px-2 py-2 align-middle">
+                            <div className="font-medium text-gray-800 truncate max-w-[280px]">
+                              {node.title || (
+                                <span className="italic text-gray-400">(không tên)</span>
+                              )}
+                            </div>
+                            {node.titleEn && (
+                              <div className="text-[11px] text-gray-500 truncate max-w-[280px] mt-0.5">
+                                {node.titleEn}
+                              </div>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 align-middle hidden lg:table-cell">
+                            <span className="text-gray-500 line-clamp-2 block max-w-[260px]">
+                              {descText || '—'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 align-middle text-center">
+                            {node.isFeatured ? (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded font-semibold">
+                                ★
+                              </span>
+                            ) : (
+                              <span className="text-gray-300">—</span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2 align-middle text-center text-gray-500">
+                            {node.order ?? 0}
+                          </td>
+                          <td className="px-2 py-2 align-middle text-center">
+                            {node.isActive !== false ? (
+                              <span className="text-[10px] px-1.5 py-0.5 bg-green-50 text-green-700 rounded">
+                                Hiện
+                              </span>
+                            ) : (
                               <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
                                 Ẩn
                               </span>
                             )}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <button
-                              onClick={() => handleEdit(child)}
-                              className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                              title="Sửa"
+                          </td>
+                          <td className="px-2 py-2 align-middle">
+                            <PillsList
+                              items={node.technologies}
+                              color="bg-purple-50 text-purple-700 border-purple-100"
+                            />
+                          </td>
+                          <td className="px-2 py-2 align-middle">
+                            <PillsList
+                              items={node.applications}
+                              color="bg-amber-50 text-amber-700 border-amber-100"
+                            />
+                          </td>
+                          <td className="px-2 py-2 align-middle text-center hidden md:table-cell">
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                productCount > 0
+                                  ? 'bg-blue-50 text-blue-700 font-semibold'
+                                  : 'bg-gray-50 text-gray-400'
+                              }`}
                             >
-                              <FiEdit2 size={12} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(child._id)}
-                              className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                              title="Xóa"
-                            >
-                              <FiTrash2 size={12} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ))}
+                              {productCount}
+                            </span>
+                          </td>
+                          <td className="px-2 py-2 align-middle text-right">
+                            <div className="flex items-center justify-end gap-1">
+                              <button
+                                onClick={() =>
+                                  navigate(`/market-trees/${node._id}/edit`)
+                                }
+                                className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                                title="Sửa"
+                              >
+                                <FiEdit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(node._id)}
+                                className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                                title="Xóa"
+                              >
+                                <FiTrash2 size={14} />
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                        <AnimatePresence initial={false}>
+                          {isOpen && (
+                            <tr key={`${node._id}-detail`}>
+                              <td colSpan={12} className="p-0 border-b border-gray-100">
+                                <motion.div
+                                  initial={{ opacity: 0, height: 0 }}
+                                  animate={{ opacity: 1, height: 'auto' }}
+                                  exit={{ opacity: 0, height: 0 }}
+                                  transition={{ duration: 0.18, ease: 'easeOut' }}
+                                  style={{ overflow: 'hidden' }}
+                                >
+                                  <ExpandedDetail node={node} productMap={productMap} />
+                                </motion.div>
+                              </td>
+                            </tr>
+                          )}
+                        </AnimatePresence>
+                      </>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
       </div>
-
-      <Modal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editingNode ? 'Sửa mục' : formData.parent ? 'Thêm mục con' : 'Thêm danh mục cha'}
-        size="lg"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {formData.parent && (
-            <div className="text-xs text-gray-500 bg-blue-50 p-2 rounded">
-              Đang thêm/sửa mục con của danh mục cha đã chọn.
-            </div>
-          )}
-
-          {/* Section: Thông tin cơ bản */}
-          <div className="space-y-3">
-            <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-              Thông tin cơ bản
-            </h3>
-            <div className="grid md:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">
-                  Tiêu đề <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  required
-                  className="input-field"
-                  placeholder="VD: Sơn PU"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Tiêu đề tiếng Anh</label>
-                <input
-                  type="text"
-                  value={formData.titleEn}
-                  onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
-                  className="input-field"
-                  placeholder="PU Coatings"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1">Mô tả</label>
-              <RichEditor
-                value={formData.description}
-                onChange={(value) => setFormData({ ...formData, description: value })}
-                placeholder="Mô tả..."
-                minHeight={140}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1">Mô tả tiếng Anh</label>
-              <RichEditor
-                value={formData.descriptionEn}
-                onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
-                placeholder="English description"
-                minHeight={140}
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1">Hình minh họa</label>
-              <div className="flex items-center gap-2">
-                {formData.imageUrl ? (
-                  <img
-                    src={formData.imageUrl}
-                    alt=""
-                    className="w-12 h-12 rounded object-cover border"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                    <FiImage size={16} />
-                  </div>
-                )}
-                <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
-                  <FiUpload size={12} />
-                  {uploading ? 'Đang upload...' : 'Upload'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file);
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              </div>
-              <input
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                className="input-field mt-2 text-xs"
-                placeholder="Hoặc nhập URL"
-              />
-            </div>
-
-            <div className="flex items-center gap-3">
-              <div>
-                <label className="block text-xs font-medium mb-1">Thứ tự</label>
-                <input
-                  type="number"
-                  value={formData.order}
-                  onChange={(e) => setFormData({ ...formData, order: Number(e.target.value) || 0 })}
-                  className="input-field w-24"
-                />
-              </div>
-              <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
-                <input
-                  type="checkbox"
-                  checked={formData.isActive}
-                  onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
-                  className="rounded"
-                />
-                <span className="text-xs font-medium">Đang hoạt động</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Section: Technologies */}
-          <div className="space-y-2 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1">
-                <FiCpu size={14} />
-                Công nghệ
-              </h3>
-              <button
-                type="button"
-                onClick={() => addSubDoc('technologies')}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                <FiPlus size={12} />
-                Thêm công nghệ
-              </button>
-            </div>
-            {(formData.technologies || []).length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic">Chưa có công nghệ nào.</p>
-            ) : (
-              <div className="space-y-2">
-                {formData.technologies.map((item, idx) => (
-                  <SubDocCard
-                    key={`tech-${idx}`}
-                    item={item}
-                    index={idx}
-                    onUpdate={(next) => updateSubDoc('technologies', idx, next)}
-                    onRemove={() => removeSubDoc('technologies', idx)}
-                    onUpload={(file) => handleSubDocImageUpload(file, 'technologies', idx)}
-                    uploading={uploadingSubDoc}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Section: Applications */}
-          <div className="space-y-2 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1">
-                <FiPackage size={14} />
-                Ứng dụng
-              </h3>
-              <button
-                type="button"
-                onClick={() => addSubDoc('applications')}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                <FiPlus size={12} />
-                Thêm ứng dụng
-              </button>
-            </div>
-            {(formData.applications || []).length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic">Chưa có ứng dụng nào.</p>
-            ) : (
-              <div className="space-y-2">
-                {formData.applications.map((item, idx) => (
-                  <div key={`app-${idx}`} className="space-y-2">
-                    <SubDocCard
-                      item={item}
-                      index={idx}
-                      onUpdate={(next) => updateSubDoc('applications', idx, next)}
-                      onRemove={() => removeSubDoc('applications', idx)}
-                      onUpload={(file) => handleSubDocImageUpload(file, 'applications', idx)}
-                      uploading={uploadingSubDoc}
-                    />
-                    {/* Product picker for this application */}
-                    <div className="ml-3 p-2 bg-white border border-gray-100 rounded">
-                      <label className="block text-[10px] font-medium mb-1 text-gray-600">
-                        Sản phẩm sử dụng ({(item.productIds || []).length} đã chọn)
-                      </label>
-                      {availableProducts.length === 0 ? (
-                        <p className="text-[10px] text-gray-400 italic">
-                          Chưa có sản phẩm trong ngành này.
-                        </p>
-                      ) : (
-                        <div className="max-h-40 overflow-y-auto border border-gray-100 rounded p-1 space-y-1">
-                          {availableProducts.map((p) => {
-                            const checked = (item.productIds || []).includes(p._id);
-                            return (
-                              <label
-                                key={p._id}
-                                className="flex items-center gap-2 text-xs cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={checked}
-                                  onChange={() => toggleProductSelection(idx, p._id)}
-                                  className="rounded w-3 h-3"
-                                />
-                                <span className="truncate">{p.name}</span>
-                              </label>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-3 border-t">
-            <button
-              type="button"
-              onClick={() => setModalOpen(false)}
-              className="btn-secondary text-xs"
-            >
-              Hủy
-            </button>
-            <button type="submit" className="btn-primary text-xs">
-              {editingNode ? 'Cập nhật' : 'Thêm mới'}
-            </button>
-          </div>
-        </form>
-      </Modal>
     </motion.div>
   );
 };

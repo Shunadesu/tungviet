@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { FiArrowLeft, FiBox, FiArrowRight } from 'react-icons/fi';
+import { FiArrowLeft, FiBox, FiArrowRight, FiChevronDown, FiZap, FiSend } from 'react-icons/fi';
 import publicApi from '../api/publicApi';
 import { getLocalizedField } from '../utils/i18nField';
 import { SUPPORTED_LOCALES } from '../i18n';
@@ -13,20 +13,36 @@ import ProductCard from '../components/ProductCard';
 import SectionHeader from '../components/SectionHeader';
 import EmptyState from '../components/EmptyState';
 
+const PAGE_SIZE = 12;
+
+const SORT_OPTIONS = [
+  { id: 'newest', labelKey: 'product.sort.newest' },
+  { id: 'popularity', labelKey: 'product.sort.popular' },
+  { id: 'name_asc', labelKey: 'product.sort.nameAsc' },
+];
+
 const MarketDetail = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { id, lang: urlLang } = useParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
+  const isEN = i18n.language === 'en';
   const [market, setMarket] = useState(null);
   const [products, setProducts] = useState([]);
+  const [productsTotal, setProductsTotal] = useState(0);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [sortBy, setSortBy] = useState('newest');
+  const [sortOpen, setSortOpen] = useState(false);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setNotFound(false);
+    setProducts([]);
+    setVisibleCount(PAGE_SIZE);
     document.title = `${t('common.loading')} | Tungviet`;
 
     const fetchMarket = publicApi
@@ -51,11 +67,14 @@ const MarketDetail = () => {
       });
 
     const fetchProducts = publicApi
-      .getProducts({ lang, market: id, limit: 12 })
+      .getProducts({ lang, market: id, limit: 60, sort: sortBy })
       .then((r) => {
         if (!mounted) return null;
-        const items = Array.isArray(r.data?.data) ? r.data.data : r.data?.data?.items || [];
+        const payload = r.data?.data;
+        const items = Array.isArray(payload) ? payload : payload?.items || [];
+        const total = payload?.pagination?.total;
         setProducts(items);
+        setProductsTotal(Number.isFinite(total) ? total : items.length);
         return items;
       })
       .catch((err) => {
@@ -71,7 +90,7 @@ const MarketDetail = () => {
       mounted = false;
       document.title = t('seo.defaultTitle');
     };
-  }, [id, lang]);
+  }, [id, lang, sortBy, t]);
 
   const tabs = useMemo(
     () => [
@@ -89,9 +108,25 @@ const MarketDetail = () => {
       overview: undefined,
       technologies: Array.isArray(market.technologies) ? market.technologies.length : 0,
       applications: Array.isArray(market.applications) ? market.applications.length : 0,
-      products: products.length,
+      products: productsTotal,
     };
-  }, [market, products]);
+  }, [market, productsTotal]);
+
+  const visibleProducts = useMemo(
+    () => products.slice(0, visibleCount),
+    [products, visibleCount]
+  );
+
+  const handleLoadMore = useCallback(() => {
+    setLoadingMore(true);
+    // Small artificial delay keeps the spinner visible and avoids layout jump.
+    setTimeout(() => {
+      setVisibleCount((c) => c + PAGE_SIZE);
+      setLoadingMore(false);
+    }, 220);
+  }, []);
+
+  const activeSort = SORT_OPTIONS.find((s) => s.id === sortBy) || SORT_OPTIONS[0];
 
   if (loading) {
     return (
@@ -127,7 +162,7 @@ const MarketDetail = () => {
   const applications = Array.isArray(market.applications) ? market.applications : [];
 
   return (
-    <div>
+    <div className="pb-24 md:pb-28">
       <PageHero
         title={name}
         subtitle={description}
@@ -171,44 +206,77 @@ const MarketDetail = () => {
             {t('market.backToList')}
           </Link>
 
-          {market.mainTree && (
-            <div className="mb-6 text-sm text-gray-500">
-              <span className="font-medium">{t('nav.mainTreeMenuTitle')}: </span>
-              <Link
-                to={`/${lang}/products?mainTree=${market.mainTree._id}`}
-                className="text-primary hover:underline"
-              >
-                {getLocalizedField(market.mainTree, lang, 'name', 'nameEn')}
-              </Link>
-            </div>
-          )}
-
           {description && (
-            <div className="prose prose-lg max-w-none text-slate-700 leading-relaxed mb-10">
+            <div className="prose prose-lg max-w-none text-slate-700 leading-relaxed mb-6">
               <p>{description}</p>
             </div>
           )}
 
-          {market.mainTree && (
-            <div className="bg-gradient-to-r from-primary-50 to-primary-100/60 rounded-2xl p-6 md:p-7 flex items-center justify-between gap-4 flex-wrap">
-              <div>
-                <h3 className="text-lg md:text-xl font-semibold text-slate-900 mb-1">
-                  {t('market.productsInMarket')}
-                </h3>
-                <p className="text-sm text-slate-600">
-                  {t('market.featuredProducts')}
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setActiveTab('products')}
-                className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-sm"
-              >
-                {t('common.viewAll')}
-                <FiArrowRight size={14} />
-              </button>
+          {market.introductions?.vi || market.introductions?.en ? (
+            <div className="prose prose-base max-w-none text-slate-700 leading-relaxed mb-10 border-l-4 border-primary-200 pl-4 bg-primary-50/30 rounded-r-lg py-4">
+              <div
+                className="font-medium"
+                dangerouslySetInnerHTML={{
+                  __html: getLocalizedField(
+                    market.introductions,
+                    lang,
+                    'vi',
+                    'en'
+                  ),
+                }}
+              />
             </div>
-          )}
+          ) : null}
+
+          {/* Quote callout — drives the lead-gen journey */}
+          <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-700 text-white rounded-2xl p-6 md:p-8 mb-6 shadow-card">
+            <div
+              aria-hidden="true"
+              className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none"
+            />
+            <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-3 md:gap-4">
+                <span className="hidden md:inline-flex items-center justify-center w-12 h-12 rounded-xl bg-white/15 backdrop-blur-sm flex-shrink-0">
+                  <FiZap size={22} />
+                </span>
+                <div>
+                  <h3 className="text-lg md:text-xl font-semibold mb-1">
+                    {t('market.quoteCallout.title')}
+                  </h3>
+                  <p className="text-sm text-white/85 leading-relaxed max-w-xl">
+                    {t('market.quoteCallout.subtitle', { market: name })}
+                  </p>
+                </div>
+              </div>
+              <Link
+                to={`/${lang}/quote?market=${market._id}`}
+                className="inline-flex items-center gap-2 bg-white text-primary font-semibold px-5 py-2.5 rounded-lg hover:bg-white/90 transition-colors flex-shrink-0 shadow-sm"
+              >
+                <FiSend size={14} />
+                {t('market.quoteCallout.cta')}
+              </Link>
+            </div>
+          </div>
+
+          {/* Featured products CTA — drives traffic to the products tab */}
+          <div className="bg-gradient-to-r from-primary-50 to-primary-100/60 rounded-2xl p-6 md:p-7 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+              <h3 className="text-lg md:text-xl font-semibold text-slate-900 mb-1">
+                {t('market.productsInMarket')}
+              </h3>
+              <p className="text-sm text-slate-600">
+                {t('market.featuredProducts')}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab('products')}
+              className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-lg font-medium hover:bg-primary-700 transition-colors shadow-sm"
+            >
+              {t('common.viewAll')}
+              <FiArrowRight size={14} />
+            </button>
+          </div>
         </section>
       )}
 
@@ -222,10 +290,7 @@ const MarketDetail = () => {
             className="mb-8"
           />
           {technologies.length === 0 ? (
-            <EmptyState
-              icon={FiBox}
-              title={t('market.noTechnologies')}
-            />
+            <EmptyState icon={FiBox} title={t('market.noTechnologies')} />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
               {technologies.map((tech, idx) => (
@@ -236,7 +301,8 @@ const MarketDetail = () => {
         </section>
       )}
 
-      {/* Applications panel */}
+      {/* Applications panel — each card has its own CTA pointing to the
+          filtered product list for that application. */}
       {activeTab === 'applications' && (
         <section className="container-page py-10 md:py-14">
           <SectionHeader
@@ -246,64 +312,159 @@ const MarketDetail = () => {
             className="mb-8"
           />
           {applications.length === 0 ? (
-            <EmptyState
-              icon={FiBox}
-              title={t('market.noApplications')}
-            />
+            <EmptyState icon={FiBox} title={t('market.noApplications')} />
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
               {applications.map((app, idx) => (
-                <MarketAppCard
-                  key={app._id || idx}
-                  app={{ ...app, products: app.productIds || [] }}
-                  index={idx}
-                  lang={lang}
-                />
+                <div key={app._id || idx} className="flex flex-col">
+                  <MarketAppCard app={app} index={idx} lang={lang} />
+                  <Link
+                    to={`/${lang}/products?market=${id}`}
+                    className="mt-3 inline-flex items-center justify-center gap-1.5 text-xs font-semibold text-primary hover:text-primary-700 transition-colors"
+                  >
+                    {t('market.viewAllProducts')}
+                    <FiArrowRight size={12} />
+                  </Link>
+                </div>
               ))}
             </div>
           )}
         </section>
       )}
 
-      {/* Products panel */}
+      {/* Products panel — sort + load more */}
       {activeTab === 'products' && (
         <section className="container-page py-10 md:py-14">
-          <SectionHeader
-            eyebrow={t('market.tabs.products')}
-            title={t('market.tabs.products')}
-            subtitle={
-              products.length > 0
-                ? t('market.productCount', { count: products.length })
-                : ''
-            }
-            align="left"
-            className="mb-8"
-          />
-          {products.length === 0 ? (
-            <EmptyState
-              icon={FiBox}
-              title={t('market.noProducts')}
-            />
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
-              {products.map((product, idx) => (
-                <ProductCard key={product._id} product={product} index={idx} />
-              ))}
+          <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
+                {t('market.tabs.products')}
+              </p>
+              <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+                {t('market.tabs.products')}
+              </h2>
+              {productsTotal > 0 && (
+                <p className="text-sm text-slate-500 mt-1">
+                  {t('market.productCount', { count: productsTotal })}
+                </p>
+              )}
             </div>
-          )}
-          {products.length > 0 && (
-            <div className="mt-10 text-center">
-              <Link
-                to={`/${lang}/products?market=${id}`}
-                className="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:text-primary-700 transition-colors"
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setSortOpen((o) => !o)}
+                className="inline-flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-2 text-xs font-medium text-slate-700 hover:border-primary-300 transition-colors"
               >
-                {t('market.viewAllProducts')}
-                <FiArrowRight size={14} />
-              </Link>
+                <span className="text-slate-500">{t('product.sort.label')}:</span>
+                <span>{t(activeSort.labelKey)}</span>
+                <FiChevronDown
+                  size={14}
+                  className={`transition-transform ${sortOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {sortOpen && (
+                <>
+                  <div
+                    className="fixed inset-0 z-10"
+                    onClick={() => setSortOpen(false)}
+                  />
+                  <div className="absolute right-0 mt-1 z-20 bg-white border border-gray-200 rounded-lg shadow-lg overflow-hidden min-w-[180px]">
+                    {SORT_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setSortBy(opt.id);
+                          setSortOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs hover:bg-primary-50 transition-colors ${
+                          sortBy === opt.id
+                            ? 'bg-primary-50 text-primary font-semibold'
+                            : 'text-slate-700'
+                        }`}
+                      >
+                        {t(opt.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
             </div>
+          </div>
+
+          {products.length === 0 ? (
+            <EmptyState icon={FiBox} title={t('market.noProducts')} />
+          ) : (
+            <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+                {visibleProducts.map((product, idx) => (
+                  <ProductCard key={product._id} product={product} index={idx} />
+                ))}
+              </div>
+              {visibleCount < products.length && (
+                <div className="mt-10 text-center">
+                  <button
+                    type="button"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="inline-flex items-center gap-2 bg-white border border-primary-200 text-primary px-6 py-2.5 rounded-lg font-semibold hover:bg-primary hover:text-white transition-colors disabled:opacity-60"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <span className="inline-block w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                        {t('common.loading')}
+                      </>
+                    ) : (
+                      <>
+                        {t('common.loadMore')}
+                        <FiArrowRight size={14} />
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+              {visibleCount >= products.length && products.length > PAGE_SIZE && (
+                <p className="mt-6 text-center text-xs text-slate-400">
+                  {isEN
+                    ? `You've viewed all ${products.length} products`
+                    : `Bạn đã xem hết ${products.length} sản phẩm`}
+                </p>
+              )}
+            </>
           )}
         </section>
       )}
+
+      {/* Sticky bottom CTA — persists across tabs */}
+      <div className="fixed bottom-0 inset-x-0 z-30 pointer-events-none">
+        <div className="container-page pb-3 md:pb-4">
+          <div className="pointer-events-auto bg-white/90 backdrop-blur border border-primary-100 rounded-2xl shadow-card px-4 md:px-6 py-3 flex items-center justify-between gap-3 flex-wrap">
+            <div className="min-w-0">
+              <p className="text-xs text-slate-500">
+                {isEN ? 'Interested in this market?' : 'Quan tâm tới thị trường này?'}
+              </p>
+              <p className="text-sm font-semibold text-slate-900 truncate">
+                {name}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Link
+                to={`/${lang}/products?market=${id}`}
+                className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-slate-700 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+              >
+                {t('market.viewAllProducts')}
+              </Link>
+              <Link
+                to={`/${lang}/quote?market=${market._id}`}
+                className="inline-flex items-center gap-2 bg-primary text-white text-xs font-semibold px-4 py-2.5 rounded-lg hover:bg-primary-700 transition-colors shadow-sm"
+              >
+                <FiSend size={12} />
+                {isEN ? 'Request quote' : 'Yêu cầu báo giá'}
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Flow Thị trường / Sản phẩm — Zuna Tungviet</title>
+<style>
+  :root {
+    --bg: #0f172a;
+    --panel: #1e293b;
+    --panel-2: #334155;
+    --text: #e2e8f0;
+    --muted: #94a3b8;
+    --primary: #38bdf8;
+    --accent: #f59e0b;
+    --good: #22c55e;
+    --line: #475569;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    scroll-behavior: smooth;
+  }
+  header {
+    position: sticky; top: 0; z-index: 50;
+    background: rgba(15, 23, 42, 0.92);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--line);
+    padding: 14px 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  header h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: 0.3px; }
+  header .hint { color: var(--muted); font-size: 12px; }
+  nav.toc {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  nav.toc a {
+    color: var(--primary); text-decoration: none; font-size: 12px;
+    padding: 6px 10px; border-radius: 999px;
+    border: 1px solid var(--line);
+  }
+  nav.toc a:hover { background: var(--panel); }
+  .slide {
+    min-height: 90vh;
+    padding: 64px 8vw 96px;
+    border-bottom: 1px solid var(--line);
+    display: flex; flex-direction: column; gap: 24px;
+  }
+  .slide:nth-child(odd) { background: linear-gradient(180deg, #0f172a 0%, #111827 100%); }
+  .slide:nth-child(even) { background: linear-gradient(180deg, #111827 0%, #0f172a 100%); }
+  .slide h2 {
+    font-size: 32px; margin: 0; font-weight: 700;
+    background: linear-gradient(90deg, var(--primary), var(--accent));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .slide h3 { font-size: 18px; margin: 0; color: var(--text); }
+  .slide .lead { color: var(--muted); font-size: 15px; max-width: 880px; line-height: 1.6; }
+  .grid {
+    display: grid; gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .card .badge {
+    align-self: flex-start;
+    background: var(--panel-2);
+    color: var(--primary);
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .card h3 { font-size: 16px; margin: 0; }
+  .card p { margin: 0; font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .card ul { margin: 0; padding-left: 18px; font-size: 13px; color: var(--text); }
+  .card li { margin-bottom: 4px; }
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    align-items: stretch;
+  }
+  @media (max-width: 900px) {
+    .flow { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) {
+    .flow { grid-template-columns: 1fr; }
+  }
+  .node {
+    background: var(--panel);
+    border: 2px solid var(--line);
+    border-radius: 14px;
+    padding: 16px;
+    position: relative;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .node .lbl { font-size: 10px; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+  .node h4 { margin: 0; font-size: 18px; color: var(--primary); }
+  .node .meta { font-size: 12px; color: var(--muted); }
+  .node .refs { font-size: 12px; color: var(--text); }
+  .node.l1 { border-color: var(--primary); }
+  .node.l2 { border-color: #a78bfa; }
+  .node.l3 { border-color: var(--accent); }
+  .node.l4 { border-color: var(--good); }
+  .arrow-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-top: -4px;
+  }
+  .arrow {
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    padding: 6px;
+    border-top: 1px dashed var(--line);
+  }
+  @media (max-width: 900px) {
+    .arrow-row { grid-template-columns: 1fr 1fr; }
+  }
+  @media (max-width: 520px) {
+    .arrow-row { grid-template-columns: 1fr; }
+  }
+  .arrow b { color: var(--text); }
+  .mermaid-wrap {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+    overflow-x: auto;
+  }
+  .legend {
+    display: flex; gap: 16px; flex-wrap: wrap;
+    margin-top: 16px;
+    font-size: 12px; color: var(--muted);
+  }
+  .legend .dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+    margin-right: 6px; vertical-align: middle;
+  }
+  table {
+    width: 100%; border-collapse: collapse;
+    background: var(--panel);
+    border-radius: 14px; overflow: hidden;
+    border: 1px solid var(--line);
+  }
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+  }
+  th {
+    background: var(--panel-2);
+    color: var(--text);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+  }
+  td code {
+    background: #0b1220;
+    color: var(--accent);
+    padding: 2px 6px; border-radius: 4px;
+    font-family: "SF Mono", Consolas, monospace;
+    font-size: 12px;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 800px) { .two-col { grid-template-columns: 1fr; } }
+  .pill {
+    display: inline-block;
+    background: var(--panel-2);
+    color: var(--text);
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 11px; margin: 2px 4px 2px 0;
+    border: 1px solid var(--line);
+  }
+  .pill.green { color: var(--good); border-color: var(--good); }
+  .pill.amber { color: var(--accent); border-color: var(--accent); }
+  .pill.violet { color: #a78bfa; border-color: #a78bfa; }
+  .pill.sky { color: var(--primary); border-color: var(--primary); }
+  footer {
+    padding: 32px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--line);
+  }
+  /* Tiny visual cues */
+  .down::after {
+    content: "▼";
+    position: absolute;
+    bottom: -22px; left: 50%;
+    transform: translateX(-50%);
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .right::after {
+    content: "▶";
+    position: absolute;
+    right: -16px; top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted);
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Flow Thị trường &amp; Sản phẩm — Zuna Tungviet</h1>
+  <nav class="toc">
+    <a href="#s1">1. Tổng quan</a>
+    <a href="#s2">2. 4 Layer</a>
+    <a href="#s3">3. Quan hệ</a>
+    <a href="#s4">4. Market → Product</a>
+    <a href="#s5">5. Application sub</a>
+    <a href="#s6">6. Self-ref Parent</a>
+    <a href="#s7">7. Tóm tắt</a>
+  </nav>
+</header>
+
+<!-- Slide 1 -->
+<section class="slide" id="s1">
+  <h2>1. Tổng quan hệ thống phân loại</h2>
+  <p class="lead">
+    Hệ thống tổ chức nội dung theo 4 layer từ rộng → hẹp. Mỗi layer là một Mongoose model,
+    liên kết xuôi (cha → con) và liên kết ngược (con → cha) để truy vấn linh hoạt cả hai chiều.
+  </p>
+  <div class="grid">
+    <div class="card">
+      <span class="badge">Layer 1</span>
+      <h3>MainTree — Ngành dọc</h3>
+      <p>Cấp cao nhất: Adhesives, Coatings, Plastics, Rubber, Inks, Construction…</p>
+      <ul>
+        <li>Slug unique (vd: <code>adhesives</code>)</li>
+        <li>Đa ngôn ngữ VI/EN</li>
+        <li>Icon + cover image</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge">Layer 2</span>
+      <h3>Category — Product Line</h3>
+      <p>Dòng sản phẩm trong một ngành. Mỗi Category thuộc về đúng 1 MainTree.</p>
+      <ul>
+        <li>vd: Hot Melt, Water-based, Solvent-based…</li>
+        <li>Slug (không bắt buộc unique)</li>
+        <li>Trỏ <code>mainTree</code> ngược lên Layer 1</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge">Layer 3</span>
+      <h3>MarketTree — Thị trường / Ứng dụng</h3>
+      <p>Phân khúc thị trường hoặc use-case (Packaging, Automotive, Construction, Footwear…).</p>
+      <ul>
+        <li>Có thể lồng nhau qua <code>parent</code></li>
+        <li>Mỗi Market có <code>applications[]</code> và <code>technologies[]</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge">Layer 4</span>
+      <h3>Product — Sản phẩm cụ thể</h3>
+      <p>Đơn vị sản phẩm cuối cùng với mã, giá, TDS, attributes.</p>
+      <ul>
+        <li>Trỏ về <code>industries[]</code> (MainTree)</li>
+        <li>Trỏ về <code>productLine</code> (Category)</li>
+        <li>Trỏ về <code>marketIds[]</code> (MarketTree)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 2 -->
+<section class="slide" id="s2">
+  <h2>2. Bốn layer &amp; liên kết trực tiếp</h2>
+  <p class="lead">
+    Quan hệ <b>1-n</b> xuôi chiều và <b>ref ngược</b> ở Product để truy vấn 2 chiều không cần aggregate phức tạp.
+  </p>
+
+  <div class="flow">
+    <div class="node l1">
+      <span class="lbl">Layer 1</span>
+      <h4>MainTree</h4>
+      <div class="meta">vd: Adhesives</div>
+      <div class="refs">→ <code>Category.mainTree</code></div>
+    </div>
+    <div class="node l2">
+      <span class="lbl">Layer 2</span>
+      <h4>Category</h4>
+      <div class="meta">vd: Hot Melt</div>
+      <div class="refs">→ <code>Product.productLine</code></div>
+    </div>
+    <div class="node l3">
+      <span class="lbl">Layer 3</span>
+      <h4>MarketTree</h4>
+      <div class="meta">vd: Packaging</div>
+      <div class="refs">→ <code>Product.marketIds[]</code></div>
+    </div>
+    <div class="node l4">
+      <span class="lbl">Layer 4</span>
+      <h4>Product</h4>
+      <div class="meta">vd: Zuna HM-201</div>
+      <div class="refs">ref ngược ↑</div>
+    </div>
+  </div>
+
+  <div class="arrow-row">
+    <div class="arrow"><b>1-n</b> · MainTree → Category</div>
+    <div class="arrow"><b>1-n</b> · Category → Product</div>
+    <div class="arrow"><b>n-n</b> · MarketTree ↔ Product</div>
+    <div class="arrow"><b>refs</b> ngược trong Product</div>
+  </div>
+
+  <div class="grid" style="margin-top:32px">
+    <div class="card">
+      <h3>MainTree → Category</h3>
+      <p><code>Category.mainTree</code> là ObjectId trỏ về MainTree. Một MainTree có nhiều Category.</p>
+      <div>
+        <span class="pill sky">index</span>
+        <span class="pill">populate sâu 1 cấp</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Category → Product</h3>
+      <p><code>Product.productLine</code> trỏ về Category. Một Category có nhiều Product.</p>
+      <div>
+        <span class="pill violet">index</span>
+        <span class="pill">filter nhanh theo Category</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>MarketTree ↔ Product</h3>
+      <p>Quan hệ <b>n-n</b>: <code>MarketTree.applications[].productIds[]</code> + <code>Product.marketIds[]</code>.</p>
+      <div>
+        <span class="pill amber">index marketIds</span>
+        <span class="pill">2 đường truy vấn</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>Product trỏ ngược</h3>
+      <p><code>Product.industries[]</code> trỏ về MainTree, <code>productLine</code> về Category.</p>
+      <div>
+        <span class="pill green">index industries+productLine</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 3 -->
+<section class="slide" id="s3">
+  <h2>3. Quan hệ giữa các model (bảng)</h2>
+  <p class="lead">Bảng dưới liệt kê các field liên kết (FK) giữa 4 model — đọc nhanh để hiểu API nào cần populate gì.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Field</th>
+        <th>Model</th>
+        <th>Trỏ tới</th>
+        <th>Quan hệ</th>
+        <th>Index</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>mainTree</code></td>
+        <td>Category</td>
+        <td>MainTree</td>
+        <td>1-n (MainTree → Category)</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><code>productLine</code></td>
+        <td>Product</td>
+        <td>Category</td>
+        <td>1-n (Category → Product)</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><code>industries[]</code></td>
+        <td>Product</td>
+        <td>MainTree</td>
+        <td>n-1 (Product → MainTree)</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><code>marketIds[]</code></td>
+        <td>Product</td>
+        <td>MarketTree</td>
+        <td>n-n (Product ↔ Market)</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><code>mainTree</code></td>
+        <td>MarketTree</td>
+        <td>MainTree</td>
+        <td>1-n (MainTree → Market)</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><code>parent</code></td>
+        <td>MarketTree</td>
+        <td>MarketTree (self)</td>
+        <td>1-n (Market cha → con)</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td><code>applications[].productIds[]</code></td>
+        <td>MarketTree</td>
+        <td>Product</td>
+        <td>n-n lồng (Market → Product qua Application)</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><code>applications[].linkedMainTree</code></td>
+        <td>MarketTree</td>
+        <td>MainTree</td>
+        <td>1-1 (Application → MainTree)</td>
+        <td>—</td>
+      </tr>
+      <tr>
+        <td><code>applications[].linkedCategory</code></td>
+        <td>MarketTree</td>
+        <td>Category</td>
+        <td>1-1 (Application → Category)</td>
+        <td>—</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- Slide 4 -->
+<section class="slide" id="s4">
+  <h2>4. Hai đường Market → Product</h2>
+  <p class="lead">
+    Từ MarketTree có <b>hai cách</b> đi tới Product: trực tiếp (<code>marketIds[]</code>) hoặc gián tiếp qua <code>applications[]</code>.
+    Mỗi cách phục vụ một use-case khác nhau trên UI.
+  </p>
+  <div class="two-col">
+    <div class="card">
+      <span class="badge amber">Đường trực tiếp</span>
+      <h3>MarketTree.marketIds[] ↔ Product.marketIds[]</h3>
+      <p>Quan hệ n-n đơn giản. Khi user vào trang Market, list "Tất cả sản phẩm của thị trường này" hiển thị.</p>
+      <ul>
+        <li>Filter <code>Product.marketIds = marketId</code></li>
+        <li>Index có sẵn trên <code>marketIds</code></li>
+        <li>Phù hợp cho grid sản phẩm tổng quát</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge violet">Đường gián tiếp</span>
+      <h3>MarketTree.applications[].productIds[]</h3>
+      <p>Mỗi Application là một use-case (vd: "Đóng gói thực phẩm"). CTA dẫn user sang trang Products filter sẵn theo Industry + Product Line.</p>
+      <ul>
+        <li>Mỗi Application có <code>linkedMainTree</code> + <code>linkedCategory</code></li>
+        <li>Filter <code>Product.industries = linkedMainTree</code> AND <code>productLine = linkedCategory</code></li>
+        <li>Phù hợp cho "CTA → Xem sản phẩm phù hợp"</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="grid" style="margin-top:24px">
+    <div class="card">
+      <h3>Ví dụ: Packaging market</h3>
+      <p>
+        <span class="pill amber">marketIds[]</span>
+        <code>Product.marketIds.includes('packagingId')</code><br/>
+        <span class="pill violet">applications[]</span>
+        <code>app.linkedMainTree=adhesives</code>
+        + <code>app.linkedCategory=hotmelt</code>
+      </p>
+    </div>
+    <div class="card">
+      <h3>API gợi ý</h3>
+      <p>
+        <code>GET /api/public/products?marketId=...&amp;industry=...&amp;category=...</code>
+      </p>
+      <p style="margin-top:8px">Frontend dùng query string lọc theo slug/Id từ MainTree / Category / Market.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 5 -->
+<section class="slide" id="s5">
+  <h2>5. Application — sub-document trong MarketTree</h2>
+  <p class="lead">
+    <code>MarketTree.applications</code> là một <b>mảng sub-document</b>. Mỗi phần tử có id riêng và 3 liên kết:
+    <code>productIds[]</code> (sản phẩm gắn trực tiếp), <code>linkedMainTree</code> (industry gợi ý),
+    <code>linkedCategory</code> (product line gợi ý).
+  </p>
+
+  <table>
+    <thead>
+      <tr><th>Field</th><th>Kiểu</th><th>Bắt buộc</th><th>Mục đích</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><code>title</code> / <code>titleEn</code></td><td>String</td><td>✅ (title)</td><td>Tên use-case</td></tr>
+      <tr><td><code>description</code> / <code>descriptionEn</code></td><td>String</td><td>—</td><td>Mô tả chi tiết</td></tr>
+      <tr><td><code>imageUrl</code></td><td>String</td><td>—</td><td>Cover cho card</td></tr>
+      <tr><td><code>order</code></td><td>Number</td><td>—</td><td>Thứ tự hiển thị</td></tr>
+      <tr><td><code>isActive</code></td><td>Boolean</td><td>—</td><td>Bật/tắt Application</td></tr>
+      <tr><td><code>productIds[]</code></td><td>ObjectId[] → Product</td><td>—</td><td>Danh sách sản phẩm highlight</td></tr>
+      <tr><td><code>linkedMainTree</code></td><td>ObjectId → MainTree</td><td>—</td><td>Industry gợi ý cho CTA filter</td></tr>
+      <tr><td><code>linkedCategory</code></td><td>ObjectId → Category</td><td>—</td><td>Product Line gợi ý cho CTA filter</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid" style="margin-top:24px">
+    <div class="card">
+      <span class="badge violet">CTA logic</span>
+      <h3>Cách CTA hoạt động</h3>
+      <p>Khi user click "Xem sản phẩm" trên Application card:</p>
+      <ul>
+        <li>Nếu có <code>linkedCategory</code> → <code>/products?category=&lt;slug&gt;</code></li>
+        <li>Nếu chỉ có <code>linkedMainTree</code> → <code>/products?industry=&lt;slug&gt;</code></li>
+        <li>Ngược lại → <code>/products?marketId=&lt;id&gt;</code> (dùng <code>marketIds[]</code>)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="badge amber">i18n</span>
+      <h3>Đa ngôn ngữ</h3>
+      <p>Mỗi Application có 2 trường cho mỗi text: <code>title</code>/<code>titleEn</code>, <code>description</code>/<code>descriptionEn</code>.</p>
+      <p>Frontend chọn theo locale hiện tại.</p>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 6 -->
+<section class="slide" id="s6">
+  <h2>6. MarketTree.parent — cấu trúc cây</h2>
+  <p class="lead">
+    <code>MarketTree.parent</code> là self-reference (trỏ về chính <code>MarketTree</code>), cho phép dựng cây phân cấp thị trường không giới hạn cấp.
+  </p>
+  <div class="mermaid-wrap">
+    <pre style="margin:0; font-family: 'SF Mono', Consolas, monospace; font-size: 13px; line-height: 1.7; color: var(--text);">
+Automotive (parent: null)
+├── Automotive – Interior (parent: Automotive)
+│   ├── Dashboard bonding (parent: Interior)
+│   └── Seat foam (parent: Interior)
+└── Automotive – Exterior (parent: Automotive)
+    └── Wheel coating (parent: Exterior)
+
+Packaging (parent: null)
+├── Food Packaging (parent: Packaging)
+└── Industrial Packaging (parent: Packaging)
+    </pre>
+  </div>
+
+  <div class="grid" style="margin-top:24px">
+    <div class="card">
+      <h3>Quy tắc</h3>
+      <ul>
+        <li>Root có <code>parent = null</code></li>
+        <li>Child trỏ <code>parent = id cha</code></li>
+        <li>Index <code>{ mainTree: 1, parent: 1, order: 1 }</code> giúp sort theo cây</li>
+        <li>Có thể filter theo <code>parent: null</code> để lấy root</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>UI mapping</h3>
+      <ul>
+        <li><code>Markets.jsx</code> → grid các root</li>
+        <li><code>MarketDetail.jsx</code> → chi tiết + breadcrumb cha → con</li>
+        <li><code>MarketAppCard.jsx</code> → card cho từng Application</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- Slide 7 -->
+<section class="slide" id="s7">
+  <h2>7. Tóm tắt nhanh</h2>
+  <p class="lead">Bốn layer, chín liên kết. Khi build API public:</p>
+
+  <div class="grid">
+    <div class="card">
+      <span class="badge">Endpoint</span>
+      <h3>GET /api/public/main-trees</h3>
+      <p>Trả về danh sách MainTree active, sắp xếp theo <code>order</code>.</p>
+    </div>
+    <div class="card">
+      <span class="badge">Endpoint</span>
+      <h3>GET /api/public/categories?mainTreeId=...</h3>
+      <p>Lọc Category theo MainTree, populate nhẹ nếu cần tên MainTree.</p>
+    </div>
+    <div class="card">
+      <span class="badge">Endpoint</span>
+      <h3>GET /api/public/markets?mainTreeId=...</h3>
+      <p>Trả MarketTree + populate <code>applications.productIds</code> + <code>linkedMainTree</code> + <code>linkedCategory</code>.</p>
+    </div>
+    <div class="card">
+      <span class="badge">Endpoint</span>
+      <h3>GET /api/public/products?marketId|industry|category</h3>
+      <p>Filter linh hoạt: <code>marketIds</code>, <code>industries[]</code>, <code>productLine</code>. Đều có index.</p>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:24px">
+    <h3>Nhớ một dòng</h3>
+    <p style="font-size: 16px;">
+      <span class="pill sky">MainTree</span>
+      <b>1-n</b>
+      <span class="pill violet">Category</span>
+      <b>1-n</b>
+      <span class="pill green">Product</span>
+      <span style="margin: 0 8px; color: var(--muted)">và</span>
+      <span class="pill amber">MarketTree</span>
+      <b>n-n</b>
+      <span class="pill green">Product</span>
+      <span style="margin: 0 8px; color: var(--muted)">qua</span>
+      <span class="pill">applications[].productIds[]</span>
+    </p>
+  </div>
+</section>
+
+<footer>
+  Zuna Tungviet · Flow slide · Cập nhật theo schema hiện tại (MainTree / Category / MarketTree / Product)
+</footer>
+
+</body>
+</html>

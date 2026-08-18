@@ -165,7 +165,7 @@ const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
                         {activeCategories.map((c) => (
                           <Link
                             key={c._id}
-                            to={`/${lang}/products?mainTree=${activeMainTree._id}&category=${c._id}`}
+                            to={`/${lang}/products?industries=${activeMainTree._id}&category=${c._id}`}
                             onClick={close}
                             className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors truncate"
                             title={getLocalizedField(c, lang, 'name', 'nameEn')}

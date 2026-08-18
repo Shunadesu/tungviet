@@ -27,7 +27,15 @@ const RelatedProducts = ({ currentProduct, limit = 4 }) => {
     };
     if (currentProduct.category) params.category = currentProduct.category;
     else if (currentProduct.market) params.market = currentProduct.market;
-    else if (currentProduct.mainTree) params.mainTree = currentProduct.mainTree;
+    else if (Array.isArray(currentProduct.industries) && currentProduct.industries.length > 0) {
+      // Product may belong to multiple industries; query by the first one for
+      // related-products suggestions.
+      const firstIndustryId = currentProduct.industries[0]?._id || currentProduct.industries[0];
+      if (firstIndustryId) params.industries = firstIndustryId;
+    } else if (currentProduct.mainTree) {
+      // Backward-compat for any legacy docs still carrying the old single-id field.
+      params.industries = currentProduct.mainTree;
+    }
 
     publicApi
       .getProducts(params)

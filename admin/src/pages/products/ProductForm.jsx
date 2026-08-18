@@ -1,11 +1,98 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiPackage } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
+
+const MultiIndustrySelect = ({ items, selected, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const selectedIds = Array.isArray(selected) ? selected : [];
+  const selectedSet = new Set(selectedIds);
+  const selectedNodes = items.filter((m) => selectedSet.has(m._id));
+
+  const toggle = (id) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onChange(Array.from(next));
+  };
+
+  const remove = (id, e) => {
+    e.stopPropagation();
+    onChange(selectedIds.filter((x) => x !== id));
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="input-field text-xs flex items-center justify-between w-full"
+      >
+        <span className="truncate text-left flex-1">
+          {selectedNodes.length === 0
+            ? '— Chọn ngành hàng (có thể chọn nhiều) —'
+            : `Đã chọn ${selectedNodes.length} ngành`}
+        </span>
+        {open ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+      </button>
+      {selectedNodes.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {selectedNodes.map((m) => (
+            <span
+              key={m._id}
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-blue-50 text-blue-700 rounded-lg"
+            >
+              {m.name}
+              <button type="button" onClick={(e) => remove(m._id, e)} className="hover:text-red-500">
+                <FiX size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {open && (
+        <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+          {items.length === 0 ? (
+            <p className="text-xs text-gray-400 px-3 py-3">Chưa có ngành hàng nào.</p>
+          ) : (
+            <ul className="py-1">
+              {items.map((m) => (
+                <li key={m._id}>
+                  <label className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(m._id)}
+                      onChange={() => toggle(m._id)}
+                      className="rounded w-3.5 h-3.5"
+                    />
+                    <span className="flex-1 truncate">{m.name}</span>
+                    {m.nameEn && (
+                      <span className="text-[10px] text-gray-400 truncate">{m.nameEn}</span>
+                    )}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const emptyApplication = {
+  title: '',
+  titleEn: '',
+  description: '',
+  descriptionEn: '',
+  imageUrl: '',
+  order: 0,
+  isActive: true,
+};
 
 const MultiMarketSelect = ({ items, selected, onChange, disabled }) => {
   const [open, setOpen] = useState(false);
@@ -94,8 +181,7 @@ const emptyForm = {
   description: '',
   descriptionEn: '',
   imageUrl: '',
-  mainTree: '',
-  productLine: '',
+  industries: [],
   marketIds: [],
   price: 0,
   priceVisible: true,
@@ -118,6 +204,180 @@ const WEB_STATUS_OPTIONS = [
   { value: 'archived', label: 'Lưu trữ' },
 ];
 
+const ApplicationEditor = ({ items, onChange, onUpload, uploading }) => {
+  const updateItem = (idx, patch) => {
+    onChange(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  };
+  const removeItem = (idx) => {
+    onChange(items.filter((_, i) => i !== idx));
+  };
+  const addItem = () => {
+    onChange([...items, { ...emptyApplication, order: items.length }]);
+  };
+
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <label className="block text-xs font-semibold text-gray-700 flex items-center gap-1">
+          <FiPackage size={14} />
+          Ứng dụng sản phẩm (có ảnh + mô tả)
+        </label>
+        <button
+          type="button"
+          onClick={addItem}
+          className="text-xs text-primary hover:underline flex items-center gap-1"
+        >
+          <FiPlus size={12} />
+          Thêm ứng dụng
+        </button>
+      </div>
+      <p className="text-[10px] text-gray-500">
+        Mỗi ứng dụng của sản phẩm. Khi sản phẩm được chọn trong "Ứng dụng" của cây ngành thị trường, bạn sẽ chọn được ứng dụng cụ thể này.
+      </p>
+      {items.length === 0 ? (
+        <p className="text-[11px] text-gray-400 italic">Chưa có ứng dụng nào.</p>
+      ) : (
+        <div className="space-y-2">
+          {items.map((item, idx) => (
+            <div
+              key={`app-${idx}`}
+              className="border border-gray-200 rounded-lg p-3 bg-gray-50/40 space-y-2"
+            >
+              <div className="flex items-center justify-between">
+                <div className="text-xs font-semibold text-gray-700">
+                  #{idx + 1} {item.title || '(Chưa đặt tên)'}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeItem(idx)}
+                  className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                  title="Xóa"
+                >
+                  <FiTrash2 size={12} />
+                </button>
+              </div>
+              <div className="grid md:grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                    Tiêu đề <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={item.title || ''}
+                    onChange={(e) => updateItem(idx, { title: e.target.value })}
+                    className="input-field text-xs"
+                    placeholder="VD: Sơn lót"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                    Tiêu đề tiếng Anh
+                  </label>
+                  <input
+                    type="text"
+                    value={item.titleEn || ''}
+                    onChange={(e) => updateItem(idx, { titleEn: e.target.value })}
+                    className="input-field text-xs"
+                    placeholder="English title"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                  Mô tả
+                </label>
+                <RichEditor
+                  value={item.description || ''}
+                  onChange={(value) => updateItem(idx, { description: value })}
+                  placeholder="Mô tả ứng dụng..."
+                  minHeight={100}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                  Mô tả tiếng Anh
+                </label>
+                <RichEditor
+                  value={item.descriptionEn || ''}
+                  onChange={(value) => updateItem(idx, { descriptionEn: value })}
+                  placeholder="English description"
+                  minHeight={100}
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                  Hình ảnh ứng dụng
+                </label>
+                <div className="flex items-center gap-2">
+                  {item.imageUrl ? (
+                    <img
+                      src={item.imageUrl}
+                      alt=""
+                      className="w-10 h-10 rounded object-cover border"
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded bg-gray-100 text-gray-400 flex items-center justify-center">
+                      <FiImage size={14} />
+                    </div>
+                  )}
+                  <label className="btn-secondary text-[10px] flex items-center gap-1 cursor-pointer">
+                    <FiUpload size={10} />
+                    {uploading ? 'Đang upload...' : 'Upload'}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) onUpload(file, idx);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                  <input
+                    type="url"
+                    value={item.imageUrl || ''}
+                    onChange={(e) => updateItem(idx, { imageUrl: e.target.value })}
+                    className="input-field text-[10px] flex-1"
+                    placeholder="Hoặc URL"
+                  />
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div>
+                  <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+                    Thứ tự
+                  </label>
+                  <input
+                    type="number"
+                    value={item.order ?? 0}
+                    onChange={(e) =>
+                      updateItem(idx, { order: Number(e.target.value) || 0 })
+                    }
+                    className="input-field w-20 text-xs"
+                  />
+                </div>
+                <label className="flex items-center gap-1 cursor-pointer select-none mt-3.5">
+                  <input
+                    type="checkbox"
+                    checked={item.isActive !== false}
+                    onChange={(e) => updateItem(idx, { isActive: e.target.checked })}
+                    className="rounded w-3 h-3"
+                  />
+                  <span className="text-[10px] font-medium">Hiển thị</span>
+                </label>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const ProductForm = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -132,30 +392,20 @@ const ProductForm = () => {
   const [formData, setFormData] = useState({ ...emptyForm });
   const [columns, setColumns] = useState([]);
   const [mainTrees, setMainTrees] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [marketTrees, setMarketTrees] = useState([]);
   const [benefitsTab, setBenefitsTab] = useState('list'); // 'list' | 'text'
   const [newBenefit, setNewBenefit] = useState('');
+  const [applicationUploading, setApplicationUploading] = useState(false);
 
   useEffect(() => {
     fetchColumns();
     fetchMainTrees();
+    fetchMarketTrees();
     if (isEditing) {
       fetchProduct();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
-
-  useEffect(() => {
-    fetchCategories();
-  }, [formData.mainTree]);
-
-  useEffect(() => {
-    if (formData.mainTree) {
-      fetchMarketTrees(formData.mainTree);
-    } else {
-      setMarketTrees([]);
-    }
-  }, [formData.mainTree]);
 
   const fetchColumns = async () => {
     try {
@@ -179,14 +429,14 @@ const ProductForm = () => {
     }
   };
 
-  const fetchCategories = async () => {
+  const fetchMarketTrees = async () => {
     try {
-      const params = formData.mainTree ? { mainTree: formData.mainTree } : undefined;
-      const res = await adminApi.getCategories(params);
-      const items = Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.items || [];
-      setItemsInOrder(items, setCategories);
+      // Load all active markets so the picker isn't blocked when industries change.
+      const res = await adminApi.getMarketTrees();
+      const items = Array.isArray(res.data?.data) ? res.data.data : [];
+      setItemsInOrder(items, setMarketTrees);
     } catch (error) {
-      console.error('Error loading categories:', error);
+      console.error('Error loading market trees:', error);
     }
   };
 
@@ -198,8 +448,10 @@ const ProductForm = () => {
     try {
       const res = await adminApi.getProduct(id);
       const product = res.data.data;
-      const mainTreeId = product.mainTree?._id || product.mainTree || '';
-      const productLineId = product.productLine?._id || product.productLine || '';
+      const industriesRaw = Array.isArray(product.industries) ? product.industries : [];
+      const industries = industriesRaw
+        .map((m) => (m && typeof m === 'object' ? m._id : m))
+        .filter(Boolean);
       const marketIdsRaw = Array.isArray(product.marketIds) ? product.marketIds : [];
       const marketIds = marketIdsRaw
         .map((m) => (m && typeof m === 'object' ? m._id : m))
@@ -211,8 +463,7 @@ const ProductForm = () => {
         description: product.description || '',
         descriptionEn: product.descriptionEn || '',
         imageUrl: product.imageUrl || '',
-        mainTree: mainTreeId,
-        productLine: productLineId,
+        industries,
         marketIds,
         price: product.price ?? 0,
         priceVisible: product.priceVisible !== false,
@@ -224,7 +475,12 @@ const ProductForm = () => {
         attributes: product.attributes && typeof product.attributes === 'object' ? product.attributes : {},
         benefits: product.benefits || [],
         benefitsText: '',
-        applications: product.applications || [],
+        applications: Array.isArray(product.applications)
+          ? product.applications.map((a) => ({
+              ...emptyApplication,
+              ...(typeof a === 'object' && a !== null ? a : { title: String(a || '') }),
+            }))
+          : [],
         tdsUrl: product.tdsUrl || '',
         isActive: product.isActive !== false,
       });
@@ -255,9 +511,10 @@ const ProductForm = () => {
         ...formData,
         attributes: { ...formData.attributes },
         benefits,
-        applications: (formData.applications || []).filter((a) => a.trim()),
-        mainTree: formData.mainTree || null,
-        productLine: formData.productLine || null,
+        applications: (formData.applications || []).filter(
+          (a) => a && (a.title || a.titleEn)
+        ),
+        industries: (formData.industries || []).filter(Boolean),
         marketIds: (formData.marketIds || []).filter(Boolean),
       };
       delete data.benefitsText;
@@ -308,6 +565,27 @@ const ProductForm = () => {
       addNotification(error?.response?.data?.message || 'Upload TDS thất bại', 'error');
     } finally {
       setUploadingTDS(false);
+    }
+  };
+
+  const handleApplicationImageUpload = async (file, index) => {
+    setApplicationUploading(true);
+    try {
+      const res = await adminApi.uploadImage(file);
+      const url = res?.data?.data?.url;
+      if (url) {
+        setFormData((prev) => {
+          const list = [...(prev.applications || [])];
+          if (!list[index]) return prev;
+          list[index] = { ...list[index], imageUrl: url };
+          return { ...prev, applications: list };
+        });
+        addNotification('Upload ảnh thành công');
+      }
+    } catch (error) {
+      addNotification('Upload ảnh thất bại', 'error');
+    } finally {
+      setApplicationUploading(false);
     }
   };
 
@@ -400,51 +678,24 @@ const ProductForm = () => {
               </div>
             </div>
 
-            {/* Phân cấp: Main Tree + Product Line (dependent) */}
+            {/* Phân cấp: Industries (multi) + Product Line (dependent on first industry) */}
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-medium mb-1 text-gray-700">
                   Ngành hàng
                 </label>
-                <select
-                  value={formData.mainTree}
-                  onChange={(e) => setFormData({ ...formData, mainTree: e.target.value, productLine: '', marketIds: [] })}
-                  className="input-field"
-                >
-                  <option value="">— Chọn ngành hàng —</option>
-                  {mainTrees.map((t) => (
-                    <option key={t._id} value={t._id}>
-                      {t.name} {t.nameEn ? `(${t.nameEn})` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1 text-gray-700">
-                  Product line
-                </label>
-                <select
-                  value={formData.productLine}
-                  onChange={(e) => setFormData({ ...formData, productLine: e.target.value })}
-                  className="input-field"
-                  disabled={!formData.mainTree}
-                >
-                  <option value="">— Chọn product line —</option>
-                  {categories.map((c) => (
-                    <option key={c._id} value={c._id}>
-                      {c.name} {c.nameEn ? `(${c.nameEn})` : ''}
-                    </option>
-                  ))}
-                </select>
-                {!formData.mainTree && (
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Chọn ngành hàng trước.
-                  </p>
-                )}
+                <MultiIndustrySelect
+                  items={mainTrees}
+                  selected={formData.industries || []}
+                  onChange={(ids) => setFormData({ ...formData, industries: ids })}
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Có thể chọn nhiều ngành nếu sản phẩm phục vụ nhiều lĩnh vực.
+                </p>
               </div>
             </div>
 
-            {/* Markets (multi-select) */}
+            {/* Markets (multi-select, không phụ thuộc ngành) */}
             <div>
               <label className="block text-xs font-medium mb-1 text-gray-700">
                 Thị trường ứng dụng
@@ -453,10 +704,9 @@ const ProductForm = () => {
                 items={marketTrees}
                 selected={formData.marketIds || []}
                 onChange={(ids) => setFormData({ ...formData, marketIds: ids })}
-                disabled={!formData.mainTree}
               />
               <p className="text-[10px] text-gray-400 mt-1">
-                Chọn các thị trường mà sản phẩm này được sử dụng. Chỉ hiển thị cây ngành thuộc ngành hàng đã chọn.
+                Chọn các thị trường mà sản phẩm này được sử dụng. Có thể chọn nhiều thị trường.
               </p>
             </div>
 
@@ -752,6 +1002,14 @@ const ProductForm = () => {
                 placeholder="English description (optional)"
               />
             </div>
+
+            {/* Applications — list of structured entries */}
+            <ApplicationEditor
+              items={formData.applications || []}
+              onChange={(next) => setFormData({ ...formData, applications: next })}
+              onUpload={handleApplicationImageUpload}
+              uploading={applicationUploading}
+            />
 
             {/* TDS File */}
             <div>

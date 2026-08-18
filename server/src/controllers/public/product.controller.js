@@ -13,7 +13,7 @@ export const getAllProducts = async (req, res, next) => {
     const params = {
       search: req.query.search,
       sort: req.query.sort,
-      mainTree: req.query.mainTree,
+      industries: req.query.industries,
       productLine: req.query.productLine || req.query.category,
       market: req.query.market || req.query.marketIds,
       page: req.query.page,
