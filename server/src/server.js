@@ -117,24 +117,6 @@ connectDB()
         'PostCategory seed done'
       );
 
-      // Seed default MainTree + MarketTree (3-tier hierarchy)
-      const { mainTreeService } = await import('./services/mainTree.service.js');
-      const { marketTreeService } = await import('./services/marketTree.service.js');
-      const mtSeed = await mainTreeService.seedDefaults();
-      logger.info(
-        { skipped: mtSeed.skipped, total: mtSeed.total },
-        'MainTree seed done'
-      );
-      // Seed market tree only after main trees are confirmed to exist
-      const mainCount = await MainTree.countDocuments();
-      if (mainCount > 0) {
-        const mtt = await marketTreeService.seedDefaults();
-        logger.info(
-          { skipped: mtt.skipped, total: mtt.total },
-          'MarketTree seed done'
-        );
-      }
-
       // One-time migration: ensure old Products and Categories have webStatus/mainTree defaults
       const { migrationService } = await import('./services/migration.service.js');
       await migrationService.runHierarchyMigration();

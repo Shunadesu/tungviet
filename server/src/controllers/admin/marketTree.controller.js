@@ -32,22 +32,40 @@ const sanitizeLinkField = (val) => {
   catch (_) { return null; }
 };
 
+const sanitizeSpecifications = (list) =>
+  (Array.isArray(list) ? list : [])
+    .filter((spec) => spec && typeof spec.key === 'string' && spec.key.trim())
+    .map((spec) => ({
+      _id: spec._id || undefined,
+      key: spec.key.trim(),
+      value: typeof spec.value === 'string' ? spec.value : '',
+      valueEn: typeof spec.valueEn === 'string' ? spec.valueEn : '',
+      unit: typeof spec.unit === 'string' ? spec.unit.trim() : '',
+      order: Number.isFinite(Number(spec.order)) ? Number(spec.order) : 0,
+    }));
+
 const sanitizeSubDocPayload = (list) =>
   (Array.isArray(list) ? list : [])
     .filter((s) => s && s.title)
-    .map((s) => ({
-      _id: s._id || undefined,
-      title: s.title || '',
-      titleEn: s.titleEn || '',
-      description: s.description || '',
-      descriptionEn: s.descriptionEn || '',
-      imageUrl: s.imageUrl || '',
-      order: Number.isFinite(Number(s.order)) ? Number(s.order) : 0,
-      isActive: s.isActive !== false,
-      linkToMainTree: sanitizeLinkField(s.linkToMainTree),
-      linkCustomUrl: typeof s.linkCustomUrl === 'string' ? s.linkCustomUrl.trim() : '',
-      productEntries: sanitizeApplicationProductEntries(s.productEntries),
-    }));
+    .map((s) => {
+      const base = {
+        _id: s._id || undefined,
+        title: s.title || '',
+        titleEn: s.titleEn || '',
+        description: s.description || '',
+        descriptionEn: s.descriptionEn || '',
+        imageUrl: s.imageUrl || '',
+        order: Number.isFinite(Number(s.order)) ? Number(s.order) : 0,
+        isActive: s.isActive !== false,
+        linkToMainTree: sanitizeLinkField(s.linkToMainTree),
+        linkCustomUrl: typeof s.linkCustomUrl === 'string' ? s.linkCustomUrl.trim() : '',
+        productEntries: sanitizeApplicationProductEntries(s.productEntries),
+      };
+      if (Array.isArray(s.specifications) || s.specifications !== undefined) {
+        base.specifications = sanitizeSpecifications(s.specifications);
+      }
+      return base;
+    });
 
 export const getAllMarketTrees = async (req, res, next) => {
   try {

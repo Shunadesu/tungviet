@@ -85,59 +85,6 @@ const sortSubDocs = (node) => {
   return node;
 };
 
-const DEFAULT_MARKET_TREES = [
-  {
-    title: 'Sơn gỗ',
-    titleEn: 'Wood Coatings',
-    description: 'Sơn và vecni dùng cho gỗ tự nhiên, gỗ công nghiệp.',
-    descriptionEn: 'Paints and varnishes for natural and engineered wood.',
-    order: 0,
-    technologies: [
-      {
-        title: 'Công nghệ chống thấm nano',
-        titleEn: 'Nano Waterproof Technology',
-        description: 'Công nghệ nano tạo lớp màng chống thấm trên bề mặt gỗ.',
-        descriptionEn: 'Nano technology that creates a waterproof film on wood surfaces.',
-        order: 0,
-      },
-    ],
-    applications: [
-      {
-        title: 'Sơn lót nội thất',
-        titleEn: 'Interior Primer',
-        description: 'Lớp lót tăng độ bám cho sơn phủ PU/NC trên nội thất gỗ.',
-        descriptionEn: 'Primer coat to improve adhesion for PU/NC topcoats on interior wood.',
-        order: 0,
-      },
-    ],
-  },
-  {
-    title: 'Keo công nghiệp',
-    titleEn: 'Industrial Adhesives',
-    description: 'Các dòng keo dùng trong sản xuất công nghiệp.',
-    descriptionEn: 'Adhesive products for industrial manufacturing.',
-    order: 1,
-    technologies: [
-      {
-        title: 'Công nghệ kết dính nhanh',
-        titleEn: 'Fast-Bond Technology',
-        description: 'Công nghệ đông cứng nhanh, rút ngắn thời gian ép.',
-        descriptionEn: 'Rapid curing technology that shortens pressing time.',
-        order: 0,
-      },
-    ],
-    applications: [
-      {
-        title: 'Dán gỗ công nghiệp',
-        titleEn: 'Engineered Wood Bonding',
-        description: 'Ứng dụng kết dính ván MDF, ván dăm, gỗ ghép.',
-        descriptionEn: 'Bonding applications for MDF, particle board, and laminated wood.',
-        order: 0,
-      },
-    ],
-  },
-];
-
 export const marketTreeService = {
   async getPublic({ featuredOnly } = {}) {
     const query = { isActive: true };
@@ -332,26 +279,6 @@ export const marketTreeService = {
     }
 
     throw AppError.badRequest(`Unsupported bulk action: ${action}`);
-  },
-
-  async seedDefaults() {
-    const count = await MarketTree.countDocuments();
-    if (count > 0) return { skipped: true, total: count };
-
-    let order = 0;
-    for (const def of DEFAULT_MARKET_TREES) {
-      await new MarketTree({
-        title: def.title,
-        titleEn: def.titleEn || '',
-        description: def.description || '',
-        descriptionEn: def.descriptionEn || '',
-        order: def.order ?? order++,
-        isActive: true,
-        applications: sanitizeSubDocs(def.applications),
-        technologies: sanitizeSubDocs(def.technologies),
-      }).save();
-    }
-    return { skipped: false, total: await MarketTree.countDocuments() };
   },
 };
 

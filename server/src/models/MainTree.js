@@ -16,6 +16,17 @@ const applicationSubSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const specificationSubSchema = new mongoose.Schema(
+  {
+    key: { type: String, required: true, trim: true },
+    value: { type: String, default: '' },
+    valueEn: { type: String, default: '' },
+    unit: { type: String, default: '', trim: true },
+    order: { type: Number, default: 0 },
+  },
+  { _id: true }
+);
+
 const technologySubSchema = new mongoose.Schema(
   {
     title: { type: String, required: true, trim: true },
@@ -27,6 +38,7 @@ const technologySubSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     linkToMainTree: { type: mongoose.Schema.Types.ObjectId, ref: 'MainTree', default: null },
     linkCustomUrl: { type: String, default: '' },
+    specifications: { type: [specificationSubSchema], default: [] },
   },
   { _id: true }
 );

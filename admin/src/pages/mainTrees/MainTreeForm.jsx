@@ -444,19 +444,7 @@ const MainTreeForm = () => {
     }
     setSaving(true);
     try {
-      const payload = {
-        ...formData,
-        technologies: (formData.technologies || []).map((t) => ({
-          ...t,
-          description: t.description || undefined,
-          descriptionEn: t.descriptionEn || undefined,
-        })),
-        applications: (formData.applications || []).map((a) => ({
-          ...a,
-          description: a.description || undefined,
-          descriptionEn: a.descriptionEn || undefined,
-        })),
-      };
+      const payload = buildSavePayload();
       if (isEditing) {
         await adminApi.updateMainTree(id, payload);
         addNotification('Cập nhật ngành hàng thành công');
@@ -465,6 +453,46 @@ const MainTreeForm = () => {
         addNotification('Thêm ngành hàng thành công');
       }
       navigate('/main-trees');
+    } catch (error) {
+      addNotification(
+        error.response?.data?.message || 'Có lỗi xảy ra',
+        'error'
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const buildSavePayload = () => ({
+    ...formData,
+    technologies: (formData.technologies || []).map((t) => ({
+      ...t,
+      description: t.description || undefined,
+      descriptionEn: t.descriptionEn || undefined,
+    })),
+    applications: (formData.applications || []).map((a) => ({
+      ...a,
+      description: a.description || undefined,
+      descriptionEn: a.descriptionEn || undefined,
+    })),
+  });
+
+  const handleQuickCreateAndNavigate = async (subRoute) => {
+    if (!formData.name.trim()) {
+      addNotification('Vui lòng nhập tên ngành hàng trước khi thêm công nghệ/ứng dụng', 'error');
+      return;
+    }
+    setSaving(true);
+    try {
+      const payload = buildSavePayload();
+      const res = await adminApi.createMainTree(payload);
+      const newId = res?.data?.data?._id;
+      if (!newId) {
+        addNotification('Không thể lấy ID ngành hàng mới', 'error');
+        return;
+      }
+      addNotification('Đã tạo ngành hàng, chuyển đến trang quản lý...');
+      navigate(`/main-trees/${newId}/${subRoute}`);
     } catch (error) {
       addNotification(
         error.response?.data?.message || 'Có lỗi xảy ra',
@@ -726,8 +754,9 @@ const MainTreeForm = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={() => addSubDoc('technologies')}
+                  onClick={() => handleQuickCreateAndNavigate('technologies')}
                   className="text-xs text-primary hover:underline flex items-center gap-1"
+                  disabled={saving}
                 >
                   <FiPlus size={12} />
                   Thêm công nghệ
@@ -796,8 +825,9 @@ const MainTreeForm = () => {
               ) : (
                 <button
                   type="button"
-                  onClick={() => addSubDoc('applications')}
+                  onClick={() => handleQuickCreateAndNavigate('applications')}
                   className="text-xs text-primary hover:underline flex items-center gap-1"
+                  disabled={saving}
                 >
                   <FiPlus size={12} />
                   Thêm ứng dụng

@@ -4,6 +4,7 @@ import { FiCpu, FiArrowDown, FiArrowUp, FiZap, FiCheck, FiArrowRight } from 'rea
 import placeholderProduct from '../assets/placeholder-product.svg';
 import { htmlToText } from '../utils/html';
 import { resolveSubDocLink } from '../utils/subDocLink';
+import SpecificationsTable from './SpecificationsTable';
 
 const SUMMARY_LIMIT = 180;
 
@@ -118,10 +119,16 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
               <p className="text-sm text-slate-600 leading-relaxed break-words whitespace-pre-line">
                 {fullText}
               </p>
+              <SpecificationsTable specs={tech.specifications} lang={lang} />
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+      {!isLong && (
+        <div className="px-5 pb-2">
+          <SpecificationsTable specs={tech.specifications} lang={lang} />
+        </div>
+      )}
 
       {/* Footer: chips (related product count) + toggle + link */}
       <div className="px-5 py-3 mt-auto border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-3 flex-wrap">

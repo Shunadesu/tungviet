@@ -58,33 +58,6 @@ const sortSubDocs = (node) => {
   return node;
 };
 
-const DEFAULT_MAIN_TREES = [
-  {
-    name: 'Hóa chất công nghiệp',
-    nameEn: 'Industrial Chemicals',
-    slug: 'hoa-chat-cong-nghiep',
-    description: 'Các sản phẩm nhựa thông, rosin và hóa chất công nghiệp.',
-    descriptionEn: 'Rosin, resin and industrial chemical products.',
-    order: 0,
-  },
-  {
-    name: 'Sơn & lớp phủ',
-    nameEn: 'Coatings',
-    slug: 'son-va-lop-phu',
-    description: 'Nguyên liệu cho ngành sơn, vecni và lớp phủ công nghiệp.',
-    descriptionEn: 'Raw materials for paints, varnishes and industrial coatings.',
-    order: 1,
-  },
-  {
-    name: 'Keo & chất kết dính',
-    nameEn: 'Adhesives',
-    slug: 'keo-va-chat-ket-dinh',
-    description: 'Giải pháp keo công nghiệp và chất kết dính chuyên dụng.',
-    descriptionEn: 'Industrial adhesive solutions for specialized applications.',
-    order: 2,
-  },
-];
-
 export const mainTreeService = {
   async getPublic({ mainTree } = {}) {
     const query = { isActive: true };
@@ -212,21 +185,6 @@ export const mainTreeService = {
     }
 
     throw AppError.badRequest(`Unsupported bulk action: ${action}`);
-  },
-
-  async seedDefaults() {
-    const count = await MainTree.countDocuments();
-    if (count > 0) {
-      return { skipped: true, total: count };
-    }
-    const seeded = [];
-    for (let i = 0; i < DEFAULT_MAIN_TREES.length; i++) {
-      const def = DEFAULT_MAIN_TREES[i];
-      const doc = new MainTree({ ...def, order: def.order ?? i, isActive: true });
-      await doc.save();
-      seeded.push(doc.toObject());
-    }
-    return { skipped: false, total: seeded.length };
   },
 };
 

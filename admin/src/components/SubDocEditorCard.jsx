@@ -9,8 +9,19 @@ import {
   FiUpload,
   FiLink,
   FiExternalLink,
+  FiList,
+  FiArrowUp,
+  FiArrowDown,
 } from 'react-icons/fi';
 import RichEditor from '../components/RichEditor';
+
+export const emptySpecification = {
+  key: '',
+  value: '',
+  valueEn: '',
+  unit: '',
+  order: 0,
+};
 
 /**
  * Editable card for a sub-document (technology / application).
@@ -26,6 +37,7 @@ export const emptySubDoc = {
   isActive: true,
   linkToMainTree: null,
   linkCustomUrl: '',
+  specifications: [],
 };
 
 export const emptyApplication = {
@@ -268,6 +280,182 @@ const SubDocEditorCard = ({
               </p>
             )}
           </div>
+
+          {kind === 'technologies' && (
+            <SpecificationsEditor
+              specifications={item.specifications || []}
+              onChange={(next) => onUpdate({ ...item, specifications: next })}
+              defaultExpanded={!!item._new}
+            />
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const SpecificationsEditor = ({
+  specifications,
+  onChange,
+  defaultExpanded = false,
+}) => {
+  const [expanded, setExpanded] = useState(
+    defaultExpanded || (specifications || []).length > 0
+  );
+  const specs = specifications || [];
+
+  const updateSpec = (idx, patch) => {
+    const next = specs.map((s, i) => (i === idx ? { ...s, ...patch } : s));
+    onChange(next);
+  };
+
+  const addSpec = () => {
+    onChange([...specs, { ...emptySpecification, order: specs.length }]);
+  };
+
+  const removeSpec = (idx) => {
+    onChange(specs.filter((_, i) => i !== idx));
+  };
+
+  const moveSpec = (idx, direction) => {
+    const next = [...specs];
+    const target = idx + direction;
+    if (target < 0 || target >= next.length) return;
+    [next[idx], next[target]] = [next[target], next[idx]];
+    next.forEach((s, i) => {
+      s.order = i;
+    });
+    onChange(next);
+  };
+
+  return (
+    <div className="border-t border-gray-100 pt-2 mt-2">
+      <div className="flex items-center justify-between mb-1.5">
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          className="flex items-center gap-1 text-[10px] font-semibold text-gray-600 uppercase tracking-wide hover:text-primary transition-colors"
+        >
+          <FiList size={11} className="text-gray-500" />
+          Thông số kỹ thuật ({specs.length})
+          {expanded ? (
+            <FiChevronUp size={10} className="ml-0.5" />
+          ) : (
+            <FiChevronDown size={10} className="ml-0.5" />
+          )}
+        </button>
+        {expanded && (
+          <button
+            type="button"
+            onClick={addSpec}
+            className="inline-flex items-center gap-1 text-[10px] font-medium text-primary hover:underline"
+          >
+            + Thêm thông số
+          </button>
+        )}
+      </div>
+      {expanded && (
+        <div className="space-y-1.5">
+          {specs.length === 0 ? (
+            <p className="text-[10px] text-gray-400 italic py-2">
+              Chưa có thông số. Bấm "+ Thêm thông số" để bắt đầu.
+            </p>
+          ) : (
+            <>
+              <div className="hidden md:grid md:grid-cols-12 gap-1 text-[9px] font-medium text-gray-500 uppercase tracking-wide px-0.5">
+                <div className="col-span-4">Tên thông số</div>
+                <div className="col-span-3">Giá trị (VN)</div>
+                <div className="col-span-3">Giá trị (EN)</div>
+                <div className="col-span-1">Đơn vị</div>
+                <div className="col-span-1 text-right">Thao tác</div>
+              </div>
+              {specs.map((spec, idx) => (
+                <div
+                  key={spec._id || `new-${idx}`}
+                  className="grid grid-cols-1 md:grid-cols-12 gap-1.5 items-start bg-white border border-gray-100 rounded p-2"
+                >
+                  <div className="md:col-span-4">
+                    <label className="md:hidden block text-[9px] font-medium mb-0.5 text-gray-500 uppercase tracking-wide">
+                      Tên thông số
+                    </label>
+                    <input
+                      type="text"
+                      value={spec.key}
+                      onChange={(e) => updateSpec(idx, { key: e.target.value })}
+                      className="input-field text-[11px]"
+                      placeholder="VD: Công suất"
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="md:hidden block text-[9px] font-medium mb-0.5 text-gray-500 uppercase tracking-wide">
+                      Giá trị (VN)
+                    </label>
+                    <input
+                      type="text"
+                      value={spec.value}
+                      onChange={(e) => updateSpec(idx, { value: e.target.value })}
+                      className="input-field text-[11px]"
+                      placeholder="2200"
+                    />
+                  </div>
+                  <div className="md:col-span-3">
+                    <label className="md:hidden block text-[9px] font-medium mb-0.5 text-gray-500 uppercase tracking-wide">
+                      Giá trị (EN)
+                    </label>
+                    <input
+                      type="text"
+                      value={spec.valueEn}
+                      onChange={(e) =>
+                        updateSpec(idx, { valueEn: e.target.value })
+                      }
+                      className="input-field text-[11px]"
+                      placeholder="2200"
+                    />
+                  </div>
+                  <div className="md:col-span-1">
+                    <label className="md:hidden block text-[9px] font-medium mb-0.5 text-gray-500 uppercase tracking-wide">
+                      Đơn vị
+                    </label>
+                    <input
+                      type="text"
+                      value={spec.unit}
+                      onChange={(e) => updateSpec(idx, { unit: e.target.value })}
+                      className="input-field text-[11px]"
+                      placeholder="W"
+                    />
+                  </div>
+                  <div className="md:col-span-1 flex md:justify-end items-center gap-0.5">
+                    <button
+                      type="button"
+                      onClick={() => moveSpec(idx, -1)}
+                      disabled={idx === 0}
+                      className="p-1 text-gray-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Lên"
+                    >
+                      <FiArrowUp size={10} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => moveSpec(idx, 1)}
+                      disabled={idx === specs.length - 1}
+                      className="p-1 text-gray-400 hover:text-primary disabled:opacity-30 disabled:cursor-not-allowed"
+                      title="Xuống"
+                    >
+                      <FiArrowDown size={10} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => removeSpec(idx)}
+                      className="p-1 text-red-500 hover:bg-red-50 rounded"
+                      title="Xóa"
+                    >
+                      <FiTrash2 size={10} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>
