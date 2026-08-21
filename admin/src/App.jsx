@@ -12,8 +12,12 @@ import ProductForm from './pages/products/ProductForm';
 import ProductColumnsSettings from './pages/products/ProductColumnsSettings';
 import MainTreeList from './pages/mainTrees/MainTreeList';
 import MainTreeForm from './pages/mainTrees/MainTreeForm';
+import MainTreeTechEditor from './pages/mainTrees/MainTreeTechEditor';
+import MainTreeAppEditor from './pages/mainTrees/MainTreeAppEditor';
 import MarketTreeList from './pages/marketTrees/MarketTreeList';
 import MarketTreeForm from './pages/marketTrees/MarketTreeForm';
+import MarketTechEditor from './pages/marketTrees/MarketTechEditor';
+import MarketAppEditor from './pages/marketTrees/MarketAppEditor';
 import MemberList from './pages/members/MemberList';
 import MemberForm from './pages/members/MemberForm';
 import LocationList from './pages/locations/LocationList';
@@ -54,9 +58,9 @@ const ProtectedRoute = ({ children }) => {
   }
 
   return (
-    <div className="flex">
+    <div className="flex min-h-screen w-full">
       <Sidebar />
-      <div className="flex-1">
+      <div className="flex-1 min-w-0 flex flex-col">
         {children}
       </div>
     </div>
@@ -111,6 +115,16 @@ function App() {
                   <MainTreeForm />
                 </ProtectedRoute>
               } />
+              <Route path="/main-trees/:id/technologies" element={
+                <ProtectedRoute>
+                  <MainTreeTechEditor />
+                </ProtectedRoute>
+              } />
+              <Route path="/main-trees/:id/applications" element={
+                <ProtectedRoute>
+                  <MainTreeAppEditor />
+                </ProtectedRoute>
+              } />
               <Route path="/market-trees" element={
                 <ProtectedRoute>
                   <MarketTreeList />
@@ -124,6 +138,16 @@ function App() {
               <Route path="/market-trees/:id/edit" element={
                 <ProtectedRoute>
                   <MarketTreeForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/market-trees/:id/technologies" element={
+                <ProtectedRoute>
+                  <MarketTechEditor />
+                </ProtectedRoute>
+              } />
+              <Route path="/market-trees/:id/applications" element={
+                <ProtectedRoute>
+                  <MarketAppEditor />
                 </ProtectedRoute>
               } />
               <Route path="/members" element={

@@ -155,6 +155,7 @@ app.use((req, res, next) => {
     'http://localhost:3000',
     'http://localhost:3001',
     'https://tungvietclient.vercel.app',
+    'https://tungviet.com',
     'https://tungviet.fun',
     'https://www.tungviet.fun',
   ].filter(Boolean);

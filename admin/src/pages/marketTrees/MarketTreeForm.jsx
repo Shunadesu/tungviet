@@ -12,6 +12,8 @@ import {
   FiChevronDown,
   FiChevronUp,
   FiInfo,
+  FiLink,
+  FiExternalLink,
 } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import RichEditor from '../../components/RichEditor';
@@ -27,6 +29,8 @@ const emptySubDoc = {
   imageUrl: '',
   order: 0,
   isActive: true,
+  linkToMainTree: null,
+  linkCustomUrl: '',
 };
 
 const emptyApplication = {
@@ -46,9 +50,10 @@ const emptyForm = {
   isFeatured: false,
   technologies: [],
   applications: [],
+  productEntries: [],
 };
 
-const SubDocCard = ({ item, index, onUpdate, onRemove, onUpload, uploading }) => {
+const SubDocCard = ({ item, index, onUpdate, onRemove, onUpload, uploading, availableMainTrees }) => {
   const [expanded, setExpanded] = useState(false);
 
   return (
@@ -223,6 +228,63 @@ const SubDocCard = ({ item, index, onUpdate, onRemove, onUpload, uploading }) =>
               <span className="text-[10px] font-medium">Hiển thị</span>
             </label>
           </div>
+
+          {/* Link section */}
+          <div className="border-t border-gray-100 pt-2 mt-2">
+            <div className="flex items-center gap-1 mb-1.5">
+              <FiLink size={11} className="text-gray-500" />
+              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                Link tiếp tục đến cây ngành sản phẩm
+              </span>
+            </div>
+            <div className="grid md:grid-cols-2 gap-2">
+              <div>
+                <label className="block text-[10px] font-medium mb-0.5 text-gray-600">
+                  Chọn cây ngành sản phẩm
+                </label>
+                <select
+                  value={item.linkToMainTree || ''}
+                  onChange={(e) =>
+                    onUpdate({
+                      ...item,
+                      linkToMainTree: e.target.value || null,
+                    })
+                  }
+                  className="input-field text-[10px]"
+                >
+                  <option value="">-- Không chọn --</option>
+                  {(availableMainTrees || []).map((mt) => (
+                    <option key={mt._id} value={mt._id}>
+                      {mt.name}
+                      {mt.nameEn ? ` / ${mt.nameEn}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-medium mb-0.5 text-gray-600 flex items-center gap-1">
+                  <FiExternalLink size={10} />
+                  URL tuỳ chỉnh
+                </label>
+                <input
+                  type="text"
+                  value={item.linkCustomUrl || ''}
+                  onChange={(e) =>
+                    onUpdate({ ...item, linkCustomUrl: e.target.value })
+                  }
+                  className="input-field text-[10px]"
+                  placeholder="https://... hoặc /duong-dan"
+                />
+              </div>
+            </div>
+            {(item.linkToMainTree || item.linkCustomUrl) && (
+              <p className="text-[9px] text-gray-400 mt-1">
+                {item.linkCustomUrl
+                  ? 'URL tuỳ chỉnh sẽ được ưu tiên khi hiển thị.'
+                  : 'Click vào cây ngành sản phẩm sẽ chuyển đến trang chi tiết.'}
+              </p>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -307,6 +369,7 @@ const MarketTreeForm = () => {
   const [uploadingSubDoc, setUploadingSubDoc] = useState(false);
 
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [availableMainTrees, setAvailableMainTrees] = useState([]);
   const [formData, setFormData] = useState({ ...emptyForm });
 
   useEffect(() => {
@@ -322,6 +385,19 @@ const MarketTreeForm = () => {
     };
     loadAll();
   }, []);
+
+  useEffect(() => {
+    const loadMainTrees = async () => {
+      try {
+        const res = await adminApi.getMainTrees({ isActive: true });
+        const list = Array.isArray(res.data) ? res.data : res.data?.data || [];
+        setAvailableMainTrees(list.filter((mt) => mt._id !== id));
+      } catch (err) {
+        console.error('Failed to load main trees', err);
+      }
+    };
+    loadMainTrees();
+  }, [id]);
 
   useEffect(() => {
     if (!isEditing || !id) return;
@@ -351,12 +427,16 @@ const MarketTreeForm = () => {
             ? node.technologies.map((t) => ({
                 ...emptySubDoc,
                 ...t,
+                linkToMainTree:
+                  t.linkToMainTree?._id || t.linkToMainTree || null,
               }))
             : [],
           applications: Array.isArray(node.applications)
             ? node.applications.map((a) => ({
                 ...emptyApplication,
                 ...a,
+                linkToMainTree:
+                  a.linkToMainTree?._id || a.linkToMainTree || null,
                 productEntries: Array.isArray(a.productEntries)
                   ? a.productEntries.map((entry) => ({
                       productId:
@@ -368,6 +448,11 @@ const MarketTreeForm = () => {
                         : -1,
                     }))
                   : [],
+              }))
+            : [],
+          productEntries: Array.isArray(node.productEntries)
+            ? node.productEntries.map((entry) => ({
+                productId: entry.productId?._id || entry.productId || null,
               }))
             : [],
         });
@@ -418,6 +503,9 @@ const MarketTreeForm = () => {
               entry.applicationIndex >= 0
           ),
         })),
+        productEntries: (formData.productEntries || []).filter(
+          (entry) => entry.productId
+        ),
       };
       if (isEditing) {
         await adminApi.updateMarketTree(id, payload);
@@ -528,6 +616,28 @@ const MarketTreeForm = () => {
       list[appIndex] = { ...list[appIndex], productEntries: current };
       return { ...prev, applications: list };
     });
+  };
+
+  const addRootProduct = (productId) => {
+    setFormData((prev) => {
+      const current = Array.isArray(prev.productEntries)
+        ? [...prev.productEntries]
+        : [];
+      if (current.some((entry) => String(entry.productId) === String(productId))) {
+        return prev;
+      }
+      current.push({ productId });
+      return { ...prev, productEntries: current };
+    });
+  };
+
+  const removeRootProduct = (productId) => {
+    setFormData((prev) => ({
+      ...prev,
+      productEntries: (prev.productEntries || []).filter(
+        (entry) => String(entry.productId) !== String(productId)
+      ),
+    }));
   };
 
   if (loading) {
@@ -763,6 +873,109 @@ const MarketTreeForm = () => {
             </div>
           </div>
 
+          {/* Section: Sản phẩm sử dụng (cấp cây ngành) */}
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1">
+                <FiPackage size={14} />
+                Sản phẩm sử dụng (cây ngành)
+              </h3>
+              <span className="text-[10px] text-gray-500">
+                {(formData.productEntries || []).length} đã chọn
+              </span>
+            </div>
+            <p className="text-[10px] text-gray-500">
+              Danh sách sản phẩm chính áp dụng cho toàn bộ cây ngành này
+              (ngoài các sản phẩm đã gắn trong từng Ứng dụng).
+            </p>
+
+            {(() => {
+              const usedIds = new Set(
+                (formData.productEntries || []).map((entry) =>
+                  String(entry.productId)
+                )
+              );
+              const candidates = availableProducts.filter(
+                (p) => !usedIds.has(String(p._id))
+              );
+              return candidates.length === 0 ? (
+                <p className="text-[10px] text-gray-400 italic">
+                  {availableProducts.length === 0
+                    ? 'Chưa có sản phẩm nào trong hệ thống.'
+                    : 'Đã thêm tất cả sản phẩm.'}
+                </p>
+              ) : (
+                <select
+                  value=""
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    e.target.value = '';
+                    if (value) addRootProduct(value);
+                  }}
+                  className="input-field text-xs w-full"
+                >
+                  <option value="">-- Chọn sản phẩm để thêm --</option>
+                  {candidates.map((p) => (
+                    <option key={p._id} value={p._id}>
+                      {p.name}
+                      {p.productCode ? ` (${p.productCode})` : ''}
+                    </option>
+                  ))}
+                </select>
+              );
+            })()}
+
+            <div className="space-y-1">
+              {(formData.productEntries || []).map((entry) => {
+                const product = productMap.get(String(entry.productId));
+                return (
+                  <div
+                    key={String(entry.productId)}
+                    className="flex items-start gap-2 p-2 border border-gray-100 rounded bg-white"
+                  >
+                    {product?.imageUrl ? (
+                      <img
+                        src={product.imageUrl}
+                        alt=""
+                        className="w-10 h-10 rounded object-cover border flex-shrink-0"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0">
+                        <FiPackage size={14} />
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-medium truncate">
+                        {product?.name || `Sản phẩm #${entry.productId}`}
+                      </div>
+                      {product?.productCode && (
+                        <div className="text-[10px] text-gray-400 font-mono">
+                          {product.productCode}
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => removeRootProduct(entry.productId)}
+                      className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 flex-shrink-0"
+                      title="Bỏ sản phẩm"
+                    >
+                      <FiTrash2 size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+              {(formData.productEntries || []).length === 0 && (
+                <p className="text-[10px] text-gray-400 italic">
+                  Chưa chọn sản phẩm nào cho cây ngành.
+                </p>
+              )}
+            </div>
+          </div>
+
           {/* Section: Technologies */}
           <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between">
@@ -770,38 +983,38 @@ const MarketTreeForm = () => {
                 <FiCpu size={14} />
                 Công nghệ (technologies)
               </h3>
-              <button
-                type="button"
-                onClick={() => addSubDoc('technologies')}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                <FiPlus size={12} />
-                Thêm công nghệ
-              </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/market-trees/${id}/technologies`)}
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <FiPlus size={12} />
+                  Quản lý công nghệ
+                </button>
+              )}
             </div>
-            {(formData.technologies || []).length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic">
-                Chưa có công nghệ nào.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {formData.technologies.map((item, idx) => (
-                  <SubDocCard
-                    key={`tech-${idx}`}
-                    item={item}
-                    index={idx}
-                    onUpdate={(next) =>
-                      updateSubDoc('technologies', idx, next)
-                    }
-                    onRemove={() => removeSubDoc('technologies', idx)}
-                    onUpload={(file) =>
-                      handleSubDocImageUpload(file, 'technologies', idx)
-                    }
-                    uploading={uploadingSubDoc}
-                  />
-                ))}
+            <button
+              type="button"
+              onClick={() =>
+                isEditing
+                  ? navigate(`/market-trees/${id}/technologies`)
+                  : addSubDoc('technologies')
+              }
+              className="w-full text-left p-3 border border-gray-100 rounded bg-gray-50/40 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-gray-700">
+                    {(formData.technologies || []).length} công nghệ đã cấu hình
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    Bấm để mở trang quản lý chi tiết
+                  </div>
+                </div>
+                <span className="text-primary text-xs">→</span>
               </div>
-            )}
+            </button>
           </div>
 
           {/* Section: Applications */}
@@ -811,116 +1024,38 @@ const MarketTreeForm = () => {
                 <FiPackage size={14} />
                 Ứng dụng (applications)
               </h3>
-              <button
-                type="button"
-                onClick={() => addSubDoc('applications')}
-                className="text-xs text-primary hover:underline flex items-center gap-1"
-              >
-                <FiPlus size={12} />
-                Thêm ứng dụng
-              </button>
+              {isEditing && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/market-trees/${id}/applications`)}
+                  className="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <FiPlus size={12} />
+                  Quản lý ứng dụng
+                </button>
+              )}
             </div>
-            {(formData.applications || []).length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic">
-                Chưa có ứng dụng nào.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {formData.applications.map((item, idx) => {
-                  const usedProductIds = new Set(
-                    (item.productEntries || []).map((entry) =>
-                      String(entry.productId)
-                    )
-                  );
-                  const candidateProducts = availableProducts.filter(
-                    (p) => !usedProductIds.has(String(p._id))
-                  );
-                  return (
-                    <div key={`app-${idx}`} className="space-y-2">
-                      <SubDocCard
-                        item={item}
-                        index={idx}
-                        onUpdate={(next) =>
-                          updateSubDoc('applications', idx, next)
-                        }
-                        onRemove={() => removeSubDoc('applications', idx)}
-                        onUpload={(file) =>
-                          handleSubDocImageUpload(file, 'applications', idx)
-                        }
-                        uploading={uploadingSubDoc}
-                      />
-                      <div className="ml-3 p-2 bg-white border border-gray-100 rounded">
-                        <label className="block text-[10px] font-medium mb-1 text-gray-600">
-                          Sản phẩm sử dụng ({(item.productEntries || []).length} đã chọn)
-                        </label>
-                        {candidateProducts.length === 0 ? (
-                          <p className="text-[10px] text-gray-400 italic">
-                            {availableProducts.length === 0
-                              ? 'Chưa có sản phẩm nào trong hệ thống.'
-                              : 'Đã thêm tất cả sản phẩm.'}
-                          </p>
-                        ) : (
-                          <select
-                            value=""
-                            onChange={(e) => {
-                              const value = e.target.value;
-                              e.target.value = '';
-                              if (value) addAppProduct(idx, value);
-                            }}
-                            className="input-field text-[10px] w-full"
-                          >
-                            <option value="">-- Chọn sản phẩm để thêm --</option>
-                            {candidateProducts.map((p) => (
-                              <option key={p._id} value={p._id}>
-                                {p.name}
-                                {p.productCode ? ` (${p.productCode})` : ''}
-                              </option>
-                            ))}
-                          </select>
-                        )}
-                        <div className="mt-2 space-y-1">
-                          {(item.productEntries || []).map((entry) => (
-                            <ProductEntryRow
-                              key={String(entry.productId)}
-                              productId={entry.productId}
-                              applicationIndex={entry.applicationIndex}
-                              product={productMap.get(String(entry.productId))}
-                              onChange={(next) => {
-                                const list = [
-                                  ...(item.productEntries || []),
-                                ];
-                                const existingIdx = list.findIndex(
-                                  (e) =>
-                                    String(e.productId) ===
-                                    String(next.productId)
-                                );
-                                if (existingIdx >= 0) {
-                                  list[existingIdx] = next;
-                                }
-                                updateAppProductEntries(idx, list);
-                              }}
-                              onRemove={() => {
-                                const list = (item.productEntries || []).filter(
-                                  (e) =>
-                                    String(e.productId) !==
-                                    String(entry.productId)
-                                );
-                                updateAppProductEntries(idx, list);
-                              }}
-                            />
-                          ))}
-                          {(item.productEntries || []).length === 0 && (
-                            <p className="text-[10px] text-gray-400 italic">
-                              Chưa chọn sản phẩm nào.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+            <button
+              type="button"
+              onClick={() =>
+                isEditing
+                  ? navigate(`/market-trees/${id}/applications`)
+                  : addSubDoc('applications')
+              }
+              className="w-full text-left p-3 border border-gray-100 rounded bg-gray-50/40 hover:bg-gray-100 transition-colors"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-gray-700">
+                    {(formData.applications || []).length} ứng dụng đã cấu hình
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    Bấm để mở trang quản lý chi tiết
+                  </div>
+                </div>
+                <span className="text-primary text-xs">→</span>
               </div>
-            )}
+            </button>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t">

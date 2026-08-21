@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCpu, FiArrowDown, FiArrowUp, FiZap, FiCheck } from 'react-icons/fi';
+import { FiCpu, FiArrowDown, FiArrowUp, FiZap, FiCheck, FiArrowRight } from 'react-icons/fi';
 import placeholderProduct from '../assets/placeholder-product.svg';
 import { htmlToText } from '../utils/html';
+import { resolveSubDocLink } from '../utils/subDocLink';
 
 const SUMMARY_LIMIT = 180;
 
@@ -122,8 +123,8 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
         )}
       </AnimatePresence>
 
-      {/* Footer: chips (related product count) + toggle */}
-      <div className="px-5 py-3 mt-auto border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-3">
+      {/* Footer: chips (related product count) + toggle + link */}
+      <div className="px-5 py-3 mt-auto border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 text-xs text-slate-500 min-w-0">
           {Array.isArray(tech.products) && tech.products.length > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white ring-1 ring-gray-200 text-slate-600 font-medium">
@@ -133,19 +134,51 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
           )}
         </div>
 
-        {isLong && (
-          <button
-            type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-            aria-expanded={expanded}
-          >
-            {expanded
-              ? (lang === 'en' ? 'Collapse' : 'Thu gọn')
-              : (lang === 'en' ? 'Read more' : 'Xem thêm')}
-            {expanded ? <FiArrowUp size={12} /> : <FiArrowDown size={12} />}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {(() => {
+            const linkInfo = resolveSubDocLink(tech, lang);
+            if (linkInfo) {
+              const label = lang === 'en' ? 'Learn more' : 'Xem chi tiết';
+              if (linkInfo.external) {
+                return (
+                  <a
+                    href={linkInfo.to}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                  >
+                    {label}
+                    <FiArrowRight size={12} />
+                  </a>
+                );
+              }
+              return (
+                <Link
+                  to={linkInfo.to}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                >
+                  {label}
+                  <FiArrowRight size={12} />
+                </Link>
+              );
+            }
+            return null;
+          })()}
+
+          {isLong && (
+            <button
+              type="button"
+              onClick={() => setExpanded((v) => !v)}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:text-primary-700 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+              aria-expanded={expanded}
+            >
+              {expanded
+                ? (lang === 'en' ? 'Collapse' : 'Thu gọn')
+                : (lang === 'en' ? 'Read more' : 'Xem thêm')}
+              {expanded ? <FiArrowUp size={12} /> : <FiArrowDown size={12} />}
+            </button>
+          )}
+        </div>
       </div>
     </motion.article>
   );

@@ -10,6 +10,8 @@ const applicationSubSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    linkToMainTree: { type: mongoose.Schema.Types.ObjectId, ref: 'MainTree', default: null },
+    linkCustomUrl: { type: String, default: '' },
     productEntries: [
       {
         productId: {
@@ -33,6 +35,8 @@ const technologySubSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
+    linkToMainTree: { type: mongoose.Schema.Types.ObjectId, ref: 'MainTree', default: null },
+    linkCustomUrl: { type: String, default: '' },
   },
   { _id: true }
 );
@@ -60,6 +64,15 @@ const marketTreeSchema = new mongoose.Schema(
     isFeatured: { type: Boolean, default: false, index: true },
     applications: { type: [applicationSubSchema], default: [] },
     technologies: { type: [technologySubSchema], default: [] },
+    productEntries: [
+      {
+        productId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Product',
+          required: true,
+        },
+      },
+    ],
   },
   { timestamps: true }
 );

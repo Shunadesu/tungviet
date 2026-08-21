@@ -9,9 +9,13 @@ import {
   FiX,
   FiArrowUp,
   FiArrowDown,
+  FiEye,
+  FiEyeOff,
 } from 'react-icons/fi';
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
+import DataTable from '../../components/DataTable';
+import ConfirmModal from '../../components/ConfirmModal';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -21,11 +25,19 @@ const MainTreeList = () => {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [deleting, setDeleting] = useState(false);
+  const [toggling, setToggling] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(null);
   const { addNotification } = useNotification();
 
   useEffect(() => {
     fetchTrees();
   }, []);
+
+  useEffect(() => {
+    setSelectedIds([]);
+  }, [search, showInactive]);
 
   const fetchTrees = async () => {
     try {
@@ -57,13 +69,51 @@ const MainTreeList = () => {
   }, [trees, search, showInactive]);
 
   const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa ngành hàng này?')) return;
+    setConfirmDelete({ ids: [id], mode: 'single' });
+  };
+
+  const handleDeleteSelected = async () => {
+    if (selectedIds.length === 0) return;
+    setConfirmDelete({ ids: [...selectedIds], mode: 'bulk' });
+  };
+
+  const executeDelete = async () => {
+    if (!confirmDelete) return;
+    const { ids } = confirmDelete;
+    setDeleting(true);
     try {
-      await adminApi.deleteMainTree(id);
-      addNotification('Xóa ngành hàng thành công');
+      if (ids.length === 1) {
+        await adminApi.deleteMainTree(ids[0]);
+        addNotification('Xóa ngành hàng thành công');
+      } else {
+        const res = await adminApi.bulkMainTrees({ action: 'delete', ids });
+        const deleted = res.data?.deleted ?? ids.length;
+        addNotification(`Đã xóa ${deleted} ngành hàng`);
+      }
+      setConfirmDelete(null);
+      setSelectedIds([]);
       fetchTrees();
     } catch (error) {
-      addNotification(error.response?.data?.message || 'Có lỗi xảy ra', 'error');
+      addNotification(error.response?.data?.message || 'Có lỗi xảy ra khi xóa', 'error');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleToggleActiveSelected = async (value) => {
+    if (selectedIds.length === 0) return;
+    setToggling(true);
+    try {
+      await adminApi.bulkMainTrees({ action: 'toggleActive', ids: selectedIds, isActive: value });
+      addNotification(
+        `Đã cập nhật trạng thái cho ${selectedIds.length} ngành hàng`
+      );
+      setSelectedIds([]);
+      fetchTrees();
+    } catch (error) {
+      addNotification(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật', 'error');
+    } finally {
+      setToggling(false);
     }
   };
 
@@ -86,6 +136,109 @@ const MainTreeList = () => {
     }
   };
 
+  const renderActions = (row) => (
+    <>
+      <button
+        onClick={() => handleMove(row, 'up')}
+        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+        title="Lên"
+      >
+        <FiArrowUp size={12} />
+      </button>
+      <button
+        onClick={() => handleMove(row, 'down')}
+        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+        title="Xuống"
+      >
+        <FiArrowDown size={12} />
+      </button>
+      <button
+        onClick={() => navigate(`/main-trees/${row._id}/edit`)}
+        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        title="Sửa"
+      >
+        <FiEdit2 size={14} />
+      </button>
+      <button
+        onClick={() => handleDelete(row._id)}
+        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+        title="Xóa"
+      >
+        <FiTrash2 size={14} />
+      </button>
+    </>
+  );
+
+  const columns = useMemo(
+    () => [
+      {
+        header: 'STT',
+        accessor: '_id',
+        render: (_, row, idx) => (
+          <span className="text-gray-400 font-mono text-xs">{idx + 1}</span>
+        ),
+      },
+      {
+        header: 'Tên',
+        accessor: 'name',
+        render: (val, row) => (
+          <div className="flex items-center gap-2">
+            {row.iconUrl ? (
+              <img
+                src={row.iconUrl}
+                alt=""
+                className="w-7 h-7 rounded object-cover flex-shrink-0"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-7 h-7 rounded bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs">
+                🌳
+              </div>
+            )}
+            <div className="min-w-0">
+              <div className="text-xs font-medium">{val}</div>
+              {row.nameEn && (
+                <div className="text-[10px] text-gray-400">{row.nameEn}</div>
+              )}
+              {row.isActive === false && (
+                <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
+                  Tạm ẩn
+                </span>
+              )}
+            </div>
+          </div>
+        ),
+      },
+      {
+        header: 'Slug',
+        accessor: 'slug',
+        render: (val) => <span className="text-gray-500">{val}</span>,
+      },
+      {
+        header: 'Mô tả',
+        accessor: 'description',
+        render: (val) => (
+          <span className="text-gray-500 max-w-xs truncate inline-block align-middle" title={val}>
+            {val || '—'}
+          </span>
+        ),
+      },
+      {
+        header: 'Thứ tự',
+        accessor: 'order',
+        render: (val) => (
+          <span className="text-xs text-center block">{val ?? 0}</span>
+        ),
+        className: 'text-center',
+      },
+    ],
+    []
+  );
+
+  const hasSelection = selectedIds.length > 0;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <SEO title="Cây ngành sản phẩm" description="Quản lý cây ngành sản phẩm" url="/main-trees" />
@@ -99,7 +252,35 @@ const MainTreeList = () => {
               ({filtered.length} {showInactive ? '' : 'đang hoạt động'})
             </span>
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {hasSelection && (
+              <>
+                <button
+                  onClick={() => handleToggleActiveSelected(true)}
+                  disabled={toggling || deleting}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100 disabled:opacity-50"
+                >
+                  <FiEye size={14} />
+                  Hiện ({selectedIds.length})
+                </button>
+                <button
+                  onClick={() => handleToggleActiveSelected(false)}
+                  disabled={toggling || deleting}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-amber-50 text-amber-700 rounded hover:bg-amber-100 disabled:opacity-50"
+                >
+                  <FiEyeOff size={14} />
+                  Ẩn ({selectedIds.length})
+                </button>
+                <button
+                  onClick={handleDeleteSelected}
+                  disabled={deleting || toggling}
+                  className="btn-danger flex items-center gap-1 text-xs"
+                >
+                  <FiTrash2 size={14} />
+                  Xóa ({selectedIds.length})
+                </button>
+              </>
+            )}
             <label className="flex items-center gap-1.5 text-xs text-gray-500 cursor-pointer select-none">
               <input
                 type="checkbox"
@@ -158,100 +339,32 @@ const MainTreeList = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="table-header">
-                    <th className="px-2 py-2 text-left text-xs w-12">#</th>
-                    <th className="px-2 py-2 text-left text-xs">Tên</th>
-                    <th className="px-2 py-2 text-left text-xs">Slug</th>
-                    <th className="px-2 py-2 text-left text-xs">Mô tả</th>
-                    <th className="px-2 py-2 text-center text-xs">Thứ tự</th>
-                    <th className="px-2 py-2 text-right text-xs">Thao tác</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((tree, idx) => (
-                    <tr key={tree._id} className="table-row">
-                      <td className="px-2 py-2 text-xs text-gray-400 font-mono">{idx + 1}</td>
-                      <td className="px-2 py-2">
-                        <div className="flex items-center gap-2">
-                          {tree.iconUrl ? (
-                            <img
-                              src={tree.iconUrl}
-                              alt=""
-                              className="w-7 h-7 rounded object-cover"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <div className="w-7 h-7 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
-                              🌳
-                            </div>
-                          )}
-                          <div className="min-w-0">
-                            <div className="text-xs font-medium">{tree.name}</div>
-                            {tree.nameEn && (
-                              <div className="text-[10px] text-gray-400">{tree.nameEn}</div>
-                            )}
-                            {tree.isActive === false && (
-                              <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
-                                Tạm ẩn
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-2 py-2 text-xs text-gray-500">{tree.slug}</td>
-                      <td className="px-2 py-2 text-xs text-gray-500 max-w-xs truncate">
-                        {tree.description || '—'}
-                      </td>
-                      <td className="px-2 py-2 text-center">
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            onClick={() => handleMove(tree, 'up')}
-                            className="p-1 text-gray-500 hover:bg-gray-100 rounded"
-                            title="Lên"
-                          >
-                            <FiArrowUp size={12} />
-                          </button>
-                          <span className="text-xs">{tree.order ?? 0}</span>
-                          <button
-                            onClick={() => handleMove(tree, 'down')}
-                            className="p-1 text-gray-500 hover:bg-gray-100 rounded"
-                            title="Xuống"
-                          >
-                            <FiArrowDown size={12} />
-                          </button>
-                        </div>
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <div className="flex justify-end gap-1">
-                          <button
-                            onClick={() => navigate(`/main-trees/${tree._id}/edit`)}
-                            className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
-                            title="Sửa"
-                          >
-                            <FiEdit2 size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(tree._id)}
-                            className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                            title="Xóa"
-                          >
-                            <FiTrash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              columns={columns}
+              data={filtered}
+              actions={renderActions}
+              selectable
+              selected={selectedIds}
+              onSelectChange={setSelectedIds}
+            />
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={Boolean(confirmDelete)}
+        onClose={() => !deleting && setConfirmDelete(null)}
+        onConfirm={executeDelete}
+        title="Xóa ngành hàng"
+        message={
+          confirmDelete?.ids.length === 1
+            ? 'Bạn có chắc muốn xóa ngành hàng này?'
+            : `Bạn có chắc muốn xóa ${confirmDelete?.ids.length ?? 0} ngành hàng đã chọn? Hành động này không thể hoàn tác.`
+        }
+        confirmText="Xóa"
+        confirmStyle="danger"
+        loading={deleting}
+      />
     </motion.div>
   );
 };

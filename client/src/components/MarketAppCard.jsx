@@ -3,6 +3,7 @@ import { FiPackage, FiArrowRight } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import placeholderProduct from '../assets/placeholder-product.svg';
 import { htmlToText } from '../utils/html';
+import { resolveSubDocLink } from '../utils/subDocLink';
 
 const MarketAppCard = ({ app, index = 0, lang }) => {
   const entries = Array.isArray(app.productEntries)
@@ -62,6 +63,36 @@ const MarketAppCard = ({ app, index = 0, lang }) => {
           {htmlToText(app.description || app.descriptionEn)}
         </p>
       )}
+
+      {(() => {
+        const linkInfo = resolveSubDocLink(app, lang);
+        if (linkInfo) {
+          const label = lang === 'en' ? 'Learn more' : 'Tìm hiểu thêm';
+          if (linkInfo.external) {
+            return (
+              <a
+                href={linkInfo.to}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-xs font-semibold text-accent-700 hover:text-accent-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded self-start"
+              >
+                {label}
+                <FiArrowRight size={11} />
+              </a>
+            );
+          }
+          return (
+            <Link
+              to={linkInfo.to}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-accent-700 hover:text-accent-800 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent rounded self-start"
+            >
+              {label}
+              <FiArrowRight size={11} />
+            </Link>
+          );
+        }
+        return null;
+      })()}
 
       {previewProducts.length > 0 && (
         <div className="mt-auto pt-3 border-t border-accent-100/80">

@@ -342,7 +342,7 @@ const Sidebar = () => {
     <motion.aside
       initial={{ x: -20, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
-      className={`bg-white border-r min-h-screen ${collapsed ? 'w-16' : 'w-56'} transition-all duration-300 flex flex-col`}
+      className={`bg-white border-r min-h-screen sticky top-0 h-screen ${collapsed ? 'w-16' : 'w-56'} transition-all duration-300 flex flex-col flex-shrink-0`}
     >
       {/* Logo */}
       <div className="flex items-center justify-between p-3 border-b flex-shrink-0">

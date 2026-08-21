@@ -6,6 +6,7 @@ import {
   updateMainTree,
   deleteMainTree,
   reorderMainTrees,
+  bulkMainTrees,
 } from '../../controllers/admin/mainTree.controller.js';
 import { adminAuth } from '../../middlewares/auth.js';
 
@@ -41,6 +42,31 @@ router.post('/', adminAuth, createMainTree);
  *       200: { description: OK }
  */
 router.post('/reorder', adminAuth, reorderMainTrees);
+
+/**
+ * @openapi
+ * /api/admin/main-trees/bulk:
+ *   post:
+ *     tags: [Admin - Main Trees]
+ *     summary: Thao tác hàng loạt (xóa / bật tắt hiển thị)
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               action: { type: string, enum: [delete, toggleActive] }
+ *               ids:
+ *                 type: array
+ *                 items: { type: string }
+ *               isActive: { type: boolean }
+ *     responses:
+ *       200: { description: OK }
+ *       400: { description: Yêu cầu không hợp lệ }
+ */
+router.post('/bulk', adminAuth, bulkMainTrees);
 
 /**
  * @openapi

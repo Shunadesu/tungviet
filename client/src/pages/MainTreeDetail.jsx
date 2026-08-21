@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { FiArrowLeft, FiArrowRight, FiBox, FiGrid } from 'react-icons/fi';
+import { FiArrowLeft, FiArrowRight, FiBox, FiGrid, FiCpu, FiPackage } from 'react-icons/fi';
 import publicApi from '../api/publicApi';
 import { getLocalizedField } from '../utils/i18nField';
 import { SUPPORTED_LOCALES } from '../i18n';
@@ -13,6 +13,8 @@ import SectionHeader from '../components/SectionHeader';
 import LoadMore from '../components/LoadMore';
 import SEO from '../components/SEO';
 import { sanitizeHtml } from '../utils/sanitize';
+import MarketTechCard from '../components/MarketTechCard';
+import MarketAppCard from '../components/MarketAppCard';
 
 const PAGE_SIZE = 12;
 
@@ -179,6 +181,59 @@ const MainTreeDetail = () => {
           />
         </section>
       )}
+
+      {(() => {
+        const technologies = Array.isArray(mainTree.technologies) ? mainTree.technologies : [];
+        const applications = Array.isArray(mainTree.applications) ? mainTree.applications : [];
+
+        if (technologies.length === 0 && applications.length === 0) return null;
+
+        return (
+          <section className="container-page mb-10 space-y-10">
+            {technologies.length > 0 && (
+              <div>
+                <SectionHeader
+                  eyebrow={lang === 'en' ? 'Technology' : 'Công nghệ'}
+                  title={lang === 'en' ? 'Technologies' : 'Các công nghệ'}
+                  align="left"
+                  className="mb-6"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {technologies.map((tech, idx) => (
+                    <MarketTechCard
+                      key={tech._id || idx}
+                      tech={tech}
+                      index={idx}
+                      lang={lang}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {applications.length > 0 && (
+              <div>
+                <SectionHeader
+                  eyebrow={lang === 'en' ? 'Application' : 'Ứng dụng'}
+                  title={lang === 'en' ? 'Applications' : 'Các ứng dụng'}
+                  align="left"
+                  className="mb-6"
+                />
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+                  {applications.map((app, idx) => (
+                    <MarketAppCard
+                      key={app._id || idx}
+                      app={app}
+                      index={idx}
+                      lang={lang}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </section>
+        );
+      })()}
 
       <Link
         to={`/${lang}/main-trees`}

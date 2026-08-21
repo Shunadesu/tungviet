@@ -31,6 +31,14 @@ export const apiResponse = {
     if (message) body.message = message;
     return res.status(200).json(body);
   },
+
+  badRequest(res, message = 'Yêu cầu không hợp lệ', code = 'BAD_REQUEST') {
+    return res.status(400).json({ success: false, message, code });
+  },
+
+  notFound(res, message = 'Không tìm thấy', code = 'NOT_FOUND') {
+    return res.status(404).json({ success: false, message, code });
+  },
 };
 
 export const buildPagination = (page = 1, limit = 20, total = 0) => ({

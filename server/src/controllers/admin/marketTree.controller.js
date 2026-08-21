@@ -1,24 +1,36 @@
 import { marketTreeService } from '../../services/marketTree.service.js';
 import { apiResponse } from '../../utils/apiResponse.js';
 
-const sanitizeProductEntries = (entries = []) =>
+const sanitizeApplicationProductEntries = (entries = []) =>
   (Array.isArray(entries) ? entries : [])
     .map((entry) => {
-      const productId =
-        entry?.productId?._id || entry?.productId
-          ? String(entry.productId?._id || entry.productId)
-          : null;
-      const rawIndex =
-        entry && (entry.applicationIndex ?? entry.applicationIndex === 0)
-          ? entry.applicationIndex
-          : -1;
-      const applicationIndex = Number.isFinite(Number(rawIndex))
-        ? Number(rawIndex)
+      const productId = entry?.productId?._id || entry?.productId
+        ? String(entry.productId?._id || entry.productId)
+        : null;
+      const applicationIndex = Number.isFinite(Number(entry?.applicationIndex))
+        ? Number(entry.applicationIndex)
         : -1;
       if (!productId || applicationIndex < 0) return null;
       return { productId, applicationIndex };
     })
     .filter(Boolean);
+
+const sanitizeRootProductEntries = (entries = []) =>
+  (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      const productId = entry?.productId?._id || entry?.productId
+        ? String(entry.productId?._id || entry.productId)
+        : null;
+      return productId ? { productId } : null;
+    })
+    .filter(Boolean);
+
+const sanitizeLinkField = (val) => {
+  if (!val) return null;
+  const raw = val?._id || val;
+  try { return String(raw) || null; }
+  catch (_) { return null; }
+};
 
 const sanitizeSubDocPayload = (list) =>
   (Array.isArray(list) ? list : [])
@@ -32,7 +44,9 @@ const sanitizeSubDocPayload = (list) =>
       imageUrl: s.imageUrl || '',
       order: Number.isFinite(Number(s.order)) ? Number(s.order) : 0,
       isActive: s.isActive !== false,
-      productEntries: sanitizeProductEntries(s.productEntries),
+      linkToMainTree: sanitizeLinkField(s.linkToMainTree),
+      linkCustomUrl: typeof s.linkCustomUrl === 'string' ? s.linkCustomUrl.trim() : '',
+      productEntries: sanitizeApplicationProductEntries(s.productEntries),
     }));
 
 export const getAllMarketTrees = async (req, res, next) => {
@@ -61,6 +75,7 @@ export const createMarketTree = async (req, res, next) => {
       ...req.body,
       applications: sanitizeSubDocPayload(req.body?.applications),
       technologies: sanitizeSubDocPayload(req.body?.technologies),
+      productEntries: sanitizeRootProductEntries(req.body?.productEntries),
     };
     const tree = await marketTreeService.create(payload);
     return apiResponse.created(res, tree, 'Tạo cây ngành thành công');
@@ -77,6 +92,9 @@ export const updateMarketTree = async (req, res, next) => {
     }
     if (req.body?.technologies !== undefined) {
       payload.technologies = sanitizeSubDocPayload(req.body.technologies);
+    }
+    if (req.body?.productEntries !== undefined) {
+      payload.productEntries = sanitizeRootProductEntries(req.body.productEntries);
     }
     const tree = await marketTreeService.update(req.params.id, payload);
     if (!tree) return apiResponse.notFound(res, 'Cây ngành không tồn tại');
@@ -103,6 +121,16 @@ export const reorderMarketTrees = async (req, res, next) => {
     }
     await marketTreeService.reorder(order);
     return apiResponse.ok(res, null, 'Cập nhật thứ tự thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const bulkMarketTrees = async (req, res, next) => {
+  try {
+    const { action, ids, isActive } = req.body || {};
+    const result = await marketTreeService.bulk({ action, ids, isActive });
+    return apiResponse.ok(res, result, 'Thao tác hàng loạt thành công');
   } catch (err) {
     next(err);
   }

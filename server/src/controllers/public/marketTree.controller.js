@@ -41,6 +41,8 @@ const localizeSubDoc = (doc, locale) => {
   if (!doc) return doc;
   const out = localizeFields(doc, locale, LOCALIZABLE_FIELDS);
   out.productEntries = localizeProductEntries(doc.productEntries, locale);
+  out.linkToMainTree = doc.linkToMainTree || null;
+  out.linkCustomUrl = doc.linkCustomUrl || '';
   return out;
 };
 
@@ -57,15 +59,15 @@ const localizeNode = (node, locale) => {
   } else {
     localized.introductions = { vi: '', en: '' };
   }
-  if (Array.isArray(node.applications)) {
-    localized.applications = node.applications
-      .filter((a) => a && a.isActive !== false)
-      .map((a) => localizeSubDoc(a, locale));
-  }
   if (Array.isArray(node.technologies)) {
     localized.technologies = node.technologies
       .filter((t) => t && t.isActive !== false)
       .map((t) => localizeSubDoc(t, locale));
+  }
+  if (Array.isArray(node.applications)) {
+    localized.applications = node.applications
+      .filter((a) => a && a.isActive !== false)
+      .map((a) => localizeSubDoc(a, locale));
   }
   return localized;
 };

@@ -6,6 +6,7 @@ import {
   updateMarketTree,
   deleteMarketTree,
   reorderMarketTrees,
+  bulkMarketTrees,
 } from '../../controllers/admin/marketTree.controller.js';
 import { adminAuth } from '../../middlewares/auth.js';
 
@@ -45,6 +46,31 @@ router.post('/', adminAuth, createMarketTree);
  *       200: { description: OK }
  */
 router.post('/reorder', adminAuth, reorderMarketTrees);
+
+/**
+ * @openapi
+ * /api/admin/market-trees/bulk:
+ *   post:
+ *     tags: [Admin - Market Trees]
+ *     summary: Thao tác hàng loạt (xóa / bật tắt hiển thị)
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               action: { type: string, enum: [delete, toggleActive] }
+ *               ids:
+ *                 type: array
+ *                 items: { type: string }
+ *               isActive: { type: boolean }
+ *     responses:
+ *       200: { description: OK }
+ *       400: { description: Yêu cầu không hợp lệ }
+ */
+router.post('/bulk', adminAuth, bulkMarketTrees);
 
 /**
  * @openapi

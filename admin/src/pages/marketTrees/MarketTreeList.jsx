@@ -17,6 +17,8 @@ import {
 } from 'react-icons/fi';
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
+import BulkActionBar from '../../components/BulkActionBar';
+import ConfirmModal from '../../components/ConfirmModal';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 
@@ -146,6 +148,7 @@ const PillsList = ({ items, color, accent = '' }) => {
 const ExpandedDetail = ({ node, productMap }) => {
   const technologies = Array.isArray(node.technologies) ? node.technologies : [];
   const applications = Array.isArray(node.applications) ? node.applications : [];
+  const rootProducts = Array.isArray(node.productEntries) ? node.productEntries : [];
   const descVi = truncate(stripHtml(node.description), 280);
   const descEn = truncate(stripHtml(node.descriptionEn), 280);
   const introVi = truncate(stripHtml(node.introductions?.vi), 280);
@@ -202,6 +205,56 @@ const ExpandedDetail = ({ node, productMap }) => {
           <div>
             <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
               <FiPackage size={11} />
+              Sản phẩm cấp cây ngành ({rootProducts.length})
+            </h4>
+            {rootProducts.length === 0 ? (
+              <p className="text-[11px] text-gray-400 italic">
+                Chưa chọn sản phẩm nào cho cây ngành.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {rootProducts.map((entry, idx) => {
+                  const productId = entry.productId?._id || entry.productId;
+                  const product = productMap.get(String(productId));
+                  return (
+                    <div
+                      key={`root-prod-${idx}`}
+                      className="flex items-center gap-2 p-1.5 bg-white border border-gray-100 rounded"
+                    >
+                      {product?.imageUrl ? (
+                        <img
+                          src={product.imageUrl}
+                          alt=""
+                          className="w-7 h-7 rounded object-cover border flex-shrink-0"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none';
+                          }}
+                        />
+                      ) : (
+                        <div className="w-7 h-7 rounded bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0">
+                          <FiPackage size={11} />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[11px] font-medium text-gray-800 truncate">
+                          {product?.name || `Sản phẩm #${idx + 1}`}
+                        </div>
+                        {product?.productCode && (
+                          <div className="text-[10px] text-gray-400 font-mono">
+                            {product.productCode}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
+              <FiPackage size={11} />
               Ứng dụng ({applications.length})
             </h4>
             {applications.length === 0 ? (
@@ -247,6 +300,9 @@ const MarketTreeList = () => {
   const [search, setSearch] = useState('');
   const [expandedIds, setExpandedIds] = useState(() => new Set());
   const [productMap, setProductMap] = useState(() => new Map());
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
+  const [bulkAction, setBulkAction] = useState(null);
+  const [bulkLoading, setBulkLoading] = useState(false);
   const { addNotification } = useNotification();
 
   useEffect(() => {
@@ -271,6 +327,7 @@ const MarketTreeList = () => {
     try {
       const res = await adminApi.getMarketTrees();
       setNodes(Array.isArray(res.data?.data) ? res.data.data : []);
+      setSelectedIds(new Set());
     } catch (err) {
       console.error(err);
     } finally {
@@ -330,6 +387,54 @@ const MarketTreeList = () => {
     }
   };
 
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAll = () => {
+    const filteredIds = filtered.map((n) => String(n._id));
+    const allSelected =
+      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allSelected) {
+        filteredIds.forEach((id) => next.delete(id));
+      } else {
+        filteredIds.forEach((id) => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const executeBulkDelete = async () => {
+    const ids = Array.from(selectedIds);
+    if (ids.length === 0) return;
+    setBulkLoading(true);
+    try {
+      const res = await adminApi.bulkMarketTrees({ action: 'delete', ids });
+      addNotification(`Đã xóa ${res.data?.deleted ?? ids.length} cây ngành`);
+      setBulkAction(null);
+      fetchNodes();
+    } catch (err) {
+      addNotification(err.response?.data?.message || 'Có lỗi xảy ra', 'error');
+    } finally {
+      setBulkLoading(false);
+    }
+  };
+
+  const filteredIds = filtered.map((n) => String(n._id));
+  const allFilteredSelected =
+    filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+  const someFilteredSelected =
+    filteredIds.some((id) => selectedIds.has(id)) && !allFilteredSelected;
+
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <SEO
@@ -340,6 +445,13 @@ const MarketTreeList = () => {
       <Header title="Quản lý cây ngành thị trường" />
 
       <div className="p-4">
+        <BulkActionBar
+          selectedCount={selectedIds.size}
+          onClear={clearSelection}
+          onDelete={() => setBulkAction({ type: 'delete' })}
+          entityName="cây ngành"
+          loading={bulkLoading}
+        />
         <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
           <div className="flex items-center gap-2">
             <h2 className="text-sm font-semibold text-gray-700">
@@ -407,6 +519,19 @@ const MarketTreeList = () => {
               <table className="w-full text-xs">
                 <thead>
                   <tr className="bg-gray-50 border-b border-gray-200 text-left text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                    <th className="px-2 py-2 w-8">
+                      <input
+                        type="checkbox"
+                        checked={allFilteredSelected}
+                        ref={(el) => {
+                          if (el) el.indeterminate = someFilteredSelected;
+                        }}
+                        onChange={toggleSelectAll}
+                        disabled={filtered.length === 0}
+                        className="rounded w-3.5 h-3.5 cursor-pointer"
+                        aria-label="Chọn tất cả"
+                      />
+                    </th>
                     <th className="px-2 py-2 w-8"></th>
                     <th className="px-2 py-2 w-10">#</th>
                     <th className="px-2 py-2 w-14">Ảnh</th>
@@ -436,19 +561,32 @@ const MarketTreeList = () => {
                     const isOpen = expandedIds.has(node._id);
                     const techCount = (node.technologies || []).length;
                     const appCount = (node.applications || []).length;
-                    const productCount = (node.applications || []).reduce(
+                    const rootProductCount = Array.isArray(node.productEntries)
+                      ? node.productEntries.length
+                      : 0;
+                    const appProductCount = (node.applications || []).reduce(
                       (sum, a) => sum + (Array.isArray(a.productEntries) ? a.productEntries.length : 0),
                       0
                     );
+                    const productCount = rootProductCount + appProductCount;
                     const descText = truncate(stripHtml(node.description), 120);
                     return (
                       <>
                         <tr
                           key={node._id}
                           className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${
-                            isOpen ? 'bg-blue-50/40' : ''
+                            selectedIds.has(node._id) ? 'bg-blue-50/60' : isOpen ? 'bg-blue-50/40' : ''
                           }`}
                         >
+                          <td className="px-2 py-2 align-middle">
+                            <input
+                              type="checkbox"
+                              checked={selectedIds.has(node._id)}
+                              onChange={() => toggleSelect(node._id)}
+                              className="rounded w-3.5 h-3.5 cursor-pointer"
+                              aria-label={`Chọn ${node.title || node._id}`}
+                            />
+                          </td>
                           <td className="px-2 py-2 align-middle">
                             <button
                               onClick={() => toggleExpand(node._id)}
@@ -564,7 +702,7 @@ const MarketTreeList = () => {
                         <AnimatePresence initial={false}>
                           {isOpen && (
                             <tr key={`${node._id}-detail`}>
-                              <td colSpan={12} className="p-0 border-b border-gray-100">
+                              <td colSpan={13} className="p-0 border-b border-gray-100">
                                 <motion.div
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: 'auto' }}
@@ -587,6 +725,21 @@ const MarketTreeList = () => {
           )}
         </div>
       </div>
+
+      <ConfirmModal
+        isOpen={bulkAction?.type === 'delete'}
+        onClose={() => !bulkLoading && setBulkAction(null)}
+        onConfirm={executeBulkDelete}
+        title="Xóa hàng loạt"
+        message={
+          <>
+            Bạn có chắc muốn xóa <b>{selectedIds.size}</b> cây ngành đã chọn? Hành động này không thể hoàn tác.
+          </>
+        }
+        confirmText="Xóa"
+        confirmStyle="danger"
+        loading={bulkLoading}
+      />
     </motion.div>
   );
 };

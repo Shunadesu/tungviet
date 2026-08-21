@@ -178,7 +178,7 @@ const ProductColumnsSettings = () => {
   return (
     <>
       <HeaderWithBreadcrumb title="Cột thuộc tính sản phẩm" backTo="/products" backLabel="Danh sách sản phẩm" />
-      <div className="p-4 pt-3 max-w-6xl">
+      <div className="p-4 pt-3">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <p className="text-xs text-gray-500 max-w-2xl">
             Tạo các thông số riêng cho sản phẩm. Cột đang hoạt động sẽ tự xuất hiện trong danh sách, form quản trị và trang chi tiết sản phẩm.

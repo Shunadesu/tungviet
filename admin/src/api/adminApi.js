@@ -71,6 +71,8 @@ export const adminApi = {
   createMainTree: (data) => axiosClient.post('/admin/main-trees', data),
   updateMainTree: (id, data) => axiosClient.put(`/admin/main-trees/${id}`, data),
   deleteMainTree: (id) => axiosClient.delete(`/admin/main-trees/${id}`),
+  deleteMainTrees: (ids) => axiosClient.post('/admin/main-trees/bulk', { action: 'delete', ids }),
+  bulkMainTrees: (payload) => axiosClient.post('/admin/main-trees/bulk', payload),
   reorderMainTrees: (order) => axiosClient.post('/admin/main-trees/reorder', { order }),
 
   // Market Trees (parent/child within a main tree)
@@ -80,6 +82,7 @@ export const adminApi = {
   updateMarketTree: (id, data) => axiosClient.put(`/admin/market-trees/${id}`, data),
   deleteMarketTree: (id) => axiosClient.delete(`/admin/market-trees/${id}`),
   reorderMarketTrees: (order) => axiosClient.post('/admin/market-trees/reorder', { order }),
+  bulkMarketTrees: (payload) => axiosClient.post('/admin/market-trees/bulk', payload),
 
   // Orders
   getOrders: (params) => axiosClient.get('/admin/orders', { params }),
