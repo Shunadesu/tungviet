@@ -65,18 +65,32 @@ export const productColumnService = {
   },
 
   async create(payload) {
+    console.log('🔍 [CREATE] Raw payload:', JSON.stringify(payload, null, 2));
+    
     const name = String(payload?.name || '').trim();
     if (!name) {
       throw AppError.badRequest('Tên cột (VI) là bắt buộc', 'INVALID_NAME');
     }
+    
     let key = normalizeKey(payload?.key);
-    if (!key) key = slugify(name);
+    console.log('🔑 [CREATE] After normalizeKey:', key);
+    
+    if (!key) {
+      key = slugify(name);
+      console.log('🔑 [CREATE] Auto-generated from name:', key);
+    }
+    
     ensureValidKey(key);
+    console.log('✅ [CREATE] Key validation passed:', key);
 
-    const existing = await (ProductColumn.findWithDeleted
-      ? ProductColumn.findWithDeleted({ key })
-      : ProductColumn.findOne({ key })).lean();
+    const existing = ProductColumn.findWithDeleted
+      ? await ProductColumn.findOneWithDeleted({ key }).lean()
+      : await ProductColumn.findOne({ key }).lean();
+    
+    console.log('🔍 [CREATE] Existing record check:', existing ? JSON.stringify(existing) : 'null');
+    
     if (existing) {
+      console.error('❌ [CREATE] DUPLICATE KEY DETECTED:', key);
       throw AppError.conflict(`Key "${key}" đã tồn tại`, 'DUPLICATE_KEY');
     }
 
@@ -90,6 +104,7 @@ export const productColumnService = {
       key,
       name,
       nameEn: String(payload?.nameEn || '').trim(),
+      unit: String(payload?.unit || '').trim(),
       type: 'text',
       order,
       isActive: payload?.isActive !== false,
@@ -113,6 +128,9 @@ export const productColumnService = {
     }
     if (payload?.nameEn !== undefined) {
       col.nameEn = String(payload.nameEn || '').trim();
+    }
+    if (payload?.unit !== undefined) {
+      col.unit = String(payload.unit || '').trim();
     }
     if (payload?.order !== undefined && payload?.order !== null) {
       col.order = Number(payload.order);
@@ -228,7 +246,7 @@ export const productColumnService = {
 
   async listActivePublic() {
     const items = await ProductColumn.find({ isActive: true })
-      .select('_id key name nameEn order type')
+      .select('_id key name nameEn unit order type')
       .sort({ order: 1, createdAt: 1 })
       .lean();
     return items;

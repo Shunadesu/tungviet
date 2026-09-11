@@ -201,7 +201,7 @@ const BrandSEOSettings = () => {
   if (loading) {
     return (
       <>
-        <HeaderWithBreadcrumb title="Thương hiệu & SEO" />
+        <HeaderWithBreadcrumb title="Thương hiệu & SEO" backTo="/settings" backLabel="Cài đặt" />
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
         </div>

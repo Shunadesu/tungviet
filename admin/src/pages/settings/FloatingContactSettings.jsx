@@ -245,7 +245,7 @@ const FloatingContactSettings = () => {
   if (loading) {
     return (
       <>
-        <HeaderWithBreadcrumb title="Thanh liên hệ" />
+        <HeaderWithBreadcrumb title="Thanh liên hệ" backTo="/settings" backLabel="Cài đặt" />
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
         </div>

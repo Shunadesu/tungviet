@@ -31,6 +31,11 @@ const productColumnSchema = new mongoose.Schema(
       default: '',
       trim: true,
     },
+    unit: {
+      type: String,
+      default: '',
+      trim: true,
+    },
     type: {
       type: String,
       default: 'text',

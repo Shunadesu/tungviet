@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiX, FiUpload } from 'react-icons/fi';
 import { motion } from 'framer-motion';
-import Header from '../../components/Header';
+import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import SEO from '../../components/SEO';
 import RichEditor from '../../components/RichEditor';
 import adminApi from '../../api/adminApi';
@@ -136,7 +136,11 @@ const PostForm = () => {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <SEO title={isEdit ? 'Sua bai viet' : 'Tao bai viet'} />
-      <Header title={isEdit ? 'Sua bai viet' : 'Tao bai viet'} />
+      <HeaderWithBreadcrumb 
+        title={isEdit ? 'Sửa bài viết' : 'Tạo bài viết'} 
+        backTo="/posts" 
+        backLabel="Danh sách bài viết" 
+      />
 
       <div className="p-4 max-w-4xl mx-auto">
         <form onSubmit={handleSave} className="space-y-6">

@@ -486,7 +486,7 @@ export default function AboutSettings() {
 
   return (
     <>
-      <HeaderWithBreadcrumb title="Cài đặt trang Giới thiệu" />
+      <HeaderWithBreadcrumb title="Cài đặt trang Giới thiệu" backTo="/settings" backLabel="Cài đặt" />
       <div className="p-4 pt-3 max-w-4xl">
         {/* Tab bar */}
         <div className="flex items-center gap-1 mb-4 border-b">

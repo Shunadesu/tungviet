@@ -93,7 +93,7 @@ const QuoteSectionForm = () => {
   if (loading) {
     return (
       <>
-        <HeaderWithBreadcrumb title="Cau hinh Bao gia" backTo="/" />
+        <HeaderWithBreadcrumb title="Cấu hình Báo giá" backTo="/settings" backLabel="Cài đặt" />
         <div className="flex justify-center py-8">
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
         </div>

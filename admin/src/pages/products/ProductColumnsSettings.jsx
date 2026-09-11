@@ -17,6 +17,7 @@ import { useNotification } from '../../context/NotificationContext';
 const emptyForm = {
   name: '',
   nameEn: '',
+  unit: '',
   key: '',
   order: 0,
   isActive: true,
@@ -33,7 +34,8 @@ const slugify = (value) => value
 const LEGACY_KEYS = new Set(['softeningPoint', 'acidValue', 'color']);
 
 const normalizeKey = (value) => {
-  const key = value.trim();
+  if (!value) return '';
+  const key = String(value).trim();
   return LEGACY_KEYS.has(key) ? key : key.toLowerCase();
 };
 
@@ -76,7 +78,14 @@ const ProductColumnsSettings = () => {
   }, []);
 
   const openCreate = () => {
-    setForm({ ...emptyForm, order: columns.length + 1 });
+    setForm({
+      name: '',
+      nameEn: '',
+      unit: '',
+      key: '',
+      order: columns.length + 1,
+      isActive: true,
+    });
     setEditing('new');
   };
 
@@ -84,6 +93,7 @@ const ProductColumnsSettings = () => {
     setForm({
       name: column.name || '',
       nameEn: column.nameEn || '',
+      unit: column.unit || '',
       key: column.key || '',
       order: column.order ?? 0,
       isActive: column.isActive !== false,
@@ -97,11 +107,33 @@ const ProductColumnsSettings = () => {
   };
 
   const handleNameChange = (value) => {
-    setForm((previous) => ({
-      ...previous,
-      name: value,
-      ...(editing === 'new' && !previous.key ? { key: slugify(value) } : {}),
-    }));
+    setForm((previous) => {
+      // Nếu đang tạo mới, auto-generate key từ tên EN nếu có, nếu không thì từ tên VI
+      const shouldAutoKey = editing === 'new';
+      const sourceForKey = previous.nameEn || value;
+      return {
+        ...previous,
+        name: value,
+        ...(shouldAutoKey ? { key: slugify(sourceForKey) } : {}),
+      };
+    });
+  };
+
+  const handleNameEnChange = (value) => {
+    setForm((previous) => {
+      // Nếu đang tạo mới, auto-generate key từ tên EN
+      const shouldAutoKey = editing === 'new';
+      const newKey = shouldAutoKey && value ? slugify(value) : previous.key;
+      
+      console.log('✏️ Name EN changed:', value);
+      console.log('🔄 Auto-generating key:', newKey);
+      
+      return {
+        ...previous,
+        nameEn: value,
+        ...(shouldAutoKey && value ? { key: newKey } : {}),
+      };
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -113,6 +145,10 @@ const ProductColumnsSettings = () => {
         key: normalizeKey(form.key),
         order: Number(form.order) || 0,
       };
+      
+      console.log('📝 Submitting payload:', payload);
+      console.log('🔑 Normalized key:', payload.key);
+      
       if (editing === 'new') {
         await adminApi.createProductColumn(payload);
         addNotification('Tạo cột thuộc tính thành công');
@@ -214,6 +250,7 @@ const ProductColumnsSettings = () => {
                     <th className="px-3 py-2 text-center text-xs w-14">STT</th>
                     <th className="px-3 py-2 text-left text-xs">Tên (VI)</th>
                     <th className="px-3 py-2 text-left text-xs">Tên (EN)</th>
+                    <th className="px-3 py-2 text-left text-xs">Đơn vị</th>
                     <th className="px-3 py-2 text-left text-xs">Key</th>
                     <th className="px-3 py-2 text-center text-xs">Thứ tự</th>
                     <th className="px-3 py-2 text-center text-xs">Trạng thái</th>
@@ -228,6 +265,7 @@ const ProductColumnsSettings = () => {
                         <td className="px-3 py-2 text-center text-xs text-gray-500">{index + 1}</td>
                         <td className="px-3 py-2 text-xs font-medium">{column.name}</td>
                         <td className="px-3 py-2 text-xs text-gray-600">{column.nameEn || '—'}</td>
+                        <td className="px-3 py-2 text-xs text-gray-600">{column.unit || '—'}</td>
                         <td className="px-3 py-2"><code className="text-[11px] bg-gray-100 rounded px-1.5 py-0.5">{column.key}</code></td>
                         <td className="px-3 py-2 text-center text-xs text-gray-600">{column.order ?? 0}</td>
                         <td className="px-3 py-2 text-center">
@@ -278,19 +316,25 @@ const ProductColumnsSettings = () => {
                 </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Tên cột (EN)</label>
-                  <input type="text" value={form.nameEn} onChange={(event) => setForm({ ...form, nameEn: event.target.value })} className="input-field" placeholder="Viscosity" maxLength={100} />
+                  <input type="text" value={form.nameEn} onChange={(event) => handleNameEnChange(event.target.value)} className="input-field" placeholder="Viscosity" maxLength={100} />
+                  <p className="text-[10px] text-gray-400 mt-1">Key sẽ tự động tạo từ tên EN.</p>
                 </div>
               </div>
               <div className="grid md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium mb-1">Đơn vị</label>
+                  <input type="text" value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} className="input-field" placeholder="Ví dụ: °C, mg KOH/g, Gardner" maxLength={50} />
+                  <p className="text-[10px] text-gray-400 mt-1">Đơn vị đo của thuộc tính này.</p>
+                </div>
                 <div>
                   <label className="block text-xs font-medium mb-1">Key <span className="text-red-500">*</span></label>
                   <input type="text" required value={form.key} onChange={(event) => setForm({ ...form, key: event.target.value.toLowerCase().replace(/\s+/g, '_') })} className="input-field font-mono text-xs" placeholder="viscosity" pattern="^[a-zA-Z][a-zA-Z0-9_]{1,29}$" />
                   <p className="text-[10px] text-gray-400 mt-1">Chữ thường, số, gạch dưới; dài 2–30 ký tự.</p>
                 </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Thứ tự</label>
-                  <input type="number" min="0" value={form.order} onChange={(event) => setForm({ ...form, order: event.target.value })} className="input-field" />
-                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">Thứ tự</label>
+                <input type="number" min="0" value={form.order} onChange={(event) => setForm({ ...form, order: event.target.value })} className="input-field w-32" />
               </div>
               <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer select-none">
                 <input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} className="rounded border-gray-300 text-primary focus:ring-primary" />

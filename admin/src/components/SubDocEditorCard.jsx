@@ -414,7 +414,7 @@ const SpecificationsEditor = ({
                   </div>
                   <div className="md:col-span-1">
                     <label className="md:hidden block text-[9px] font-medium mb-0.5 text-gray-500 uppercase tracking-wide">
-                      Đơn vị
+                      Đơn vị (Unit)
                     </label>
                     <input
                       type="text"

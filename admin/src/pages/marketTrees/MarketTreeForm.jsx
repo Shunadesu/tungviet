@@ -22,6 +22,7 @@ import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 import useFormDraft from '../../hooks/useFormDraft';
+import { Link } from 'react-router-dom';
 
 const emptySubDoc = {
   title: '',
@@ -703,13 +704,13 @@ const MarketTreeForm = () => {
       <HeaderWithBreadcrumb
         title={isEditing ? 'Sửa cây ngành' : 'Thêm cây ngành'}
         breadcrumbs={[
-          { label: 'Cây ngành', path: '/market-trees' },
+          { label: 'Cây ngành thị trường', path: '/market-trees' },
           { label: isEditing ? 'Sửa' : 'Thêm mới' },
         ]}
         actions={
           <button
             type="button"
-            onClick={handleCancel}
+            onClick={() => navigate('/market-trees')}
             className="btn-secondary flex items-center gap-1.5 text-xs"
           >
             <FiArrowLeft size={14} />
@@ -1055,70 +1056,58 @@ const MarketTreeForm = () => {
                 <FiCpu size={14} />
                 Công nghệ (technologies)
               </h3>
-              {isEditing ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/market-trees/${id}/technologies`)}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  <FiExternalLink size={12} />
-                  Quản lý công nghệ
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleQuickCreateAndNavigate('technologies')}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                  disabled={saving}
-                >
-                  <FiPlus size={12} />
-                  Thêm công nghệ
-                </button>
-              )}
-            </div>
-            {isEditing ? (
               <button
                 type="button"
-                onClick={() => navigate(`/market-trees/${id}/technologies`)}
-                className="w-full text-left p-3 border border-gray-100 rounded bg-gray-50/40 hover:bg-gray-100 transition-colors"
+                onClick={() => {
+                  if (isEditing) {
+                    navigate(`/market-trees/${id}/technologies`);
+                  } else {
+                    handleQuickCreateAndNavigate('technologies');
+                  }
+                }}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+                disabled={saving}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-medium text-gray-700">
-                      {(formData.technologies || []).length} công nghệ đã cấu hình
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">
-                      Bấm để mở trang quản lý chi tiết
-                    </div>
-                  </div>
-                  <span className="text-primary text-xs">→</span>
-                </div>
+                {isEditing ? (
+                  <>
+                    <FiExternalLink size={12} />
+                    Quản lý công nghệ
+                  </>
+                ) : (
+                  <>
+                    <FiPlus size={12} />
+                    Thêm công nghệ
+                  </>
+                )}
               </button>
-            ) : (formData.technologies || []).length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic">
-                Sau khi lưu cây ngành, bạn có thể quản lý công nghệ ở trang riêng.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {formData.technologies.map((item, idx) => (
-                  <SubDocCard
-                    key={`tech-${idx}`}
-                    item={item}
-                    index={idx}
-                    kind="technologies"
-                    onUpdate={(next) =>
-                      updateSubDoc('technologies', idx, next)
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (isEditing) {
+                  navigate(`/market-trees/${id}/technologies`);
+                } else {
+                  handleQuickCreateAndNavigate('technologies');
+                }
+              }}
+              className="w-full text-left p-3 border border-gray-100 rounded bg-gray-50/40 hover:bg-gray-100 transition-colors"
+              disabled={saving}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-gray-700">
+                    {(formData.technologies || []).length} công nghệ đã cấu hình
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    {isEditing 
+                      ? 'Bấm để mở trang quản lý chi tiết'
+                      : 'Bấm để lưu và chuyển sang trang quản lý công nghệ'
                     }
-                    onRemove={() => removeSubDoc('technologies', idx)}
-                    onUpload={(file) =>
-                      handleSubDocImageUpload(file, 'technologies', idx)
-                    }
-                    uploading={uploadingSubDoc}
-                    availableMainTrees={availableMainTrees}
-                  />
-                ))}
+                  </div>
+                </div>
+                <span className="text-primary text-xs">→</span>
               </div>
-            )}
+            </button>
           </div>
 
           {/* Section: Applications */}
@@ -1128,70 +1117,58 @@ const MarketTreeForm = () => {
                 <FiPackage size={14} />
                 Ứng dụng (applications)
               </h3>
-              {isEditing ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/market-trees/${id}/applications`)}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  <FiExternalLink size={12} />
-                  Quản lý ứng dụng
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleQuickCreateAndNavigate('applications')}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                  disabled={saving}
-                >
-                  <FiPlus size={12} />
-                  Thêm ứng dụng
-                </button>
-              )}
-            </div>
-            {isEditing ? (
               <button
                 type="button"
-                onClick={() => navigate(`/market-trees/${id}/applications`)}
-                className="w-full text-left p-3 border border-gray-100 rounded bg-gray-50/40 hover:bg-gray-100 transition-colors"
+                onClick={() => {
+                  if (isEditing) {
+                    navigate(`/market-trees/${id}/applications`);
+                  } else {
+                    handleQuickCreateAndNavigate('applications');
+                  }
+                }}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+                disabled={saving}
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-medium text-gray-700">
-                      {(formData.applications || []).length} ứng dụng đã cấu hình
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">
-                      Bấm để mở trang quản lý chi tiết
-                    </div>
-                  </div>
-                  <span className="text-primary text-xs">→</span>
-                </div>
+                {isEditing ? (
+                  <>
+                    <FiExternalLink size={12} />
+                    Quản lý ứng dụng
+                  </>
+                ) : (
+                  <>
+                    <FiPlus size={12} />
+                    Thêm ứng dụng
+                  </>
+                )}
               </button>
-            ) : (formData.applications || []).length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic">
-                Sau khi lưu cây ngành, bạn có thể quản lý ứng dụng ở trang riêng.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {formData.applications.map((item, idx) => (
-                  <SubDocCard
-                    key={`app-${idx}`}
-                    item={item}
-                    index={idx}
-                    kind="applications"
-                    onUpdate={(next) =>
-                      updateSubDoc('applications', idx, next)
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (isEditing) {
+                  navigate(`/market-trees/${id}/applications`);
+                } else {
+                  handleQuickCreateAndNavigate('applications');
+                }
+              }}
+              className="w-full text-left p-3 border border-gray-100 rounded bg-gray-50/40 hover:bg-gray-100 transition-colors"
+              disabled={saving}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="text-xs font-medium text-gray-700">
+                    {(formData.applications || []).length} ứng dụng đã cấu hình
+                  </div>
+                  <div className="text-[10px] text-gray-400 mt-0.5">
+                    {isEditing 
+                      ? 'Bấm để mở trang quản lý chi tiết'
+                      : 'Bấm để lưu và chuyển sang trang quản lý ứng dụng'
                     }
-                    onRemove={() => removeSubDoc('applications', idx)}
-                    onUpload={(file) =>
-                      handleSubDocImageUpload(file, 'applications', idx)
-                    }
-                    uploading={uploadingSubDoc}
-                    availableMainTrees={availableMainTrees}
-                  />
-                ))}
+                  </div>
+                </div>
+                <span className="text-primary text-xs">→</span>
               </div>
-            )}
+            </button>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t">

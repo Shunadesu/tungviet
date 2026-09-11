@@ -33,7 +33,7 @@ import { useAuth } from '../context/AuthContext';
 const productsMenu = {
   type: 'group',
   key: 'products',
-  label: 'Cây ngành sản phẩm',
+  label: 'Sản phẩm',
   icon: <FiPackage size={18} />,
   defaultPath: '/main-trees',
   isActive: (pathname) =>
@@ -42,30 +42,34 @@ const productsMenu = {
     pathname.startsWith('/categories'),
   children: [
     {
-      type: 'item',
+      type: 'linkable-group',
       key: 'main-trees',
-      label: 'Danh sách ngành hàng',
+      label: 'Cây ngành sản phẩm',
       path: '/main-trees',
       icon: <FiLayers size={14} />,
-    },
-    {
-      type: 'item',
-      key: 'categories',
-      label: 'Category sản phẩm',
-      path: '/categories',
-      icon: <FiGrid size={14} />,
-    },
-    {
-      type: 'item',
-      key: 'products',
-      label: 'Danh sách sản phẩm',
-      path: '/products',
-      icon: <FiPackage size={14} />,
+      children: [
+        {
+          type: 'linkable-group',
+          key: 'categories',
+          label: 'Danh mục sản phẩm',
+          path: '/categories',
+          icon: <FiGrid size={14} />,
+          children: [
+            {
+              type: 'item',
+              key: 'products',
+              label: 'Danh sách sản phẩm',
+              path: '/products',
+              icon: <FiPackage size={14} />,
+            },
+          ],
+        },
+      ],
     },
     {
       type: 'item',
       key: 'products-columns',
-      label: 'Cột thuộc tính',
+      label: 'Cột thuộc tính sản phẩm',
       path: '/products/columns',
       icon: <FiSliders size={14} />,
     },
@@ -201,6 +205,8 @@ const Sidebar = () => {
     const activeKeys = [productsMenu, marketsMenu, postsMenu, interfaceMenu]
       .map((m) => findActiveGroupKey(m, location.pathname))
       .filter(Boolean);
+    // Luôn mở các menu lồng nhau của sản phẩm
+    activeKeys.push('main-trees', 'categories');
     return new Set(activeKeys);
   });
 
@@ -234,27 +240,63 @@ const Sidebar = () => {
 
     const open = openKeys.has(node.key);
     const childActiveKey = findActiveGroupKey(node, location.pathname);
+    const isLinkableGroup = node.type === 'linkable-group';
+    const isSelfActive = isLinkableGroup && isItemActive(location.pathname, node.path);
 
     return (
       <div>
-        <button
-          type="button"
-          onClick={() => toggleKey(node.key)}
-          className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-colors ${
-            childActiveKey
-              ? 'text-primary font-medium'
-              : 'text-gray-600 hover:text-primary'
-          }`}
-        >
-          <motion.span
-            animate={{ rotate: open ? 90 : 0 }}
-            transition={{ duration: 0.15 }}
-            className="flex-shrink-0"
+        {isLinkableGroup ? (
+          <div className="flex items-center gap-0.5">
+            <Link
+              to={node.path}
+              className={`flex-1 flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-colors ${
+                isSelfActive
+                  ? 'bg-primary-50 text-primary font-medium'
+                  : childActiveKey
+                  ? 'text-primary font-medium'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-primary'
+              }`}
+            >
+              {node.icon}
+              <span className="truncate">{node.label}</span>
+            </Link>
+            <button
+              type="button"
+              onClick={() => toggleKey(node.key)}
+              className={`p-1.5 rounded hover:bg-gray-100 transition-colors ${
+                isSelfActive || childActiveKey ? 'text-primary' : 'text-gray-400'
+              }`}
+              title={open ? 'Thu gọn' : 'Mở rộng'}
+            >
+              <motion.span
+                animate={{ rotate: open ? 90 : 0 }}
+                transition={{ duration: 0.15 }}
+                className="flex items-center"
+              >
+                <FiChevronRight size={12} />
+              </motion.span>
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => toggleKey(node.key)}
+            className={`w-full flex items-center gap-1.5 px-2 py-1.5 rounded-md text-xs transition-colors ${
+              childActiveKey
+                ? 'text-primary font-medium'
+                : 'text-gray-600 hover:text-primary'
+            }`}
           >
-            <FiChevronRight size={12} />
-          </motion.span>
-          <span className="flex-1 text-left truncate">{node.label}</span>
-        </button>
+            <motion.span
+              animate={{ rotate: open ? 90 : 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex-shrink-0"
+            >
+              <FiChevronRight size={12} />
+            </motion.span>
+            <span className="flex-1 text-left truncate">{node.label}</span>
+          </button>
+        )}
         <AnimatePresence initial={false}>
           {open && (
             <motion.div

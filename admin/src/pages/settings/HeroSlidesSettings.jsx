@@ -122,7 +122,7 @@ export default function HeroSlidesSettings() {
 
   return (
     <>
-      <HeaderWithBreadcrumb title="Hero slider trang chủ" />
+      <HeaderWithBreadcrumb title="Hero slider trang chủ" backTo="/settings" backLabel="Cài đặt" />
       <div className="p-4 pt-3 max-w-4xl">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-gray-500">
