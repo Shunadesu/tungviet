@@ -12,6 +12,7 @@ const CategoryList = () => {
   const navigate = useNavigate();
   const [categories, setCategories] = useState([]);
   const [mainTrees, setMainTrees] = useState([]);
+  const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [showInactive, setShowInactive] = useState(false);
@@ -23,6 +24,7 @@ const CategoryList = () => {
   useEffect(() => {
     fetchMainTrees();
     fetchCategories();
+    fetchProducts();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -53,11 +55,33 @@ const CategoryList = () => {
     }
   };
 
+  const fetchProducts = async () => {
+    try {
+      const res = await adminApi.getProducts();
+      setProducts(Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.items || []);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+    }
+  };
+
   const mainTreeById = useMemo(() => {
     const map = new Map();
     for (const t of mainTrees) map.set(String(t._id), t);
     return map;
   }, [mainTrees]);
+
+  const productsByCategory = useMemo(() => {
+    const map = new Map();
+    for (const p of products) {
+      const lines = Array.isArray(p.productLines) ? p.productLines : [];
+      for (const lineId of lines) {
+        const key = String(typeof lineId === 'object' ? lineId._id : lineId);
+        if (!map.has(key)) map.set(key, []);
+        map.get(key).push(p);
+      }
+    }
+    return map;
+  }, [products]);
 
   const filtered = useMemo(() => {
     let list = [...categories].sort(
@@ -88,35 +112,39 @@ const CategoryList = () => {
         ),
       },
       {
+        header: 'Hình ảnh',
+        accessor: 'imageUrl',
+        render: (val) => (
+          val ? (
+            <img
+              src={val}
+              alt="Category"
+              className="w-12 h-12 rounded object-cover"
+              onError={(e) => {
+                e.target.style.display = 'none';
+              }}
+            />
+          ) : (
+            <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
+              N/A
+            </div>
+          )
+        ),
+      },
+      {
         header: 'Tên',
         accessor: 'name',
         render: (val, row) => (
-          <div className="flex items-center gap-2">
-            {row.imageUrl ? (
-              <img
-                src={row.imageUrl}
-                alt={val}
-                className="w-8 h-8 rounded object-cover flex-shrink-0"
-                onError={(e) => {
-                  e.target.style.display = 'none';
-                }}
-              />
-            ) : (
-              <div className="w-8 h-8 rounded bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs">
-                N/A
-              </div>
+          <div className="min-w-0">
+            <span className="font-medium text-gray-800">{val}</span>
+            {row.nameEn && (
+              <div className="text-[10px] text-gray-400">{row.nameEn}</div>
             )}
-            <div className="min-w-0">
-              <span className="font-medium text-gray-800">{val}</span>
-              {row.nameEn && (
-                <div className="text-[10px] text-gray-400">{row.nameEn}</div>
-              )}
-              {row.isActive === false && (
-                <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
-                  Tạm ẩn
-                </span>
-              )}
-            </div>
+            {row.isActive === false && (
+              <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
+                Tạm ẩn
+              </span>
+            )}
           </div>
         ),
       },
@@ -127,6 +155,29 @@ const CategoryList = () => {
           const mt = typeof val === 'object' ? val : mainTreeById.get(String(val));
           return (
             <span className="text-xs text-gray-500">{mt ? mt.name : '—'}</span>
+          );
+        },
+      },
+      {
+        header: 'Sản phẩm',
+        accessor: '_id',
+        render: (val) => {
+          const prods = productsByCategory.get(String(val)) || [];
+          if (prods.length === 0) {
+            return <span className="text-xs text-gray-400">—</span>;
+          }
+          return (
+            <div className="flex flex-col gap-1">
+              {prods.map((p) => (
+                <button
+                  key={p._id}
+                  onClick={() => navigate(`/products/${p._id}/edit`)}
+                  className="text-left text-xs text-blue-600 hover:text-blue-800 hover:underline"
+                >
+                  {p.name} {p.productCode ? `(${p.productCode})` : ''}
+                </button>
+              ))}
+            </div>
           );
         },
       },
@@ -149,7 +200,7 @@ const CategoryList = () => {
         ),
       },
     ],
-    [mainTreeById]
+    [mainTreeById, productsByCategory, navigate]
   );
 
   const handleDelete = async (id) => {
@@ -179,24 +230,38 @@ const CategoryList = () => {
     }
   };
 
-  const renderActions = (row) => (
-    <>
-      <button
-        onClick={() => navigate(`/categories/${row._id}/edit`)}
-        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-        title="Sửa"
-      >
-        <FiEdit2 size={14} />
-      </button>
-      <button
-        onClick={() => handleDelete(row._id)}
-        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-        title="Xóa"
-      >
-        <FiTrash2 size={14} />
-      </button>
-    </>
-  );
+  const renderActions = (row) => {
+    const mainTreeId = typeof row.mainTree === 'object' ? row.mainTree?._id : row.mainTree;
+    const queryParams = new URLSearchParams();
+    queryParams.set('productLine', row._id);
+    if (mainTreeId) queryParams.set('industry', mainTreeId);
+    
+    return (
+      <>
+        <button
+          onClick={() => navigate(`/products/new?${queryParams.toString()}`)}
+          className="p-1.5 text-green-600 hover:bg-green-50 rounded transition-colors"
+          title="Tạo sản phẩm"
+        >
+          <FiPlus size={14} />
+        </button>
+        <button
+          onClick={() => navigate(`/categories/${row._id}/edit`)}
+          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+          title="Sửa"
+        >
+          <FiEdit2 size={14} />
+        </button>
+        <button
+          onClick={() => handleDelete(row._id)}
+          className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+          title="Xóa"
+        >
+          <FiTrash2 size={14} />
+        </button>
+      </>
+    );
+  };
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>

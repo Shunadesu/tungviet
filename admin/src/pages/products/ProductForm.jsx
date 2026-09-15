@@ -85,6 +85,83 @@ const MultiIndustrySelect = ({ items, selected, onChange }) => {
   );
 };
 
+const MultiProductLineSelect = ({ items, selected, onChange }) => {
+  const [open, setOpen] = useState(false);
+  const selectedIds = Array.isArray(selected) ? selected : [];
+  const selectedSet = new Set(selectedIds);
+  const selectedNodes = items.filter((c) => selectedSet.has(c._id));
+
+  const toggle = (id) => {
+    const next = new Set(selectedIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    onChange(Array.from(next));
+  };
+
+  const remove = (id, e) => {
+    e.stopPropagation();
+    onChange(selectedIds.filter((x) => x !== id));
+  };
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="input-field text-xs flex items-center justify-between w-full"
+      >
+        <span className="truncate text-left flex-1">
+          {selectedNodes.length === 0
+            ? '— Chọn danh mục (có thể chọn nhiều) —'
+            : selectedNodes.map((c) => c.name).join(', ')}
+        </span>
+        {open ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+      </button>
+      {selectedNodes.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+          {selectedNodes.map((c) => (
+            <span
+              key={c._id}
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-purple-50 text-purple-700 rounded-lg"
+            >
+              {c.name}
+              <button type="button" onClick={(e) => remove(c._id, e)} className="hover:text-red-500">
+                <FiX size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      {open && (
+        <div className="absolute z-10 mt-1 w-full max-h-60 overflow-y-auto bg-white border border-gray-200 rounded-lg shadow-lg">
+          {items.length === 0 ? (
+            <p className="text-xs text-gray-400 px-3 py-3">Chưa có danh mục nào.</p>
+          ) : (
+            <ul className="py-1">
+              {items.map((c) => (
+                <li key={c._id}>
+                  <label className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="checkbox"
+                      checked={selectedSet.has(c._id)}
+                      onChange={() => toggle(c._id)}
+                      className="rounded w-3.5 h-3.5"
+                    />
+                    <span className="flex-1 truncate">{c.name}</span>
+                    {c.nameEn && (
+                      <span className="text-[10px] text-gray-400 truncate">{c.nameEn}</span>
+                    )}
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const emptyApplication = {
   title: '',
   titleEn: '',
@@ -183,6 +260,7 @@ const emptyForm = {
   descriptionEn: '',
   imageUrl: '',
   industries: [],
+  productLines: [],
   marketIds: [],
   price: 0,
   priceVisible: true,
@@ -192,8 +270,6 @@ const emptyForm = {
   acidValue: '',
   color: '',
   attributes: {},
-  benefits: [],
-  benefitsText: '',
   applications: [],
   tdsUrl: '',
   isActive: true,
@@ -393,9 +469,8 @@ const ProductForm = () => {
   const [formData, setFormData] = useState({ ...emptyForm });
   const [columns, setColumns] = useState([]);
   const [mainTrees, setMainTrees] = useState([]);
+  const [categories, setCategories] = useState([]);
   const [marketTrees, setMarketTrees] = useState([]);
-  const [benefitsTab, setBenefitsTab] = useState('list'); // 'list' | 'text'
-  const [newBenefit, setNewBenefit] = useState('');
   const [applicationUploading, setApplicationUploading] = useState(false);
 
   const draftKey = `draft:product:${isEditing ? `edit:${id}` : 'new'}`;
@@ -409,9 +484,30 @@ const ProductForm = () => {
   useEffect(() => {
     fetchColumns();
     fetchMainTrees();
+    fetchCategories();
     fetchMarketTrees();
     if (isEditing) {
       fetchProduct();
+    } else {
+      // Check if productLine and industry query params exist
+      const urlParams = new URLSearchParams(window.location.search);
+      const productLineParam = urlParams.get('productLine');
+      const industryParam = urlParams.get('industry');
+      
+      const updates = {};
+      if (productLineParam) {
+        updates.productLines = [productLineParam];
+      }
+      // Don't set industry from URL param, fetchCategoryName will handle it
+      
+      if (Object.keys(updates).length > 0) {
+        setFormData(prev => ({ ...prev, ...updates }));
+        
+        // Auto-fill product name AND industry from category
+        if (productLineParam) {
+          fetchCategoryName(productLineParam);
+        }
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
@@ -438,6 +534,44 @@ const ProductForm = () => {
     }
   };
 
+  const fetchCategories = async () => {
+    try {
+      const res = await adminApi.getCategories();
+      const items = Array.isArray(res.data?.data) ? res.data.data : [];
+      setItemsInOrder(items, setCategories);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+    }
+  };
+
+  const fetchCategoryName = async (categoryId) => {
+    try {
+      const res = await adminApi.getCategory(categoryId);
+      const category = res.data?.data;
+      if (category) {
+        const updates = {
+          name: category.name || '',
+          nameEn: category.nameEn || ''
+        };
+        
+        // Also auto-fill industry from category's mainTree
+        if (category.mainTree) {
+          const industryId = typeof category.mainTree === 'object' ? category.mainTree._id : category.mainTree;
+          if (industryId) {
+            updates.industries = [industryId];
+          }
+        }
+        
+        setFormData(prev => ({
+          ...prev,
+          ...updates
+        }));
+      }
+    } catch (error) {
+      console.error('Error loading category name:', error);
+    }
+  };
+
   const fetchMarketTrees = async () => {
     try {
       // Load all active markets so the picker isn't blocked when industries change.
@@ -461,6 +595,10 @@ const ProductForm = () => {
       const industries = industriesRaw
         .map((m) => (m && typeof m === 'object' ? m._id : m))
         .filter(Boolean);
+      const productLinesRaw = Array.isArray(product.productLines) ? product.productLines : [];
+      const productLines = productLinesRaw
+        .map((c) => (c && typeof c === 'object' ? c._id : c))
+        .filter(Boolean);
       const marketIdsRaw = Array.isArray(product.marketIds) ? product.marketIds : [];
       const marketIds = marketIdsRaw
         .map((m) => (m && typeof m === 'object' ? m._id : m))
@@ -473,6 +611,7 @@ const ProductForm = () => {
         descriptionEn: product.descriptionEn || '',
         imageUrl: product.imageUrl || '',
         industries,
+        productLines,
         marketIds,
         price: product.price ?? 0,
         priceVisible: product.priceVisible !== false,
@@ -482,8 +621,6 @@ const ProductForm = () => {
         acidValue: product.acidValue || '',
         color: product.color || '',
         attributes: product.attributes && typeof product.attributes === 'object' ? product.attributes : {},
-        benefits: product.benefits || [],
-        benefitsText: '',
         applications: Array.isArray(product.applications)
           ? product.applications.map((a) => ({
               ...emptyApplication,
@@ -510,28 +647,16 @@ const ProductForm = () => {
     e.preventDefault();
     setSaving(true);
     try {
-      let benefits = formData.benefits;
-      if (benefitsTab === 'text' && formData.benefitsText.trim()) {
-        // Parse text mode on submit
-        benefits = formData.benefitsText
-          .split(/\r?\n/)
-          .map((line) => line.replace(/^[\s*▪•\-\u2022]+/, '').trim())
-          .filter((line) => line.length > 0);
-      } else {
-        benefits = (formData.benefits || []).filter((b) => b.trim());
-      }
-
       const data = {
         ...formData,
         attributes: { ...formData.attributes },
-        benefits,
         applications: (formData.applications || []).filter(
           (a) => a && (a.title || a.titleEn)
         ),
         industries: (formData.industries || []).filter(Boolean),
+        productLines: (formData.productLines || []).filter(Boolean),
         marketIds: (formData.marketIds || []).filter(Boolean),
       };
-      delete data.benefitsText;
 
       if (isEditing) {
         await adminApi.updateProduct(id, data);
@@ -604,23 +729,6 @@ const ProductForm = () => {
     }
   };
 
-  const handleAddBenefit = () => {
-    if (newBenefit.trim()) {
-      setFormData({
-        ...formData,
-        benefits: [...(formData.benefits || []), newBenefit.trim()],
-      });
-      setNewBenefit('');
-    }
-  };
-
-  const handleRemoveBenefit = (index) => {
-    setFormData({
-      ...formData,
-      benefits: formData.benefits.filter((_, i) => i !== index),
-    });
-  };
-
   if (loading) {
     return (
       <>
@@ -671,7 +779,7 @@ const ProductForm = () => {
           </div>
         </div>
       )}
-      <div className="p-4 pt-3 max-w-4xl">
+      <div className="p-4 pt-3">
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Product Code */}
@@ -733,6 +841,19 @@ const ProductForm = () => {
                 />
                 <p className="text-[10px] text-gray-400 mt-1">
                   Có thể chọn nhiều ngành nếu sản phẩm phục vụ nhiều lĩnh vực.
+                </p>
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Danh mục sản phẩm
+                </label>
+                <MultiProductLineSelect
+                  items={categories}
+                  selected={formData.productLines || []}
+                  onChange={(ids) => setFormData({ ...formData, productLines: ids })}
+                />
+                <p className="text-[10px] text-gray-400 mt-1">
+                  Danh mục sản phẩm. Sản phẩm có thể thuộc nhiều danh mục.
                 </p>
               </div>
             </div>
@@ -856,43 +977,7 @@ const ProductForm = () => {
                   Chưa có cột động. Các trường cũ vẫn có thể nhập bên dưới.
                 </div>
               )}
-              <details className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-                <summary className="cursor-pointer text-xs text-gray-600">
-                  Hiện trường thông số cũ (tương thích dữ liệu trước đây)
-                </summary>
-                <div className="grid md:grid-cols-3 gap-4 pt-3">
-                  <div>
-                    <label className="block text-xs font-medium mb-1 text-gray-700">Điểm làm mềm</label>
-                    <input
-                      type="text"
-                      value={formData.softeningPoint}
-                      onChange={(e) => setFormData({ ...formData, softeningPoint: e.target.value })}
-                      className="input-field"
-                      placeholder="VD: 85-95°C"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1 text-gray-700">Chỉ số axit</label>
-                    <input
-                      type="text"
-                      value={formData.acidValue}
-                      onChange={(e) => setFormData({ ...formData, acidValue: e.target.value })}
-                      className="input-field"
-                      placeholder="VD: ≤ 0.1 mg/g"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-medium mb-1 text-gray-700">Màu sắc</label>
-                    <input
-                      type="text"
-                      value={formData.color}
-                      onChange={(e) => setFormData({ ...formData, color: e.target.value })}
-                      className="input-field"
-                      placeholder="VD: Vàng nhạt"
-                    />
-                  </div>
-                </div>
-              </details>
+              
             </div>
 
             {/* Ảnh sản phẩm */}
@@ -947,83 +1032,6 @@ const ProductForm = () => {
                   />
                 </div>
               </div>
-            </div>
-
-            {/* Lợi ích - 2 tabs */}
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <label className="block text-xs font-semibold text-gray-700">Lợi ích sản phẩm</label>
-                <div className="inline-flex rounded-lg border border-gray-200 overflow-hidden">
-                  <button
-                    type="button"
-                    onClick={() => setBenefitsTab('list')}
-                    className={`px-3 py-1 text-xs ${
-                      benefitsTab === 'list' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    Từng item
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setBenefitsTab('text')}
-                    className={`px-3 py-1 text-xs ${
-                      benefitsTab === 'text' ? 'bg-primary text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    Nhập text
-                  </button>
-                </div>
-              </div>
-
-              {benefitsTab === 'list' ? (
-                <>
-                  <div className="flex gap-2 mb-2">
-                    <input
-                      type="text"
-                      value={newBenefit}
-                      onChange={(e) => setNewBenefit(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddBenefit();
-                        }
-                      }}
-                      className="input-field flex-1"
-                      placeholder="VD: Chịu nhiệt tốt..."
-                    />
-                    <button type="button" onClick={handleAddBenefit} className="btn-secondary text-xs px-3">
-                      Thêm
-                    </button>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5">
-                    {(formData.benefits || []).map((b, i) => (
-                      <span
-                        key={i}
-                        className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-green-50 text-green-600 rounded-lg"
-                      >
-                        {b}
-                        <button type="button" onClick={() => handleRemoveBenefit(i)} className="hover:text-red-500">
-                          <FiX size={10} />
-                        </button>
-                      </span>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <>
-                  <textarea
-                    value={formData.benefitsText}
-                    onChange={(e) => setFormData({ ...formData, benefitsText: e.target.value })}
-                    rows={6}
-                    className="input-field resize-none font-mono text-xs"
-                    placeholder={'* Cải thiện độ cứng\n▪ Độ bám dính mạnh\n• Độ bóng tốt'}
-                  />
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Hỗ trợ các ký tự đầu dòng: <code>*</code> <code>▪</code> <code>•</code> <code>-</code>.
-                    Mỗi dòng là một lợi ích.
-                  </p>
-                </>
-              )}
             </div>
 
             {/* Mô tả */}

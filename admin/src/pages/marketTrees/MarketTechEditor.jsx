@@ -140,7 +140,7 @@ const MarketTechEditor = () => {
       />
 
       <div className="p-4">
-        <div className="card max-w-4xl mx-auto space-y-3">
+        <div className="card mx-auto space-y-3">
           <div className="flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2">
               <FiCpu className="text-primary" size={18} />

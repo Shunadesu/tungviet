@@ -29,6 +29,8 @@ const CategoryForm = () => {
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [mainTrees, setMainTrees] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [selectedProducts, setSelectedProducts] = useState([]);
   const [formData, setFormData] = useState({ ...emptyForm });
 
   useEffect(() => {
@@ -40,7 +42,16 @@ const CategoryForm = () => {
         console.error(err);
       }
     };
+    const fetchProducts = async () => {
+      try {
+        const res = await adminApi.getProducts();
+        setProducts(Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.items || []);
+      } catch (err) {
+        console.error(err);
+      }
+    };
     fetchMainTrees();
+    fetchProducts();
   }, []);
 
   useEffect(() => {
@@ -66,6 +77,22 @@ const CategoryForm = () => {
           order: cat.order ?? 0,
           isActive: cat.isActive !== false,
         });
+        
+        // Fetch products that belong to this category
+        const productsRes = await adminApi.getProducts();
+        const allProducts = Array.isArray(productsRes.data?.data) 
+          ? productsRes.data.data 
+          : productsRes.data?.data?.items || [];
+        
+        const categoryProducts = allProducts.filter(p => {
+          const lines = Array.isArray(p.productLines) ? p.productLines : [];
+          return lines.some(lineId => {
+            const lid = typeof lineId === 'object' ? lineId._id : lineId;
+            return String(lid) === String(id);
+          });
+        });
+        
+        setSelectedProducts(categoryProducts.map(p => p._id));
       } catch (error) {
         addNotification(
           error.response?.data?.message || 'Không thể tải product line',
@@ -108,9 +135,47 @@ const CategoryForm = () => {
       };
       if (isEditing) {
         await adminApi.updateCategory(id, payload);
+        
+        // Update products: add/remove this category from productLines
+        const updatePromises = products.map(async (product) => {
+          const isSelected = selectedProducts.includes(product._id);
+          const currentLines = Array.isArray(product.productLines) ? product.productLines : [];
+          const currentLineIds = currentLines.map(l => String(typeof l === 'object' ? l._id : l));
+          const hasCategory = currentLineIds.includes(String(id));
+          
+          if (isSelected && !hasCategory) {
+            // Add category to product
+            const updatedLines = [...currentLineIds, id];
+            await adminApi.updateProduct(product._id, { productLines: updatedLines });
+          } else if (!isSelected && hasCategory) {
+            // Remove category from product
+            const updatedLines = currentLineIds.filter(lid => String(lid) !== String(id));
+            await adminApi.updateProduct(product._id, { productLines: updatedLines });
+          }
+        });
+        
+        await Promise.all(updatePromises);
         addNotification('Cập nhật product line thành công');
       } else {
-        await adminApi.createCategory(payload);
+        const createRes = await adminApi.createCategory(payload);
+        const newCategoryId = createRes.data?.data?._id;
+        
+        // Add new category to selected products
+        if (newCategoryId && selectedProducts.length > 0) {
+          const updatePromises = selectedProducts.map(async (productId) => {
+            const product = products.find(p => p._id === productId);
+            if (!product) return;
+            
+            const currentLines = Array.isArray(product.productLines) ? product.productLines : [];
+            const currentLineIds = currentLines.map(l => String(typeof l === 'object' ? l._id : l));
+            const updatedLines = [...currentLineIds, newCategoryId];
+            
+            await adminApi.updateProduct(productId, { productLines: updatedLines });
+          });
+          
+          await Promise.all(updatePromises);
+        }
+        
         addNotification('Thêm product line thành công');
       }
       navigate('/categories');
@@ -160,7 +225,7 @@ const CategoryForm = () => {
       <div className="p-4">
         <form
           onSubmit={handleSubmit}
-          className="card max-w-4xl mx-auto space-y-3"
+          className="card mx-auto space-y-3"
         >
           <div>
             <label className="block text-xs font-medium mb-1">
@@ -328,6 +393,54 @@ const CategoryForm = () => {
               />
               <span className="text-xs font-medium">Đang hoạt động</span>
             </label>
+          </div>
+
+          <div>
+            <label className="block text-xs font-medium mb-2">
+              Sản phẩm thuộc danh mục này
+            </label>
+            <div className="border rounded-lg p-3 bg-gray-50 max-h-64 overflow-y-auto">
+              {products.length === 0 ? (
+                <p className="text-xs text-gray-400 text-center py-2">
+                  Chưa có sản phẩm nào
+                </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {products.map((product) => (
+                    <label
+                      key={product._id}
+                      className="flex items-center gap-2 p-2 hover:bg-white rounded cursor-pointer transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedProducts.includes(product._id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedProducts([...selectedProducts, product._id]);
+                          } else {
+                            setSelectedProducts(selectedProducts.filter(id => id !== product._id));
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-xs font-medium text-gray-800 truncate">
+                          {product.name}
+                        </div>
+                        {product.productCode && (
+                          <div className="text-[10px] text-gray-400">
+                            SKU: {product.productCode}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-gray-400 mt-1">
+              Chọn các sản phẩm thuộc danh mục này. Có thể chọn nhiều sản phẩm.
+            </p>
           </div>
 
           <div className="flex justify-end gap-2 pt-3 border-t">

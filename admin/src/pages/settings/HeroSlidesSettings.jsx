@@ -123,7 +123,7 @@ export default function HeroSlidesSettings() {
   return (
     <>
       <HeaderWithBreadcrumb title="Hero slider trang chủ" backTo="/settings" backLabel="Cài đặt" />
-      <div className="p-4 pt-3 max-w-4xl">
+      <div className="p-4 pt-3">
         <div className="flex items-center justify-between mb-3">
           <p className="text-xs text-gray-500">
             Quản lý các slide hiển thị ở đầu trang chủ. Thay đổi hiển thị trên client sau khi cache hết hạn (tối đa 5 phút).

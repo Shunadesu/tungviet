@@ -22,14 +22,18 @@ const MainTreeTechEditor = () => {
   const [uploadingSubDoc, setUploadingSubDoc] = useState(false);
   const [parentName, setParentName] = useState('');
   const [availableMainTrees, setAvailableMainTrees] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [allProducts, setAllProducts] = useState([]);
   const [items, setItems] = useState([]);
 
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [treeRes, mtRes] = await Promise.all([
+        const [treeRes, mtRes, categoriesRes, productsRes] = await Promise.all([
           adminApi.getMainTree(id),
           adminApi.getMainTrees({ isActive: true }),
+          adminApi.getCategories({ isActive: true }),
+          adminApi.getProducts({ isActive: true }),
         ]);
         const tree = treeRes.data?.data;
         if (!tree) {
@@ -44,11 +48,21 @@ const MainTreeTechEditor = () => {
                 ...emptySubDoc,
                 ...t,
                 linkToMainTree: t.linkToMainTree?._id || t.linkToMainTree || null,
+                productLines: Array.isArray(t.productLines) 
+                  ? t.productLines.map(pl => pl._id || pl)
+                  : [],
+                applications: Array.isArray(t.applications) ? t.applications : [],
               }))
             : []
         );
         const list = Array.isArray(mtRes.data) ? mtRes.data : mtRes.data?.data || [];
         setAvailableMainTrees(list.filter((mt) => mt._id !== id));
+        
+        const catList = Array.isArray(categoriesRes.data) ? categoriesRes.data : categoriesRes.data?.data || [];
+        setCategories(catList);
+        
+        const prodList = Array.isArray(productsRes.data) ? productsRes.data : productsRes.data?.data || [];
+        setAllProducts(prodList);
       } catch (err) {
         addNotification(err.response?.data?.message || 'Không thể tải dữ liệu', 'error');
       } finally {
@@ -61,7 +75,7 @@ const MainTreeTechEditor = () => {
   const addItem = () =>
     setItems((prev) => [
       ...prev,
-      { ...emptySubDoc, order: prev.length, _new: true },
+      { ...emptySubDoc, order: prev.length, _new: true, productLines: [], applications: [] },
     ]);
   const updateItem = (index, item) =>
     setItems((prev) => prev.map((it, i) => (i === index ? item : it)));
@@ -92,6 +106,8 @@ const MainTreeTechEditor = () => {
           ...t,
           description: t.description || undefined,
           descriptionEn: t.descriptionEn || undefined,
+          productLines: t.productLines || [],
+          applications: t.applications || [],
         })),
       };
       await adminApi.updateMainTree(id, payload);
@@ -140,7 +156,7 @@ const MainTreeTechEditor = () => {
       />
 
       <div className="p-4">
-        <div className="card max-w-4xl mx-auto space-y-3">
+        <div className="card mx-auto space-y-3">
           <div className="flex items-center justify-between border-b pb-3">
             <div className="flex items-center gap-2">
               <FiCpu className="text-primary" size={18} />
@@ -176,6 +192,8 @@ const MainTreeTechEditor = () => {
                   onUploadImage={(file) => handleSubDocImageUpload(idx, file)}
                   uploadingImage={uploadingSubDoc}
                   availableMainTrees={availableMainTrees}
+                  availableCategories={categories}
+                  allProducts={allProducts}
                 />
               ))}
             </div>

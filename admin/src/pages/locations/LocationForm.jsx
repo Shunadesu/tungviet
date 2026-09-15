@@ -85,7 +85,7 @@ const LocationForm = () => {
   return (
     <>
       <HeaderWithBreadcrumb title={isEditing ? 'Sua dia diem' : 'Them dia diem'} backTo="/locations" />
-      <div className="p-4 pt-3 max-w-4xl">
+      <div className="p-4 pt-3">
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-5">
 

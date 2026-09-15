@@ -101,7 +101,7 @@ const LeadershipForm = () => {
   return (
     <>
       <HeaderWithBreadcrumb title={isEditing ? 'Sua thanh vien' : 'Them thanh vien'} backTo="/leadership" />
-      <div className="p-4 pt-3 max-w-4xl">
+      <div className="p-4 pt-3">
         <div className="card">
           <form onSubmit={handleSubmit} className="space-y-5">
 

@@ -38,6 +38,8 @@ export const emptySubDoc = {
   linkToMainTree: null,
   linkCustomUrl: '',
   specifications: [],
+  productLines: [],
+  applications: [],
 };
 
 export const emptyApplication = {
@@ -54,6 +56,8 @@ const SubDocEditorCard = ({
   onUploadImage,
   uploadingImage,
   availableMainTrees,
+  availableCategories = [],
+  allProducts = [],
   defaultExpanded = false,
 }) => {
   const [expanded, setExpanded] = useState(defaultExpanded);
@@ -282,11 +286,28 @@ const SubDocEditorCard = ({
           </div>
 
           {kind === 'technologies' && (
-            <SpecificationsEditor
-              specifications={item.specifications || []}
-              onChange={(next) => onUpdate({ ...item, specifications: next })}
-              defaultExpanded={!!item._new}
-            />
+            <>
+              <ProductLinesSelector
+                selectedLines={item.productLines || []}
+                availableCategories={availableCategories}
+                onChange={(next) => onUpdate({ ...item, productLines: next })}
+              />
+              
+              <ApplicationsEditor
+                applications={item.applications || []}
+                onChange={(next) => onUpdate({ ...item, applications: next })}
+                selectedProductLines={item.productLines || []}
+                availableCategories={availableCategories}
+                allProducts={allProducts}
+                defaultExpanded={!!item._new}
+              />
+              
+              <SpecificationsEditor
+                specifications={item.specifications || []}
+                onChange={(next) => onUpdate({ ...item, specifications: next })}
+                defaultExpanded={!!item._new}
+              />
+            </>
           )}
         </div>
       )}
@@ -456,6 +477,197 @@ const SpecificationsEditor = ({
               ))}
             </>
           )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ProductLinesSelector = ({ selectedLines, availableCategories, onChange }) => {
+  const [expanded, setExpanded] = useState(false);
+
+  const handleToggle = (catId) => {
+    const current = selectedLines || [];
+    if (current.includes(catId)) {
+      onChange(current.filter((id) => id !== catId));
+    } else {
+      onChange([...current, catId]);
+    }
+  };
+
+  return (
+    <div className="border-t border-gray-100 pt-2 mt-2">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-[10px] font-semibold text-gray-600 uppercase tracking-wide hover:text-gray-800 transition-colors"
+      >
+        <FiList size={11} />
+        <span>Chọn Product Lines (Categories)</span>
+        {expanded ? <FiChevronUp size={10} /> : <FiChevronDown size={10} />}
+        <span className="ml-1 text-blue-600">({(selectedLines || []).length})</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-2 border border-gray-200 rounded-lg bg-gray-50 p-2 max-h-60 overflow-y-auto">
+          {availableCategories.length === 0 ? (
+            <p className="text-[10px] text-gray-400">Không có Product Line nào</p>
+          ) : (
+            <div className="space-y-1">
+              {availableCategories.map((cat) => (
+                <label
+                  key={cat._id}
+                  className="flex items-start gap-2 p-1.5 rounded hover:bg-white transition-colors cursor-pointer"
+                >
+                  <input
+                    type="checkbox"
+                    checked={(selectedLines || []).includes(cat._id)}
+                    onChange={() => handleToggle(cat._id)}
+                    className="mt-0.5 rounded w-3 h-3"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[10px] font-medium text-gray-800">
+                      {cat.name}
+                    </div>
+                    {cat.nameEn && (
+                      <div className="text-[9px] text-gray-500">{cat.nameEn}</div>
+                    )}
+                  </div>
+                </label>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const ApplicationsEditor = ({
+  applications,
+  onChange,
+  selectedProductLines,
+  availableCategories,
+  allProducts,
+  defaultExpanded = false,
+}) => {
+  const [expanded, setExpanded] = useState(defaultExpanded || applications.length > 0);
+
+  const addApp = () => {
+    onChange([...applications, { title: '', titleEn: '', order: applications.length }]);
+  };
+
+  const updateApp = (idx, next) => {
+    const copy = [...applications];
+    copy[idx] = next;
+    onChange(copy);
+  };
+
+  const removeApp = (idx) => {
+    onChange(applications.filter((_, i) => i !== idx));
+  };
+
+  // Build preview tree
+  const previewTree = () => {
+    if (selectedProductLines.length === 0) return [];
+    const lines = availableCategories.filter((c) => selectedProductLines.includes(c._id));
+    return lines.map((line) => {
+      const products = allProducts.filter((p) =>
+        (p.productLines || []).some((pl) => (pl._id || pl) === line._id)
+      );
+      return { line, products };
+    });
+  };
+
+  return (
+    <div className="border-t border-gray-100 pt-2 mt-2">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="flex items-center gap-1 text-[10px] font-semibold text-gray-600 uppercase tracking-wide hover:text-gray-800 transition-colors"
+      >
+        <FiPackage size={11} />
+        <span>Ứng dụng</span>
+        {expanded ? <FiChevronUp size={10} /> : <FiChevronDown size={10} />}
+        <span className="ml-1 text-blue-600">({applications.length})</span>
+      </button>
+
+      {expanded && (
+        <div className="mt-2 space-y-2">
+          {/* Preview Tree */}
+          {selectedProductLines.length > 0 && (
+            <div className="border border-blue-200 rounded-lg bg-blue-50 p-2 text-[10px]">
+              <div className="font-semibold text-blue-800 mb-1">Preview: Cây ngành → Product Line → SKU</div>
+              <div className="space-y-1 text-gray-700">
+                {previewTree().map(({ line, products }) => (
+                  <div key={line._id} className="pl-2 border-l-2 border-blue-300">
+                    <div className="font-medium text-blue-900">→ {line.name}</div>
+                    {products.length > 0 ? (
+                      <div className="pl-3 space-y-0.5 mt-0.5">
+                        {products.map((p) => (
+                          <div key={p._id} className="text-gray-600">
+                            • {p.name} {p.sku ? `(${p.sku})` : ''}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="pl-3 text-gray-400 text-[9px]">Chưa có sản phẩm</div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Applications list */}
+          <div className="space-y-1.5">
+            {applications.map((app, idx) => (
+              <div key={idx} className="border border-gray-200 rounded-lg bg-white p-2">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[10px] font-semibold text-gray-700">Ứng dụng #{idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeApp(idx)}
+                    className="text-red-500 hover:text-red-700 transition-colors"
+                  >
+                    <FiTrash2 size={11} />
+                  </button>
+                </div>
+                <div className="grid gap-2">
+                  <input
+                    type="text"
+                    value={app.title || ''}
+                    onChange={(e) => updateApp(idx, { ...app, title: e.target.value })}
+                    placeholder="Tiêu đề"
+                    className="input-field text-[10px]"
+                  />
+                  <input
+                    type="text"
+                    value={app.titleEn || ''}
+                    onChange={(e) => updateApp(idx, { ...app, titleEn: e.target.value })}
+                    placeholder="Title (EN)"
+                    className="input-field text-[10px]"
+                  />
+                  <input
+                    type="number"
+                    value={app.order ?? 0}
+                    onChange={(e) => updateApp(idx, { ...app, order: Number(e.target.value) || 0 })}
+                    placeholder="Thứ tự"
+                    className="input-field text-[10px] w-20"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <button
+            type="button"
+            onClick={addApp}
+            className="flex items-center gap-1 text-[10px] font-medium text-blue-600 hover:text-blue-700 transition-colors"
+          >
+            <FiList size={10} />
+            <span>Thêm ứng dụng</span>
+          </button>
         </div>
       )}
     </div>

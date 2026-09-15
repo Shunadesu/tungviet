@@ -13,7 +13,6 @@ import ProductColumnsSettings from './pages/products/ProductColumnsSettings';
 import MainTreeList from './pages/mainTrees/MainTreeList';
 import MainTreeForm from './pages/mainTrees/MainTreeForm';
 import MainTreeTechEditor from './pages/mainTrees/MainTreeTechEditor';
-import MainTreeAppEditor from './pages/mainTrees/MainTreeAppEditor';
 import MarketTreeList from './pages/marketTrees/MarketTreeList';
 import MarketTreeForm from './pages/marketTrees/MarketTreeForm';
 import MarketTechEditor from './pages/marketTrees/MarketTechEditor';
@@ -118,11 +117,6 @@ function App() {
               <Route path="/main-trees/:id/technologies" element={
                 <ProtectedRoute>
                   <MainTreeTechEditor />
-                </ProtectedRoute>
-              } />
-              <Route path="/main-trees/:id/applications" element={
-                <ProtectedRoute>
-                  <MainTreeAppEditor />
                 </ProtectedRoute>
               } />
               <Route path="/market-trees" element={

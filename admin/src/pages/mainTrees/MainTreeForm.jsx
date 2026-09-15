@@ -43,7 +43,6 @@ const emptyForm = {
   order: 0,
   isActive: true,
   technologies: [],
-  applications: [],
 };
 
 const SubDocCard = ({
@@ -352,14 +351,6 @@ const MainTreeForm = () => {
                   t.linkToMainTree?._id || t.linkToMainTree || null,
               }))
             : [],
-          applications: Array.isArray(tree.applications)
-            ? tree.applications.map((a) => ({
-                ...emptySubDoc,
-                ...a,
-                linkToMainTree:
-                  a.linkToMainTree?._id || a.linkToMainTree || null,
-              }))
-            : [],
         });
       } catch (error) {
         addNotification(
@@ -470,11 +461,6 @@ const MainTreeForm = () => {
       description: t.description || undefined,
       descriptionEn: t.descriptionEn || undefined,
     })),
-    applications: (formData.applications || []).map((a) => ({
-      ...a,
-      description: a.description || undefined,
-      descriptionEn: a.descriptionEn || undefined,
-    })),
   });
 
   const handleQuickCreateAndNavigate = async (subRoute) => {
@@ -539,7 +525,7 @@ const MainTreeForm = () => {
       <div className="p-4">
         <form
           onSubmit={handleSubmit}
-          className="card max-w-4xl mx-auto space-y-3"
+          className="card mx-auto space-y-3"
         >
           {/* Basic info */}
           <div className="grid md:grid-cols-2 gap-3">
@@ -797,77 +783,6 @@ const MainTreeForm = () => {
                     onRemove={() => removeSubDoc('technologies', idx)}
                     onUpload={(file) =>
                       handleSubDocImageUpload('technologies', idx, file)
-                    }
-                    uploading={uploadingSubDoc}
-                    availableMainTrees={availableMainTrees}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Section: Applications */}
-          <div className="space-y-2 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1">
-                <FiPackage size={14} />
-                Ứng dụng (applications)
-              </h3>
-              {isEditing ? (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/main-trees/${id}/applications`)}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                >
-                  <FiExternalLink size={12} />
-                  Quản lý ứng dụng
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => handleQuickCreateAndNavigate('applications')}
-                  className="text-xs text-primary hover:underline flex items-center gap-1"
-                  disabled={saving}
-                >
-                  <FiPlus size={12} />
-                  Thêm ứng dụng
-                </button>
-              )}
-            </div>
-            {isEditing ? (
-              <button
-                type="button"
-                onClick={() => navigate(`/main-trees/${id}/applications`)}
-                className="w-full text-left p-3 border border-gray-100 rounded bg-gray-50/40 hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-medium text-gray-700">
-                      {(formData.applications || []).length} ứng dụng đã cấu hình
-                    </div>
-                    <div className="text-[10px] text-gray-400 mt-0.5">
-                      Bấm để mở trang quản lý chi tiết
-                    </div>
-                  </div>
-                  <span className="text-primary text-xs">→</span>
-                </div>
-              </button>
-            ) : (formData.applications || []).length === 0 ? (
-              <p className="text-[11px] text-gray-400 italic">
-                Chưa có ứng dụng nào.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {formData.applications.map((item, idx) => (
-                  <SubDocCard
-                    key={`app-${idx}`}
-                    item={item}
-                    index={idx}
-                    kind="applications"
-                    onUpdate={(next) => updateSubDoc('applications', idx, next)}
-                    onRemove={() => removeSubDoc('applications', idx)}
-                    onUpload={(file) =>
-                      handleSubDocImageUpload('applications', idx, file)
                     }
                     uploading={uploadingSubDoc}
                     availableMainTrees={availableMainTrees}

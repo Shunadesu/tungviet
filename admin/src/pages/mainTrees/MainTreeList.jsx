@@ -11,6 +11,7 @@ import {
   FiArrowDown,
   FiEye,
   FiEyeOff,
+  FiCpu,
 } from 'react-icons/fi';
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
@@ -179,51 +180,91 @@ const MainTreeList = () => {
         ),
       },
       {
-        header: 'Tên',
-        accessor: 'name',
+        header: 'Icon',
+        accessor: 'iconUrl',
         render: (val, row) => (
-          <div className="flex items-center gap-2">
-            {row.iconUrl ? (
+          <div className="flex items-center justify-center">
+            {val ? (
               <img
-                src={row.iconUrl}
+                src={val}
                 alt=""
-                className="w-7 h-7 rounded object-cover flex-shrink-0"
+                className="w-9 h-9 rounded object-cover border border-gray-200"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
               />
             ) : (
-              <div className="w-7 h-7 rounded bg-gray-100 flex-shrink-0 flex items-center justify-center text-gray-400 text-xs">
+              <div className="w-9 h-9 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                 🌳
               </div>
             )}
-            <div className="min-w-0">
-              <div className="text-xs font-medium">{val}</div>
-              {row.nameEn && (
-                <div className="text-[10px] text-gray-400">{row.nameEn}</div>
-              )}
-              {row.isActive === false && (
-                <span className="text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
-                  Tạm ẩn
-                </span>
-              )}
-            </div>
+          </div>
+        ),
+        className: 'text-center',
+      },
+      {
+        header: 'Tên ngành hàng',
+        accessor: 'name',
+        render: (val, row) => (
+          <div className="min-w-0">
+            <div className="text-xs font-semibold text-gray-800">{val}</div>
+            {row.nameEn && (
+              <div className="text-[10px] text-gray-400 mt-0.5">{row.nameEn}</div>
+            )}
+            {row.isActive === false && (
+              <span className="inline-block mt-1 text-[10px] px-1.5 py-0.5 bg-red-50 text-red-600 rounded">
+                Tạm ẩn
+              </span>
+            )}
           </div>
         ),
       },
       {
         header: 'Slug',
         accessor: 'slug',
-        render: (val) => <span className="text-gray-500">{val}</span>,
+        render: (val) => <span className="text-gray-500 text-xs">{val}</span>,
+      },
+      {
+        header: 'Công nghệ',
+        accessor: 'technologies',
+        render: (val) => {
+          const count = Array.isArray(val) ? val.length : 0;
+          return (
+            <div className="flex items-center justify-center">
+              {count > 0 ? (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 rounded-full text-xs font-medium">
+                  <FiCpu size={12} />
+                  {count}
+                </span>
+              ) : (
+                <span className="text-gray-300 text-xs">—</span>
+              )}
+            </div>
+          );
+        },
+        className: 'text-center',
       },
       {
         header: 'Mô tả',
         accessor: 'description',
-        render: (val) => (
-          <span className="text-gray-500 max-w-xs truncate inline-block align-middle" title={val}>
-            {val || '—'}
-          </span>
-        ),
+        render: (val) => {
+          if (!val) return <span className="text-gray-300">—</span>;
+          // Strip HTML tags và decode entities
+          const temp = document.createElement('div');
+          temp.innerHTML = val;
+          const plainText = temp.textContent || temp.innerText || '';
+          const truncated = plainText.length > 80 ? plainText.slice(0, 80) + '...' : plainText;
+          return (
+            <div className="max-w-xs">
+              <span 
+                className="text-gray-600 text-xs leading-relaxed line-clamp-2" 
+                title={plainText}
+              >
+                {truncated}
+              </span>
+            </div>
+          );
+        },
       },
       {
         header: 'Thứ tự',
