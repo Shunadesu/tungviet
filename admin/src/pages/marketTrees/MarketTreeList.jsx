@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -13,19 +13,26 @@ import {
   FiCpu,
   FiPackage,
   FiImage,
-  FiExternalLink,
 } from 'react-icons/fi';
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
 import BulkActionBar from '../../components/BulkActionBar';
-import ConfirmModal from '../../components/ConfirmModal';
-import adminApi from '../../api/adminApi';
-import { useNotification } from '../../context/NotificationContext';
+import {
+  useAdminStore,
+  useAdminStoreEntity,
+  useEntitySelection,
+  useNotification,
+} from '../../hooks/useAdminStore';
 
 const stripHtml = (html) =>
-  (html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+  (html || '')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 
-const truncate = (s, n = 280) => (s.length > n ? `${s.slice(0, n).trim()}…` : s);
+const truncate = (s, n = 280) =>
+  s.length > n ? `${s.slice(0, n).trim()}…` : s;
 
 const SubDocRow = ({ index, item, kind }) => {
   const isApp = kind === 'applications';
@@ -85,7 +92,11 @@ const ProductEntryItem = ({ entry, index, product }) => {
   const appIdx = entry.applicationIndex;
   const appLabel =
     Number.isFinite(appIdx) && appIdx >= 0
-      ? `Ứng dụng #${appIdx + 1}${product?.applications?.[appIdx]?.title ? ` — ${product.applications[appIdx].title}` : ''}`
+      ? `Ứng dụng #${appIdx + 1}${
+          product?.applications?.[appIdx]?.title
+            ? ` — ${product.applications[appIdx].title}`
+            : ''
+        }`
       : '— chưa gán ứng dụng —';
   return (
     <div className="flex items-center gap-2 p-1.5 bg-white border border-gray-100 rounded">
@@ -119,36 +130,33 @@ const ProductEntryItem = ({ entry, index, product }) => {
   );
 };
 
-const PillsList = ({ items, color, accent = '' }) => {
-  if (!items || items.length === 0) {
+const CountBadge = ({ count, color = 'gray' }) => {
+  if (!count || count === 0) {
     return <span className="text-gray-300 text-[10px]">—</span>;
   }
-  const visible = items.slice(0, 3);
-  const remaining = items.length - visible.length;
+  const colorMap = {
+    purple: 'bg-purple-50 text-purple-700',
+    amber: 'bg-amber-50 text-amber-700',
+    blue: 'bg-blue-50 text-blue-700',
+    gray: 'bg-gray-50 text-gray-500',
+  };
   return (
-    <div className="flex flex-wrap gap-1 items-center">
-      {visible.map((item, idx) => (
-        <span
-          key={idx}
-          title={item.titleEn ? `${item.title} / ${item.titleEn}` : item.title || ''}
-          className={`inline-block max-w-[160px] truncate text-[10px] px-1.5 py-0.5 rounded border ${color} ${accent}`}
-        >
-          {item.title || `Mục #${idx + 1}`}
-        </span>
-      ))}
-      {remaining > 0 && (
-        <span className="text-[10px] text-gray-500 font-medium" title={items.slice(3).map((i) => i.title).filter(Boolean).join('\n')}>
-          +{remaining}
-        </span>
-      )}
-    </div>
+    <span
+      className={`inline-block text-[10px] px-1.5 py-0.5 rounded font-semibold ${
+        colorMap[color] || colorMap.gray
+      }`}
+    >
+      {count}
+    </span>
   );
 };
 
 const ExpandedDetail = ({ node, productMap }) => {
   const technologies = Array.isArray(node.technologies) ? node.technologies : [];
   const applications = Array.isArray(node.applications) ? node.applications : [];
-  const rootProducts = Array.isArray(node.productEntries) ? node.productEntries : [];
+  const rootProducts = Array.isArray(node.productEntries)
+    ? node.productEntries
+    : [];
   const descVi = truncate(stripHtml(node.description), 280);
   const descEn = truncate(stripHtml(node.descriptionEn), 280);
   const introVi = truncate(stripHtml(node.introductions?.vi), 280);
@@ -157,7 +165,6 @@ const ExpandedDetail = ({ node, productMap }) => {
   return (
     <div className="bg-gray-50/50 border-t border-gray-200 px-4 py-4">
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Basic info */}
         <div className="space-y-3">
           <div>
             <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
@@ -166,25 +173,32 @@ const ExpandedDetail = ({ node, productMap }) => {
             <dl className="space-y-1.5 text-[11px]">
               <div>
                 <dt className="text-gray-500">Mô tả (VI)</dt>
-                <dd className="text-gray-700">{descVi || <span className="italic text-gray-400">—</span>}</dd>
+                <dd className="text-gray-700">
+                  {descVi || <span className="italic text-gray-400">—</span>}
+                </dd>
               </div>
               <div>
                 <dt className="text-gray-500">Mô tả (EN)</dt>
-                <dd className="text-gray-700">{descEn || <span className="italic text-gray-400">—</span>}</dd>
+                <dd className="text-gray-700">
+                  {descEn || <span className="italic text-gray-400">—</span>}
+                </dd>
               </div>
               <div>
                 <dt className="text-gray-500">Giới thiệu (VI)</dt>
-                <dd className="text-gray-700">{introVi || <span className="italic text-gray-400">—</span>}</dd>
+                <dd className="text-gray-700">
+                  {introVi || <span className="italic text-gray-400">—</span>}
+                </dd>
               </div>
               <div>
                 <dt className="text-gray-500">Giới thiệu (EN)</dt>
-                <dd className="text-gray-700">{introEn || <span className="italic text-gray-400">—</span>}</dd>
+                <dd className="text-gray-700">
+                  {introEn || <span className="italic text-gray-400">—</span>}
+                </dd>
               </div>
             </dl>
           </div>
         </div>
 
-        {/* Technologies & Applications */}
         <div className="space-y-3">
           <div>
             <h4 className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide mb-1.5 flex items-center gap-1">
@@ -196,7 +210,12 @@ const ExpandedDetail = ({ node, productMap }) => {
             ) : (
               <div className="space-y-1.5">
                 {technologies.map((item, idx) => (
-                  <SubDocRow key={`tech-${idx}`} index={idx} item={item} kind="technologies" />
+                  <SubDocRow
+                    key={`tech-${idx}`}
+                    index={idx}
+                    item={item}
+                    kind="technologies"
+                  />
                 ))}
               </div>
             )}
@@ -214,7 +233,10 @@ const ExpandedDetail = ({ node, productMap }) => {
             ) : (
               <div className="space-y-1">
                 {rootProducts.map((entry, idx) => {
-                  const productId = entry.productId?._id || entry.productId;
+                  const productId =
+                    typeof entry.productId === 'object'
+                      ? entry.productId?._id
+                      : entry.productId;
                   const product = productMap.get(String(productId));
                   return (
                     <div
@@ -262,14 +284,19 @@ const ExpandedDetail = ({ node, productMap }) => {
             ) : (
               <div className="space-y-2">
                 {applications.map((item, idx) => {
-                  const entries = Array.isArray(item.productEntries) ? item.productEntries : [];
+                  const entries = Array.isArray(item.productEntries)
+                    ? item.productEntries
+                    : [];
                   return (
                     <div key={`app-${idx}`} className="space-y-1.5">
                       <SubDocRow index={idx} item={item} kind="applications" />
                       {entries.length > 0 && (
                         <div className="ml-3 space-y-1">
                           {entries.map((entry, eIdx) => {
-                            const productId = entry.productId?._id || entry.productId;
+                            const productId =
+                              typeof entry.productId === 'object'
+                                ? entry.productId?._id
+                                : entry.productId;
                             return (
                               <ProductEntryItem
                                 key={`entry-${idx}-${eIdx}`}
@@ -295,50 +322,38 @@ const ExpandedDetail = ({ node, productMap }) => {
 
 const MarketTreeList = () => {
   const navigate = useNavigate();
-  const [nodes, setNodes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [expandedIds, setExpandedIds] = useState(() => new Set());
-  const [productMap, setProductMap] = useState(() => new Map());
-  const [selectedIds, setSelectedIds] = useState(() => new Set());
-  const [bulkAction, setBulkAction] = useState(null);
-  const [bulkLoading, setBulkLoading] = useState(false);
   const { addNotification } = useNotification();
 
-  useEffect(() => {
-    fetchNodes();
-  }, []);
+  const marketTrees = useAdminStoreEntity('marketTrees');
+  const products = useAdminStoreEntity('products');
+  const ui = useAdminStore((s) => s.ui);
+  const openConfirm = useAdminStore((s) => s.ui.openConfirm);
 
-  useEffect(() => {
-    const loadProducts = async () => {
-      try {
-        const res = await adminApi.getProducts({ limit: 200 });
-        const list = Array.isArray(res.data?.data) ? res.data.data : [];
-        setProductMap(new Map(list.map((p) => [String(p._id), p])));
-      } catch (err) {
-        console.error('Failed to load products', err);
-      }
-    };
-    loadProducts();
-  }, []);
+  const { selectedIds, clearSelection } = useEntitySelection('marketTrees');
 
-  const fetchNodes = async () => {
-    setLoading(true);
-    try {
-      const res = await adminApi.getMarketTrees();
-      setNodes(Array.isArray(res.data?.data) ? res.data.data : []);
-      setSelectedIds(new Set());
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filters = ui.filters.marketTrees || {};
+  const search = filters.search || '';
+
+  const setFilter = useCallback(
+    (partial) => ui.setFilter('marketTrees', partial),
+    [ui]
+  );
+
+  const [expandedIds, setExpandedIds] = React.useState(() => new Set());
+
+  // Load data on mount
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    marketTrees.fetchAll();
+    products.fetchAll({ limit: 200 });
+  }, [marketTrees, products]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
-    if (!q) return nodes;
-    return nodes.filter((n) => {
+    if (!q) return marketTrees.allItems;
+    return marketTrees.allItems.filter((n) => {
       const inTech = (n.technologies || []).some(
         (t) =>
           (t.title || '').toLowerCase().includes(q) ||
@@ -360,80 +375,98 @@ const MarketTreeList = () => {
         inApp
       );
     });
-  }, [nodes, search]);
+  }, [marketTrees.allItems, search]);
 
-  const toggleExpand = (id) => {
+  const productMap = useMemo(() => {
+    const map = new Map();
+    for (const p of products.allItems) map.set(String(p._id), p);
+    return map;
+  }, [products.allItems]);
+
+  const toggleExpand = useCallback((id) => {
     setExpandedIds((prev) => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
       return next;
     });
-  };
+  }, []);
 
-  const handleDelete = async (id) => {
-    if (!confirm('Xóa cây ngành thị trường này?')) return;
-    try {
-      await adminApi.deleteMarketTree(id);
-      addNotification('Xóa thành công');
-      setExpandedIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
+  const handleDelete = useCallback(
+    (id) => {
+      openConfirm({
+        title: 'Xóa cây ngành thị trường',
+        message: 'Bạn có chắc muốn xóa cây ngành này?',
+        confirmText: 'Xóa',
+        confirmStyle: 'danger',
+        onConfirm: async () => {
+          try {
+            await marketTrees.remove(id);
+            addNotification('Xóa thành công');
+            setExpandedIds((prev) => {
+              const next = new Set(prev);
+              next.delete(id);
+              return next;
+            });
+          } catch (err) {
+            addNotification(
+              err.response?.data?.message || 'Có lỗi xảy ra',
+              'error'
+            );
+          }
+        },
       });
-      fetchNodes();
-    } catch (err) {
-      addNotification(err.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    }
-  };
+    },
+    [openConfirm, marketTrees, addNotification]
+  );
 
-  const toggleSelect = (id) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleSelectAll = () => {
-    const filteredIds = filtered.map((n) => String(n._id));
-    const allSelected =
-      filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allSelected) {
-        filteredIds.forEach((id) => next.delete(id));
-      } else {
-        filteredIds.forEach((id) => next.add(id));
-      }
-      return next;
-    });
-  };
-
-  const clearSelection = () => setSelectedIds(new Set());
-
-  const executeBulkDelete = async () => {
-    const ids = Array.from(selectedIds);
+  const executeBulkDelete = useCallback(async () => {
+    const ids = selectedIds;
     if (ids.length === 0) return;
-    setBulkLoading(true);
     try {
-      const res = await adminApi.bulkMarketTrees({ action: 'delete', ids });
-      addNotification(`Đã xóa ${res.data?.deleted ?? ids.length} cây ngành`);
-      setBulkAction(null);
-      fetchNodes();
+      await marketTrees.update(ids[0], { _bulkDelete: ids });
+      addNotification(`Đã xóa ${ids.length} cây ngành`);
+      clearSelection();
+      marketTrees.invalidateList();
+      marketTrees.fetchAll();
     } catch (err) {
-      addNotification(err.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    } finally {
-      setBulkLoading(false);
+      addNotification(
+        err.response?.data?.message || 'Có lỗi xảy ra',
+        'error'
+      );
     }
-  };
+  }, [selectedIds, marketTrees, addNotification, clearSelection]);
+
+  const handleBulkDelete = useCallback(() => {
+    openConfirm({
+      title: 'Xóa hàng loạt',
+      message: `Bạn có chắc muốn xóa ${selectedIds.length} cây ngành đã chọn? Hành động này không thể hoàn tác.`,
+      confirmText: 'Xóa',
+      confirmStyle: 'danger',
+      onConfirm: executeBulkDelete,
+    });
+  }, [selectedIds, openConfirm, executeBulkDelete]);
 
   const filteredIds = filtered.map((n) => String(n._id));
   const allFilteredSelected =
-    filteredIds.length > 0 && filteredIds.every((id) => selectedIds.has(id));
+    filteredIds.length > 0 &&
+    filteredIds.every((id) => selectedIds.includes(id));
   const someFilteredSelected =
-    filteredIds.some((id) => selectedIds.has(id)) && !allFilteredSelected;
+    filteredIds.some((id) => selectedIds.includes(id)) &&
+    !allFilteredSelected;
+
+  const toggleSelectAll = useCallback(() => {
+    if (allFilteredSelected) {
+      clearSelection();
+    } else {
+      useAdminStore
+        .getState()
+        .selection.setSelected(
+          'marketTrees',
+          filtered.map((n) => n._id)
+        );
+    }
+  }, [allFilteredSelected, clearSelection, filtered]);
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
@@ -446,11 +479,10 @@ const MarketTreeList = () => {
 
       <div className="p-4">
         <BulkActionBar
-          selectedCount={selectedIds.size}
+          selectedCount={selectedIds.length}
           onClear={clearSelection}
-          onDelete={() => setBulkAction({ type: 'delete' })}
+          onDelete={handleBulkDelete}
           entityName="cây ngành"
-          loading={bulkLoading}
         />
         <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -476,12 +508,12 @@ const MarketTreeList = () => {
                 type="text"
                 placeholder="Tìm kiếm tiêu đề, công nghệ, ứng dụng..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => setFilter({ search: e.target.value })}
                 className="input-field pl-8 pr-8 text-xs py-1.5 w-64"
               />
               {search && (
                 <button
-                  onClick={() => setSearch('')}
+                  onClick={() => setFilter({ search: '' })}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <FiX size={12} />
@@ -499,7 +531,7 @@ const MarketTreeList = () => {
         </div>
 
         <div className="card overflow-hidden p-0">
-          {loading ? (
+          {marketTrees.loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
             </div>
@@ -536,23 +568,19 @@ const MarketTreeList = () => {
                     <th className="px-2 py-2 w-10">#</th>
                     <th className="px-2 py-2 w-14">Ảnh</th>
                     <th className="px-2 py-2 min-w-[220px]">Tiêu đề</th>
-                    <th className="px-2 py-2 hidden lg:table-cell min-w-[180px]">Mô tả</th>
-                    <th className="px-2 py-2 text-center w-16">Nổi bật</th>
-                    <th className="px-2 py-2 text-center w-14">TT</th>
-                    <th className="px-2 py-2 text-center w-20">Hiển thị</th>
-                    <th className="px-2 py-2 min-w-[200px]">
+                    <th className="px-2 py-2 text-center w-20">
                       <span className="inline-flex items-center gap-1 normal-case">
                         <FiCpu size={11} /> Công nghệ
                       </span>
                     </th>
-                    <th className="px-2 py-2 min-w-[200px]">
+                    <th className="px-2 py-2 text-center w-20">
                       <span className="inline-flex items-center gap-1 normal-case">
                         <FiPackage size={11} /> Ứng dụng
                       </span>
                     </th>
-                    <th className="px-2 py-2 text-center w-14 hidden md:table-cell" title="Sản phẩm">
-                      SP
-                    </th>
+                    <th className="px-2 py-2 text-center w-14">SP</th>
+                    <th className="px-2 py-2 text-center w-16">Nổi bật</th>
+                    <th className="px-2 py-2 text-center w-20">Hiển thị</th>
                     <th className="px-2 py-2 text-right w-24">Hành động</th>
                   </tr>
                 </thead>
@@ -564,25 +592,36 @@ const MarketTreeList = () => {
                     const rootProductCount = Array.isArray(node.productEntries)
                       ? node.productEntries.length
                       : 0;
-                    const appProductCount = (node.applications || []).reduce(
-                      (sum, a) => sum + (Array.isArray(a.productEntries) ? a.productEntries.length : 0),
+                    const appProductCount = (
+                      node.applications || []
+    ).reduce(
+                      (sum, a) =>
+                        sum +
+                        (Array.isArray(a.productEntries) ? a.productEntries.length : 0),
                       0
                     );
                     const productCount = rootProductCount + appProductCount;
-                    const descText = truncate(stripHtml(node.description), 120);
                     return (
-                      <>
+                      <React.Fragment key={node._id}>
                         <tr
-                          key={node._id}
                           className={`border-b border-gray-100 hover:bg-blue-50/30 transition-colors ${
-                            selectedIds.has(node._id) ? 'bg-blue-50/60' : isOpen ? 'bg-blue-50/40' : ''
+                            selectedIds.includes(node._id)
+                              ? 'bg-blue-50/60'
+                              : isOpen
+                              ? 'bg-blue-50/40'
+                              : ''
                           }`}
                         >
                           <td className="px-2 py-2 align-middle">
                             <input
                               type="checkbox"
-                              checked={selectedIds.has(node._id)}
-                              onChange={() => toggleSelect(node._id)}
+                              checked={selectedIds.includes(node._id)}
+                              onChange={() =>
+                                useAdminStore.getState().selection.toggleOne(
+                                  'marketTrees',
+                                  node._id
+                                )
+                              }
                               className="rounded w-3.5 h-3.5 cursor-pointer"
                               aria-label={`Chọn ${node.title || node._id}`}
                             />
@@ -593,7 +632,11 @@ const MarketTreeList = () => {
                               className="p-1 hover:bg-blue-100 text-blue-600 rounded transition-transform"
                               title={isOpen ? 'Thu gọn' : 'Mở rộng'}
                             >
-                              {isOpen ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+                              {isOpen ? (
+                                <FiChevronUp size={14} />
+                              ) : (
+                                <FiChevronDown size={14} />
+                              )}
                             </button>
                           </td>
                           <td className="px-2 py-2 align-middle text-gray-400 font-mono text-[10px]">
@@ -627,10 +670,14 @@ const MarketTreeList = () => {
                               </div>
                             )}
                           </td>
-                          <td className="px-2 py-2 align-middle hidden lg:table-cell">
-                            <span className="text-gray-500 line-clamp-2 block max-w-[260px]">
-                              {descText || '—'}
-                            </span>
+                          <td className="px-2 py-2 align-middle text-center">
+                            <CountBadge count={techCount} color="purple" />
+                          </td>
+                          <td className="px-2 py-2 align-middle text-center">
+                            <CountBadge count={appCount} color="amber" />
+                          </td>
+                          <td className="px-2 py-2 align-middle text-center">
+                            <CountBadge count={productCount} color="blue" />
                           </td>
                           <td className="px-2 py-2 align-middle text-center">
                             {node.isFeatured ? (
@@ -640,9 +687,6 @@ const MarketTreeList = () => {
                             ) : (
                               <span className="text-gray-300">—</span>
                             )}
-                          </td>
-                          <td className="px-2 py-2 align-middle text-center text-gray-500">
-                            {node.order ?? 0}
                           </td>
                           <td className="px-2 py-2 align-middle text-center">
                             {node.isActive !== false ? (
@@ -654,29 +698,6 @@ const MarketTreeList = () => {
                                 Ẩn
                               </span>
                             )}
-                          </td>
-                          <td className="px-2 py-2 align-middle">
-                            <PillsList
-                              items={node.technologies}
-                              color="bg-purple-50 text-purple-700 border-purple-100"
-                            />
-                          </td>
-                          <td className="px-2 py-2 align-middle">
-                            <PillsList
-                              items={node.applications}
-                              color="bg-amber-50 text-amber-700 border-amber-100"
-                            />
-                          </td>
-                          <td className="px-2 py-2 align-middle text-center hidden md:table-cell">
-                            <span
-                              className={`text-[10px] px-1.5 py-0.5 rounded ${
-                                productCount > 0
-                                  ? 'bg-blue-50 text-blue-700 font-semibold'
-                                  : 'bg-gray-50 text-gray-400'
-                              }`}
-                            >
-                              {productCount}
-                            </span>
                           </td>
                           <td className="px-2 py-2 align-middle text-right">
                             <div className="flex items-center justify-end gap-1">
@@ -701,8 +722,8 @@ const MarketTreeList = () => {
                         </tr>
                         <AnimatePresence initial={false}>
                           {isOpen && (
-                            <tr key={`${node._id}-detail`}>
-                              <td colSpan={13} className="p-0 border-b border-gray-100">
+                            <tr>
+                              <td colSpan={11} className="p-0 border-b border-gray-100">
                                 <motion.div
                                   initial={{ opacity: 0, height: 0 }}
                                   animate={{ opacity: 1, height: 'auto' }}
@@ -710,13 +731,16 @@ const MarketTreeList = () => {
                                   transition={{ duration: 0.18, ease: 'easeOut' }}
                                   style={{ overflow: 'hidden' }}
                                 >
-                                  <ExpandedDetail node={node} productMap={productMap} />
+                                  <ExpandedDetail
+                                    node={node}
+                                    productMap={productMap}
+                                  />
                                 </motion.div>
                               </td>
                             </tr>
                           )}
                         </AnimatePresence>
-                      </>
+                      </React.Fragment>
                     );
                   })}
                 </tbody>
@@ -725,21 +749,6 @@ const MarketTreeList = () => {
           )}
         </div>
       </div>
-
-      <ConfirmModal
-        isOpen={bulkAction?.type === 'delete'}
-        onClose={() => !bulkLoading && setBulkAction(null)}
-        onConfirm={executeBulkDelete}
-        title="Xóa hàng loạt"
-        message={
-          <>
-            Bạn có chắc muốn xóa <b>{selectedIds.size}</b> cây ngành đã chọn? Hành động này không thể hoàn tác.
-          </>
-        }
-        confirmText="Xóa"
-        confirmStyle="danger"
-        loading={bulkLoading}
-      />
     </motion.div>
   );
 };

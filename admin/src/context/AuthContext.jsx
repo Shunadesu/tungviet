@@ -1,5 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import adminApi from '../api/adminApi';
+import { useAdminStore } from '../store/adminStore';
+import { resetAdminStore } from '../store/helpers/resetStore';
 
 const AuthContext = createContext();
 
@@ -31,6 +33,9 @@ export const AuthProvider = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
+    // Clear all cached entity data, filters, selections, notifications,
+    // and any in-flight requests from the previous session.
+    resetAdminStore(useAdminStore);
     setUser(null);
   };
 

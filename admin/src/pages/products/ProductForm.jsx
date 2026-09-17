@@ -259,6 +259,8 @@ const emptyForm = {
   description: '',
   descriptionEn: '',
   imageUrl: '',
+  gallery: [],
+  tags: [],
   industries: [],
   productLines: [],
   marketIds: [],
@@ -273,6 +275,9 @@ const emptyForm = {
   applications: [],
   tdsUrl: '',
   isActive: true,
+  isFeatured: false,
+  isNew: false,
+  displayOrder: 0,
 };
 
 const WEB_STATUS_OPTIONS = [
@@ -610,6 +615,8 @@ const ProductForm = () => {
         description: product.description || '',
         descriptionEn: product.descriptionEn || '',
         imageUrl: product.imageUrl || '',
+        gallery: Array.isArray(product.gallery) ? product.gallery : [],
+        tags: Array.isArray(product.tags) ? product.tags : [],
         industries,
         productLines,
         marketIds,
@@ -629,6 +636,11 @@ const ProductForm = () => {
           : [],
         tdsUrl: product.tdsUrl || '',
         isActive: product.isActive !== false,
+        isFeatured: product.isFeatured === true,
+        isNew: product.isNew === true,
+        displayOrder: Number.isFinite(Number(product.displayOrder))
+          ? Number(product.displayOrder)
+          : 0,
       });
     } catch (error) {
       addNotification('Không tải được thông tin sản phẩm', 'error');
@@ -920,6 +932,75 @@ const ProductForm = () => {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Thứ tự hiển thị
+                </label>
+                <input
+                  type="number"
+                  value={formData.displayOrder ?? 0}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      displayOrder: Number(e.target.value) || 0,
+                    })
+                  }
+                  className="input-field"
+                  placeholder="0"
+                />
+              </div>
+            </div>
+
+            {/* Feature toggles */}
+            <div className="flex items-center gap-4 p-2 bg-amber-50/40 border border-amber-200 rounded-lg">
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={formData.isFeatured === true}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isFeatured: e.target.checked })
+                  }
+                  className="rounded w-4 h-4"
+                />
+                <span className="text-xs font-semibold text-amber-900">
+                  Sản phẩm nổi bật (Home)
+                </span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={formData.isNew === true}
+                  onChange={(e) =>
+                    setFormData({ ...formData, isNew: e.target.checked })
+                  }
+                  className="rounded w-4 h-4"
+                />
+                <span className="text-xs font-semibold text-amber-900">
+                  Sản phẩm mới
+                </span>
+              </label>
+            </div>
+
+            {/* Tags */}
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Tags (phân cách bằng dấu phẩy)
+              </label>
+              <input
+                type="text"
+                value={(formData.tags || []).join(', ')}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    tags: e.target.value
+                      .split(',')
+                      .map((t) => t.trim())
+                      .filter(Boolean),
+                  })
+                }
+                className="input-field"
+                placeholder="VD: chống thấm, công nghiệp, gỗ"
+              />
             </div>
 
             {/* Target Audience */}

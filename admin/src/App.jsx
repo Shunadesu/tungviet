@@ -1,9 +1,12 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect, useRef } from 'react';
 import { AnimatePresence } from 'framer-motion';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import Notification from './components/Notification';
+import GlobalConfirm from './components/GlobalConfirm';
 import Sidebar from './components/Sidebar';
+import { useAdminStore } from './store/adminStore';
 
 // Pages
 import Dashboard from './pages/Dashboard';
@@ -39,10 +42,21 @@ import AboutSettings from './pages/settings/AboutSettings';
 import FooterSettings from './pages/settings/FooterSettings';
 import BrandSEOSettings from './pages/settings/BrandSEOSettings';
 import FloatingContactSettings from './pages/settings/FloatingContactSettings';
+import HomeContentSettings from './pages/settings/HomeContentSettings';
 import Login from './pages/Login';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
+  const siteConfig = useAdminStore((s) => s.siteConfig);
+  const loadedRef = useRef(false);
+
+  // Load site config once when user first becomes authenticated
+  useEffect(() => {
+    if (!user || loading) return;
+    if (loadedRef.current || siteConfig.data.heroSlides.length > 0) return;
+    loadedRef.current = true;
+    siteConfig.load();
+  }, [user, loading]);
 
   if (loading) {
     return (
@@ -284,10 +298,16 @@ function App() {
                   <FloatingContactSettings />
                 </ProtectedRoute>
               } />
+              <Route path="/settings/appearance/home-content" element={
+                <ProtectedRoute>
+                  <HomeContentSettings />
+                </ProtectedRoute>
+              } />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </AnimatePresence>
           <Notification />
+          <GlobalConfirm />
         </BrowserRouter>
       </NotificationProvider>
     </AuthProvider>

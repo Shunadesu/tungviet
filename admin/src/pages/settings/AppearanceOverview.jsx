@@ -10,6 +10,7 @@ import { useNotification } from '../../context/NotificationContext';
 const cards = [
   { path: 'logo', title: 'Logo', desc: 'Logo hien thi tren header cua trang client.', icon: <FiImage size={20} />, color: 'bg-green-50 text-green-700' },
   { path: 'hero', title: 'Hero slider (Trang chu)', desc: 'Slider anh nen o dau trang chu (Swiper h-[90vh]). Khi chua co slide, hien thi gradient dong.', icon: <FiSliders size={20} />, color: 'bg-amber-50 text-amber-700' },
+  { path: 'home-content', title: 'Nội dung trang chủ', desc: 'Bật/tắt các section, chứng nhận, đánh giá khách hàng hiển thị trên trang chủ.', icon: <FiAward size={20} />, color: 'bg-rose-50 text-rose-700' },
   { path: 'footer', title: 'Lien he & Footer', desc: 'SDT, email, dia chi, mo ta cong ty va copyright.', icon: <FiEdit2 size={20} />, color: 'bg-purple-50 text-purple-700' },
   { path: 'seo', title: 'SEO & Favicon', desc: 'Meta tags, Open Graph, favicon cho site.', icon: <FiSearch size={20} />, color: 'bg-blue-50 text-blue-700' },
 ];

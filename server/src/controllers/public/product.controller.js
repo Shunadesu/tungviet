@@ -1,9 +1,15 @@
 import { productService } from '../../services/product.service.js';
 import Product from '../../models/Product.js';
 import { apiResponse } from '../../utils/apiResponse.js';
-import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
+import {
+  cacheKeys,
+  cacheStore,
+  invalidateHomeCache,
+  invalidateProductsCache,
+  invalidatePublicCache,
+  TTL,
+} from '../../utils/cache.js';
 import { localizeFields, resolveLocale } from '../../utils/i18n.js';
-import { invalidatePublicCache } from '../../utils/cache.js';
 
 const LOCALIZABLE_FIELDS = ['name', 'description'];
 
@@ -58,13 +64,14 @@ export const getProductById = async (req, res, next) => {
 
 /**
  * Fire-and-forget view counter. Always responds 204 so the client never blocks.
- * Không cache; invalidate để lần GET tiếp theo thấy viewCount mới.
+ * Chỉ invalidate cache liên quan tới products (không xoá toàn bộ public:*).
  */
 export const incrementView = async (req, res, next) => {
   try {
     Product.updateOne({ _id: req.params.id }, { $inc: { viewCount: 1 } })
       .catch((err) => console.warn('[incrementView] failed:', err?.message));
-    invalidatePublicCache();
+    invalidateProductsCache();
+    invalidateHomeCache();
     return res.status(204).send();
   } catch (err) {
     next(err);

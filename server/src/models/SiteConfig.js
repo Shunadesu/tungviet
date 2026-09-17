@@ -122,6 +122,90 @@ const floatingContactSchema = new mongoose.Schema(
   { _id: true, timestamps: true }
 );
 
+const certificateSchema = new mongoose.Schema(
+  {
+    name: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    description: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    imageUrl: { type: String, default: '' },
+    externalUrl: { type: String, default: '' },
+    order: { type: Number, default: 0 },
+    active: { type: Boolean, default: true },
+  },
+  { _id: true }
+);
+
+const testimonialSchema = new mongoose.Schema(
+  {
+    author: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    role: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    company: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    quote: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    avatarUrl: { type: String, default: '' },
+    rating: { type: Number, min: 1, max: 5, default: 5 },
+    order: { type: Number, default: 0 },
+    active: { type: Boolean, default: true },
+  },
+  { _id: true }
+);
+
+const homeSectionSchema = new mongoose.Schema(
+  {
+    key: {
+      type: String,
+      enum: [
+        'hero',
+        'whyUs',
+        'process',
+        'featuredProducts',
+        'newProducts',
+        'popularProducts',
+        'markets',
+        'industries',
+        'fastFacts',
+        'coreValues',
+        'certificates',
+        'testimonials',
+        'blog',
+        'partners',
+        'members',
+        'quoteSection',
+        'locations',
+      ],
+      required: true,
+    },
+    enabled: { type: Boolean, default: true },
+    order: { type: Number, default: 0 },
+    title: {
+      vi: { type: String, default: '' },
+      en: { type: String, default: '' },
+    },
+    subtitle: {
+      vi: { type: String, default: '' },
+      en: { type: String, default: '' },
+    },
+    limit: { type: Number, default: 0 },
+  },
+  { _id: true }
+);
+
 const footerSchema = new mongoose.Schema(
   {
     about: {
@@ -176,6 +260,9 @@ const siteConfigSchema = new mongoose.Schema(
     coreValues: { type: [coreValueSchema], default: [] },
     footer: { type: footerSchema, default: () => ({}) },
     floatingContacts: { type: [floatingContactSchema], default: [] },
+    certificates: { type: [certificateSchema], default: [] },
+    testimonials: { type: [testimonialSchema], default: [] },
+    homeSections: { type: [homeSectionSchema], default: [] },
     seo: { type: seoSchema, default: () => ({}) },
     faviconUrl: { type: String, default: null },
     faviconFilename: { type: String, default: null },

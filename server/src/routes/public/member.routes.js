@@ -1,6 +1,7 @@
 import express from 'express';
 import { memberService } from '../../services/member.service.js';
 import { apiResponse } from '../../utils/apiResponse.js';
+import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
 import { resolveLocale } from '../../utils/i18n.js';
 
 const router = express.Router();
@@ -8,7 +9,12 @@ const router = express.Router();
 router.get('/', async (req, res, next) => {
   try {
     const locale = resolveLocale(req);
-    const members = await memberService.getPublic(locale);
+    const cacheKey = cacheKeys.publicMembers(locale);
+    let members = cacheStore.get(cacheKey);
+    if (!members) {
+      members = await memberService.getPublic(locale);
+      cacheStore.set(cacheKey, members, TTL.PUBLIC_MEMBERS);
+    }
     return apiResponse.ok(res, { members });
   } catch (err) {
     next(err);

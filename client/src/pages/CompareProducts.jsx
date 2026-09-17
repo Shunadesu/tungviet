@@ -26,19 +26,25 @@ const CompareProducts = () => {
     }
     let cancelled = false;
     setLoading(true);
-    Promise.all(
-      items.map((it) =>
-        publicApi
-          .getProduct(it._id, lang)
-          .then((res) => res?.data?.data || it)
-          .catch(() => it)
-      )
-    ).then((fetched) => {
-      if (!cancelled) {
-        setHydrated(fetched.filter(Boolean));
+    publicApi
+      .getProductsBulk(items.map((it) => it._id), lang)
+      .then((res) => {
+        if (cancelled) return;
+        const fetched = Array.isArray(res?.data?.data) ? res.data.data : [];
+        const orderMap = new Map(items.map((it, idx) => [String(it._id), idx]));
+        fetched.sort(
+          (a, b) =>
+            (orderMap.get(String(a._id)) ?? 0) - (orderMap.get(String(b._id)) ?? 0)
+        );
+        setHydrated(fetched);
         setLoading(false);
-      }
-    });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHydrated(items);
+          setLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };

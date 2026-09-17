@@ -1,72 +1,75 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { FiEye, FiTrash2 } from 'react-icons/fi';
 import Header from '../../components/Header';
 import Modal from '../../components/Modal';
 import SEO from '../../components/SEO';
-import adminApi from '../../api/adminApi';
-import { useNotification } from '../../context/NotificationContext';
+import { useAdminStore, useAdminStoreEntity, useNotification } from '../../hooks/useAdminStore';
 
 const OrderList = () => {
-  const [orders, setOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { addNotification } = useNotification();
+
+  const orders = useAdminStoreEntity('orders');
+  const ui = useAdminStore((s) => s.ui);
+  const openConfirm = useAdminStore((s) => s.ui.openConfirm);
+
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const { addNotification } = useNotification();
 
   const statusOptions = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
 
   useEffect(() => {
-    fetchOrders();
-  }, []);
+    orders.fetchAll();
+  }, [orders]);
 
-  const fetchOrders = async () => {
+  const handleView = useCallback(async (id) => {
     try {
-      const res = await adminApi.getOrders();
-      setOrders(res.data.data);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleView = async (id) => {
-    try {
-      const res = await adminApi.getOrder(id);
-      setSelectedOrder(res.data.data);
+      const item = orders.getItem(id);
+      setSelectedOrder(item || null);
       setModalOpen(true);
-    } catch (error) {
+    } catch {
       addNotification('Có lỗi xảy ra', 'error');
     }
-  };
+  }, [orders, addNotification]);
 
-  const handleUpdateStatus = async (id, status) => {
-    try {
-      await adminApi.updateOrderStatus(id, status);
-      addNotification('Cập nhật trạng thái thành công');
-      fetchOrders();
-      if (selectedOrder?._id === id) {
-        setSelectedOrder({ ...selectedOrder, status });
+  const handleUpdateStatus = useCallback(
+    async (id, status) => {
+      try {
+        await orders.update(id, { status });
+        addNotification('Cập nhật trạng thái thành công');
+        if (selectedOrder?._id === id) {
+          setSelectedOrder((prev) => ({ ...prev, status }));
+        }
+      } catch {
+        addNotification('Có lỗi xảy ra', 'error');
       }
-    } catch (error) {
-      addNotification('Có lỗi xảy ra', 'error');
-    }
-  };
+    },
+    [orders, addNotification, selectedOrder]
+  );
 
-  const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa đơn hàng này?')) return;
-    try {
-      await adminApi.deleteOrder(id);
-      addNotification('Xóa đơn hàng thành công');
-      fetchOrders();
-      setModalOpen(false);
-    } catch (error) {
-      addNotification('Có lỗi xảy ra', 'error');
-    }
-  };
+  const handleDelete = useCallback(
+    (id) => {
+      openConfirm({
+        title: 'Xóa đơn hàng',
+        message: 'Bạn có chắc muốn xóa đơn hàng này?',
+        confirmText: 'Xóa',
+        confirmStyle: 'danger',
+        onConfirm: async () => {
+          try {
+            await orders.remove(id);
+            addNotification('Xóa đơn hàng thành công');
+            setModalOpen(false);
+          } catch {
+            addNotification('Có lỗi xảy ra', 'error');
+          }
+        },
+      });
+    },
+    [openConfirm, orders, addNotification]
+  );
 
-  const formatPrice = (price) => new Intl.NumberFormat('vi-VN').format(price) + 'đ';
+  const formatPrice = (price) =>
+    new Intl.NumberFormat('vi-VN').format(price) + 'đ';
   const formatDate = (date) => new Date(date).toLocaleDateString('vi-VN');
 
   const getStatusColor = (status) => {
@@ -84,16 +87,18 @@ const OrderList = () => {
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
       <SEO title="Orders" description="Manage customer orders" url="/orders" />
       <Header title="Quản lý đơn hàng" />
-      
+
       <div className="p-4">
         <div className="card">
           <div className="mb-3">
-            <h2 className="text-sm font-semibold">Danh sách đơn hàng ({orders.length})</h2>
+            <h2 className="text-sm font-semibold">
+              Danh sách đơn hàng ({orders.allItems.length})
+            </h2>
           </div>
 
-          {loading ? (
+          {orders.loading ? (
             <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -109,23 +114,35 @@ const OrderList = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {orders.map((order) => (
+                  {orders.allItems.map((order) => (
                     <tr key={order._id} className="table-row">
-                      <td className="px-2 py-2 text-xs font-mono">#{order._id.slice(-8)}</td>
+                      <td className="px-2 py-2 text-xs font-mono">
+                        #{order._id.slice(-8)}
+                      </td>
                       <td className="px-2 py-2 text-xs">
                         <p className="font-medium">{order.userName || 'Khách'}</p>
                         <p className="text-gray-500">{order.userPhone}</p>
                       </td>
-                      <td className="px-2 py-2 text-xs">{formatDate(order.createdAt)}</td>
-                      <td className="px-2 py-2 text-xs text-primary font-medium">{formatPrice(order.totalAmount)}</td>
+                      <td className="px-2 py-2 text-xs">
+                        {formatDate(order.createdAt)}
+                      </td>
+                      <td className="px-2 py-2 text-xs text-primary font-medium">
+                        {formatPrice(order.totalAmount)}
+                      </td>
                       <td className="px-2 py-2">
                         <select
                           value={order.status}
-                          onChange={(e) => handleUpdateStatus(order._id, e.target.value)}
-                          className={`text-xs px-2 py-1 rounded border-0 ${getStatusColor(order.status)}`}
+                          onChange={(e) =>
+                            handleUpdateStatus(order._id, e.target.value)
+                          }
+                          className={`text-xs px-2 py-1 rounded border-0 ${getStatusColor(
+                            order.status
+                          )}`}
                         >
                           {statusOptions.map((status) => (
-                            <option key={status} value={status}>{status}</option>
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
                           ))}
                         </select>
                       </td>
@@ -166,11 +183,15 @@ const OrderList = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <p className="text-xs text-gray-500">Mã đơn hàng</p>
-                <p className="text-xs font-mono font-medium">#{selectedOrder._id.slice(-8)}</p>
+                <p className="text-xs font-mono font-medium">
+                  #{selectedOrder._id.slice(-8)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Ngày đặt</p>
-                <p className="text-xs font-medium">{formatDate(selectedOrder.createdAt)}</p>
+                <p className="text-xs font-medium">
+                  {formatDate(selectedOrder.createdAt)}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-gray-500">Khách hàng</p>
@@ -190,17 +211,24 @@ const OrderList = () => {
               <p className="text-xs text-gray-500 mb-2">Sản phẩm</p>
               <div className="space-y-2 max-h-48 overflow-y-auto">
                 {selectedOrder.details?.map((item) => (
-                  <div key={item._id} className="flex items-center gap-2 p-2 bg-gray-50 rounded">
+                  <div
+                    key={item._id}
+                    className="flex items-center gap-2 p-2 bg-gray-50 rounded"
+                  >
                     <img
                       src={item.productImage || 'https://via.placeholder.com/40'}
                       alt={item.productName}
                       className="w-10 h-10 object-cover rounded"
                     />
                     <div className="flex-1">
-                      <p className="text-xs font-medium line-clamp-1">{item.productName}</p>
+                      <p className="text-xs font-medium line-clamp-1">
+                        {item.productName}
+                      </p>
                       <p className="text-xs text-gray-500">x{item.quantity}</p>
                     </div>
-                    <span className="text-xs font-medium">{formatPrice(item.totalPrice)}</span>
+                    <span className="text-xs font-medium">
+                      {formatPrice(item.totalPrice)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -208,18 +236,26 @@ const OrderList = () => {
 
             <div className="flex justify-between items-center pt-3 border-t">
               <span className="text-sm font-semibold">Tổng cộng:</span>
-              <span className="text-base font-bold text-primary">{formatPrice(selectedOrder.totalAmount)}</span>
+              <span className="text-base font-bold text-primary">
+                {formatPrice(selectedOrder.totalAmount)}
+              </span>
             </div>
 
             <div>
               <p className="text-xs text-gray-500 mb-1">Trạng thái</p>
               <select
                 value={selectedOrder.status}
-                onChange={(e) => handleUpdateStatus(selectedOrder._id, e.target.value)}
-                className={`text-xs px-3 py-2 rounded ${getStatusColor(selectedOrder.status)}`}
+                onChange={(e) =>
+                  handleUpdateStatus(selectedOrder._id, e.target.value)
+                }
+                className={`text-xs px-3 py-2 rounded ${getStatusColor(
+                  selectedOrder.status
+                )}`}
               >
                 {statusOptions.map((status) => (
-                  <option key={status} value={status}>{status}</option>
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
                 ))}
               </select>
             </div>

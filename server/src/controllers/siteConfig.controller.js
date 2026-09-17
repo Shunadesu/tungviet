@@ -424,3 +424,87 @@ export const updateFloatingContacts = async (req, res, next) => {
     next(err);
   }
 };
+
+const sanitizeCertificate = (body = {}) => ({
+  name: localePair(body.name, 200),
+  description: localePair(body.description, 500),
+  imageUrl: trimText(body.imageUrl, 500),
+  externalUrl: trimText(body.externalUrl, 500),
+  order: Number.isFinite(Number(body.order)) ? Number(body.order) : 0,
+  active: body.active === false ? false : true,
+});
+
+export const updateCertificates = async (req, res, next) => {
+  try {
+    const list = Array.isArray(req.body) ? req.body : [];
+    const sanitized = list.map((item, idx) => ({
+      ...sanitizeCertificate(item),
+      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : idx,
+    }));
+    const config = await siteConfigService.updateCertificates(sanitized);
+    return apiResponse.ok(res, config.certificates, 'Cập nhật chứng nhận thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const sanitizeTestimonial = (body = {}) => {
+  let rating = Number(body.rating);
+  if (!Number.isFinite(rating)) rating = 5;
+  rating = Math.max(1, Math.min(5, rating));
+  return {
+    author: localePair(body.author, 120),
+    role: localePair(body.role, 120),
+    company: localePair(body.company, 200),
+    quote: localePair(body.quote, 1000),
+    avatarUrl: trimText(body.avatarUrl, 500),
+    rating,
+    order: Number.isFinite(Number(body.order)) ? Number(body.order) : 0,
+    active: body.active === false ? false : true,
+  };
+};
+
+export const updateTestimonials = async (req, res, next) => {
+  try {
+    const list = Array.isArray(req.body) ? req.body : [];
+    const sanitized = list.map((item, idx) => ({
+      ...sanitizeTestimonial(item),
+      order: Number.isFinite(Number(item?.order)) ? Number(item.order) : idx,
+    }));
+    const config = await siteConfigService.updateTestimonials(sanitized);
+    return apiResponse.ok(res, config.testimonials, 'Cập nhật đánh giá thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
+const HOME_SECTION_KEYS = [
+  'hero', 'whyUs', 'process', 'featuredProducts', 'newProducts', 'popularProducts',
+  'markets', 'industries', 'fastFacts', 'coreValues', 'certificates', 'testimonials',
+  'blog', 'partners', 'members', 'quoteSection', 'locations',
+];
+
+const sanitizeHomeSection = (body = {}) => {
+  const key = HOME_SECTION_KEYS.includes(body.key) ? body.key : null;
+  return {
+    key,
+    enabled: body.enabled === false ? false : true,
+    order: Number.isFinite(Number(body.order)) ? Number(body.order) : 0,
+    title: localePair(body.title, 200),
+    subtitle: localePair(body.subtitle, 500),
+    limit: Number.isFinite(Number(body.limit)) ? Math.max(0, Number(body.limit)) : 0,
+  };
+};
+
+export const updateHomeSections = async (req, res, next) => {
+  try {
+    const list = Array.isArray(req.body) ? req.body : [];
+    const sanitized = list
+      .map((item) => sanitizeHomeSection(item))
+      .filter((s) => s.key);
+    const config = await siteConfigService.updateHomeSections(sanitized);
+    return apiResponse.ok(res, config.homeSections, 'Cập nhật home sections thành công');
+  } catch (err) {
+    next(err);
+  }
+};

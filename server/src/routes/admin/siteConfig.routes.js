@@ -20,6 +20,9 @@ import {
   uploadFavicon,
   clearFavicon,
   updateFloatingContacts,
+  updateCertificates,
+  updateTestimonials,
+  updateHomeSections,
 } from '../../controllers/siteConfig.controller.js';
 import { adminAuth } from '../../middlewares/auth.js';
 import { uploadSingle } from '../../middlewares/upload.js';
@@ -265,5 +268,41 @@ router.delete('/favicon', adminAuth, clearFavicon);
  *       200: { description: OK }
  */
 router.put('/floating-contacts', adminAuth, updateFloatingContacts);
+
+/**
+ * @openapi
+ * /api/admin/site-config/certificates:
+ *   put:
+ *     tags: [Admin - Site Config]
+ *     summary: Cập nhật danh sách chứng nhận hiển thị trên trang chủ
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
+ */
+router.put('/certificates', adminAuth, updateCertificates);
+
+/**
+ * @openapi
+ * /api/admin/site-config/testimonials:
+ *   put:
+ *     tags: [Admin - Site Config]
+ *     summary: Cập nhật danh sách đánh giá khách hàng
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
+ */
+router.put('/testimonials', adminAuth, updateTestimonials);
+
+/**
+ * @openapi
+ * /api/admin/site-config/home-sections:
+ *   put:
+ *     tags: [Admin - Site Config]
+ *     summary: Cập nhật cấu hình bật/tắt + tiêu đề từng section trên trang chủ
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
+ */
+router.put('/home-sections', adminAuth, updateHomeSections);
 
 export default router;

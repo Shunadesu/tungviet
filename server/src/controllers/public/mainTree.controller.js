@@ -1,5 +1,6 @@
 import { mainTreeService } from '../../services/mainTree.service.js';
 import { apiResponse } from '../../utils/apiResponse.js';
+import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
 import { localizeFields, resolveLocale } from '../../utils/i18n.js';
 
 const LOCALIZABLE_FIELDS = ['name', 'description'];
@@ -32,7 +33,12 @@ const localizeNode = (node, locale) => {
 export const getAllMainTrees = async (req, res, next) => {
   try {
     const locale = resolveLocale(req);
-    const items = await mainTreeService.getPublic();
+    const cacheKey = cacheKeys.publicMainTrees(locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await mainTreeService.getPublic();
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_MAIN_TREES);
+    }
     const localized = items.map((doc) => localizeNode(doc, locale));
     return apiResponse.ok(res, localized);
   } catch (err) {

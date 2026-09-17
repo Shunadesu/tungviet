@@ -1,5 +1,5 @@
 import SiteConfig, { SITE_CONFIG_ID } from '../models/SiteConfig.js';
-import { cacheStore, invalidatePublicCache } from '../utils/cache.js';
+import { cacheStore, invalidatePublicCache, invalidateHomeCache } from '../utils/cache.js';
 
 const PUBLIC_KEY = (locale) => `public:site-config:${locale}`;
 
@@ -84,6 +84,62 @@ const localizeAbout = (about, locale) => {
   };
 };
 
+const localizeCertificate = (c, locale) => {
+  if (!c) return c;
+  const pick = (field) => {
+    const vi = c?.[field]?.vi || '';
+    const en = c?.[field]?.en || '';
+    return locale === 'en' && en.trim() ? en : vi;
+  };
+  return {
+    _id: c._id,
+    name: pick('name'),
+    description: pick('description'),
+    imageUrl: c.imageUrl || '',
+    externalUrl: c.externalUrl || '',
+    order: typeof c.order === 'number' ? c.order : 0,
+    active: c.active !== false,
+  };
+};
+
+const localizeTestimonial = (t, locale) => {
+  if (!t) return t;
+  const pick = (field) => {
+    const vi = t?.[field]?.vi || '';
+    const en = t?.[field]?.en || '';
+    return locale === 'en' && en.trim() ? en : vi;
+  };
+  return {
+    _id: t._id,
+    author: pick('author'),
+    role: pick('role'),
+    company: pick('company'),
+    quote: pick('quote'),
+    avatarUrl: t.avatarUrl || '',
+    rating: typeof t.rating === 'number' ? t.rating : 5,
+    order: typeof t.order === 'number' ? t.order : 0,
+    active: t.active !== false,
+  };
+};
+
+const localizeHomeSection = (s, locale) => {
+  if (!s) return s;
+  const pick = (field) => {
+    const vi = s?.[field]?.vi || '';
+    const en = s?.[field]?.en || '';
+    return locale === 'en' && en.trim() ? en : vi;
+  };
+  return {
+    _id: s._id,
+    key: s.key,
+    enabled: s.enabled !== false,
+    order: typeof s.order === 'number' ? s.order : 0,
+    title: pick('title'),
+    subtitle: pick('subtitle'),
+    limit: typeof s.limit === 'number' ? s.limit : 0,
+  };
+};
+
 const normalizeId = (item) => {
   if (!item) return item;
   const raw = item._id;
@@ -123,6 +179,20 @@ const toClient = (doc, locale = 'vi') => {
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((c) => normalizeId({ _id: c._id, icon: c.icon || 'FiPhone', url: c.url || '', label: c.label || '' })),
+    certificates: (obj.certificates || [])
+      .filter((c) => c.active !== false)
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((c) => localizeCertificate(c, locale)),
+    testimonials: (obj.testimonials || [])
+      .filter((t) => t.active !== false)
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((t) => localizeTestimonial(t, locale)),
+    homeSections: (obj.homeSections || [])
+      .slice()
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+      .map((s) => localizeHomeSection(s, locale)),
     updatedAt: obj.updatedAt || null,
   };
 };
@@ -148,6 +218,9 @@ const toAdmin = (doc) => {
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map(normalizeId),
+    certificates: (obj.certificates || []).map(normalizeId),
+    testimonials: (obj.testimonials || []).map(normalizeId),
+    homeSections: (obj.homeSections || []).map(normalizeId),
     footer: obj.footer || null,
     seo: obj.seo || null,
     faviconUrl: obj.faviconUrl || null,
@@ -383,6 +456,39 @@ export const siteConfigService = {
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
     invalidatePublicCache();
+    return config;
+  },
+
+  async updateCertificates(items) {
+    const config = await SiteConfig.findByIdAndUpdate(
+      SITE_CONFIG_ID,
+      { $set: { certificates: items || [] } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    invalidatePublicCache();
+    invalidateHomeCache();
+    return config;
+  },
+
+  async updateTestimonials(items) {
+    const config = await SiteConfig.findByIdAndUpdate(
+      SITE_CONFIG_ID,
+      { $set: { testimonials: items || [] } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    invalidatePublicCache();
+    invalidateHomeCache();
+    return config;
+  },
+
+  async updateHomeSections(items) {
+    const config = await SiteConfig.findByIdAndUpdate(
+      SITE_CONFIG_ID,
+      { $set: { homeSections: items || [] } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    invalidatePublicCache();
+    invalidateHomeCache();
     return config;
   },
 };

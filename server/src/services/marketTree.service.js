@@ -2,9 +2,16 @@ import mongoose from 'mongoose';
 import MarketTree from '../models/MarketTree.js';
 import Product from '../models/Product.js';
 import { AppError } from '../utils/AppError.js';
-import { invalidatePublicCache } from '../utils/cache.js';
+import {
+  invalidatePublicCache,
+  invalidateHomeCache,
+  invalidateProductsCache,
+} from '../utils/cache.js';
 
-const invalidate = () => invalidatePublicCache();
+const invalidate = () => {
+  invalidatePublicCache();
+  invalidateHomeCache();
+};
 
 const PRODUCT_PREVIEW_FIELDS =
   'name nameEn imageUrl slug productCode applications';
@@ -93,6 +100,10 @@ export const marketTreeService = {
     const flat = await MarketTree.find(query)
       .sort({ isFeatured: -1, order: 1, title: 1 })
       .populate({
+        path: 'industry',
+        select: '_id name nameEn slug',
+      })
+      .populate({
         path: 'productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
       })
@@ -155,6 +166,10 @@ export const marketTreeService = {
   async getById(id) {
     return MarketTree.findById(id)
       .populate({
+        path: 'industry',
+        select: '_id name nameEn slug',
+      })
+      .populate({
         path: 'productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
       })
@@ -180,6 +195,50 @@ export const marketTreeService = {
       .lean();
   },
 
+  async getPublicFeatured({ limit = 6 } = {}) {
+    return MarketTree.find({ isActive: true, isFeatured: true })
+      .sort({ order: 1, title: 1 })
+      .limit(limit)
+      .populate({
+        path: 'industry',
+        select: '_id name nameEn slug',
+      })
+      .lean();
+  },
+
+  async getPublicGrouped() {
+    const all = await MarketTree.find({ isActive: true })
+      .sort({ order: 1, title: 1 })
+      .populate({
+        path: 'industry',
+        select: '_id name nameEn slug',
+      })
+      .lean();
+
+    // Group by industry id; null industry => "Other"
+    const groups = new Map();
+    for (const node of all) {
+      const industry = node.industry
+        ? {
+            _id: String(node.industry._id || node.industry),
+            name: node.industry.name || '',
+            nameEn: node.industry.nameEn || '',
+            slug: node.industry.slug || '',
+          }
+        : null;
+      const key = industry ? String(industry._id) : '__ungrouped__';
+      if (!groups.has(key)) {
+        groups.set(key, {
+          industry,
+          markets: [],
+        });
+      }
+      groups.get(key).markets.push(node);
+    }
+
+    return Array.from(groups.values());
+  },
+
   async create(data) {
     const maxOrder = await MarketTree.findOne().sort({ order: -1 }).lean();
     const order = data.order ?? (maxOrder ? maxOrder.order + 1 : 0);
@@ -194,6 +253,7 @@ export const marketTreeService = {
         en: data?.introductions?.en || '',
       },
       imageUrl: data.imageUrl || '',
+      industry: data.industry || null,
       order,
       isActive: data.isActive !== false,
       isFeatured: data.isFeatured === true,
@@ -227,6 +287,9 @@ export const marketTreeService = {
     }
     if (data.isFeatured !== undefined) {
       updatePayload.isFeatured = data.isFeatured === true;
+    }
+    if (data.industry !== undefined) {
+      updatePayload.industry = data.industry || null;
     }
 
     const doc = await MarketTree.findByIdAndUpdate(id, updatePayload, {

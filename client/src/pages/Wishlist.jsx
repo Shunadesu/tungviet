@@ -21,7 +21,8 @@ const Wishlist = () => {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Hydrate wishlist items with full product data so cards have image/specs
+  // Hydrate wishlist items with full product data so cards have image/specs.
+  // Uses /public/products/bulk to avoid N+1 calls.
   useEffect(() => {
     if (items.length === 0) {
       setProducts([]);
@@ -29,19 +30,23 @@ const Wishlist = () => {
     }
     let cancelled = false;
     setLoading(true);
-    Promise.all(
-      items.map((it) =>
-        publicApi
-          .getProduct(it._id, lang)
-          .then((res) => res?.data?.data || it)
-          .catch(() => it)
-      )
-    ).then((fetched) => {
-      if (!cancelled) {
-        setProducts(fetched.filter(Boolean));
+    publicApi
+      .getProductsBulk(items.map((it) => it._id), lang)
+      .then((res) => {
+        if (cancelled) return;
+        const fetched = Array.isArray(res?.data?.data) ? res.data.data : [];
+        // Preserve order from wishlist (server may return different order)
+        const orderMap = new Map(items.map((it, idx) => [String(it._id), idx]));
+        fetched.sort((a, b) => (orderMap.get(String(a._id)) ?? 0) - (orderMap.get(String(b._id)) ?? 0));
+        setProducts(fetched);
         setLoading(false);
-      }
-    });
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setProducts(items);
+          setLoading(false);
+        }
+      });
     return () => {
       cancelled = true;
     };

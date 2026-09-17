@@ -48,6 +48,7 @@ const emptyForm = {
   descriptionEn: '',
   introductions: { vi: '', en: '' },
   imageUrl: '',
+  industry: null,
   order: 0,
   isActive: true,
   isFeatured: false,
@@ -431,6 +432,7 @@ const MarketTreeForm = () => {
             en: node.introductions?.en || '',
           },
           imageUrl: node.imageUrl || '',
+          industry: node.industry?._id || node.industry || null,
           order: node.order ?? 0,
           isActive: node.isActive !== false,
           isFeatured: node.isFeatured === true,
@@ -522,6 +524,7 @@ const MarketTreeForm = () => {
 
   const buildSavePayload = () => ({
     ...formData,
+    industry: formData.industry || null,
     introductions: {
       vi: formData.introductions?.vi || '',
       en: formData.introductions?.en || '',
@@ -918,6 +921,29 @@ const MarketTreeForm = () => {
                   }
                   className="input-field w-24"
                 />
+              </div>
+              <div>
+                <label className="block text-xs font-medium mb-1">
+                  Thuộc ngành (MainTree)
+                </label>
+                <select
+                  value={formData.industry || ''}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      industry: e.target.value || null,
+                    })
+                  }
+                  className="input-field w-48"
+                >
+                  <option value="">-- Không chọn --</option>
+                  {availableMainTrees.map((mt) => (
+                    <option key={mt._id} value={mt._id}>
+                      {mt.name}
+                      {mt.nameEn ? ` / ${mt.nameEn}` : ''}
+                    </option>
+                  ))}
+                </select>
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
                 <input

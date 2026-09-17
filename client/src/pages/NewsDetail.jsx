@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
+import Skeleton from '../components/Skeleton';
 import QuoteForm from '../components/QuoteForm';
 import publicApi from '../api/publicApi';
 import { sanitizeHtml } from '../utils/sanitize';
 import { htmlToText } from '../utils/html';
+import { buildArticleJsonLd } from '../utils/jsonLd';
 
 const NewsDetail = () => {
   const { t, i18n } = useTranslation();
@@ -48,15 +50,7 @@ const NewsDetail = () => {
 
   const formatDate = (d) => d ? new Date(d).toLocaleDateString(isVi ? 'vi-VN' : 'en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : '';
 
-  if (loading) return (
-    <div className="max-w-3xl mx-auto px-4 py-12">
-      <div className="animate-pulse space-y-4">
-        <div className="bg-gray-200 h-80 rounded-xl" />
-        <div className="bg-gray-200 h-8 w-3/4 rounded" />
-        <div className="bg-gray-200 h-4 w-1/2 rounded" />
-      </div>
-    </div>
-  );
+  if (loading) return <Skeleton.NewsDetail />;
 
   if (!post) return null;
 
@@ -64,6 +58,19 @@ const NewsDetail = () => {
   const seoDesc = htmlToText(post.seoDescription || post.excerpt || '').slice(0, 200);
   const seoKeywords = post.seoKeywords || '';
   const ogImage = post.thumbnail || '';
+  const pageUrl = `/${isVi ? 'vi' : 'en'}/news/${slug}`;
+
+  const breadcrumb = [
+    { label: isVi ? 'Trang chủ' : 'Home', to: `/${lang}` },
+    { label: isVi ? 'Tin tức' : 'News', to: `/${lang}/news` },
+  ];
+  if (categorySlug && category) {
+    breadcrumb.push({
+      label: getCategoryLabel(category),
+      to: `/${lang}/news?category=${categorySlug}`,
+    });
+  }
+  breadcrumb.push({ label: post.title });
 
   return (
     <>
@@ -71,26 +78,37 @@ const NewsDetail = () => {
         title={seoTitle}
         description={seoDesc}
         keywords={seoKeywords}
-        url={`/${isVi ? 'vi' : 'en'}/news/${slug}`}
+        url={pageUrl}
         image={ogImage}
+        type="article"
+        breadcrumb={breadcrumb}
+        jsonLd={buildArticleJsonLd(post, { lang, url: pageUrl })}
+        publishedTime={post.publishedAt || post.createdAt}
+        modifiedTime={post.updatedAt || post.publishedAt || post.createdAt}
+        author={post.author?.name || 'Tungviet'}
+        section={category ? getCategoryLabel(category) : undefined}
       />
 
       <div className="max-w-6xl mx-auto px-4 py-8">
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-          <Link to={`/${lang}`} className="hover:text-primary">{isVi ? 'Trang chủ' : 'Home'}</Link>
-          <span>/</span>
-          <Link to={`/${lang}/news`} className="hover:text-primary">{isVi ? 'Tin tức' : 'News'}</Link>
-          {categorySlug && (
-            <>
-              <span>/</span>
-              <Link to={`/${lang}/news?category=${categorySlug}`} className="hover:text-primary">
-                {getCategoryLabel(category)}
-              </Link>
-            </>
-          )}
-          <span>/</span>
-          <span className="text-gray-700 truncate">{post.title}</span>
+        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-6 flex-wrap">
+          {breadcrumb.map((item, idx) => {
+            const isLast = idx === breadcrumb.length - 1;
+            return (
+              <span key={idx} className="flex items-center gap-2">
+                {!isLast && item.to ? (
+                  <Link to={item.to} className="hover:text-primary">
+                    {item.label}
+                  </Link>
+                ) : (
+                  <span className={isLast ? 'text-gray-700 truncate max-w-[260px] inline-block align-bottom' : ''}>
+                    {item.label}
+                  </span>
+                )}
+                {!isLast && <span>/</span>}
+              </span>
+            );
+          })}
         </nav>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -145,8 +163,15 @@ const NewsDetail = () => {
                 <h3 className="font-semibold text-gray-800 mb-4">{isVi ? 'Thu vien hinh anh' : 'Image Gallery'}</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {post.images.map((url, idx) => (
-                    <img key={idx} src={url} alt="" onClick={() => setLightbox(url)}
-                      className="w-full h-40 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity border" />
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => setLightbox(url)}
+                      aria-label={isVi ? `Xem ảnh ${idx + 1}` : `View image ${idx + 1}`}
+                      className="block w-full h-40 overflow-hidden rounded-lg border border-gray-200 hover:opacity-80 transition-opacity focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+                    >
+                      <img src={url} alt="" className="w-full h-full object-cover" loading="lazy" />
+                    </button>
                   ))}
                 </div>
               </div>
@@ -181,9 +206,31 @@ const NewsDetail = () => {
 
       {/* Lightbox */}
       {lightbox && (
-        <div className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4" onClick={() => setLightbox(null)}>
-          <img src={lightbox} alt="" className="max-w-full max-h-full object-contain rounded-lg" />
-          <button onClick={() => setLightbox(null)} className="absolute top-4 right-4 text-white text-3xl">&times;</button>
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={isVi ? 'Xem ảnh phóng to' : 'Enlarged image'}
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setLightbox(null)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') setLightbox(null);
+          }}
+          tabIndex={-1}
+        >
+          <img
+            src={lightbox}
+            alt=""
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+          <button
+            type="button"
+            onClick={() => setLightbox(null)}
+            aria-label={isVi ? 'Đóng' : 'Close'}
+            className="absolute top-4 right-4 text-white text-3xl w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            ×
+          </button>
         </div>
       )}
     </>

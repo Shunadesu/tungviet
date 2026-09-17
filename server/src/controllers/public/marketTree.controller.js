@@ -1,5 +1,6 @@
 import { marketTreeService } from '../../services/marketTree.service.js';
 import { apiResponse } from '../../utils/apiResponse.js';
+import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
 import { localizeFields, resolveLocale } from '../../utils/i18n.js';
 
 const LOCALIZABLE_FIELDS = ['title', 'description'];
@@ -75,9 +76,13 @@ const localizeNode = (node, locale) => {
 export const getAllMarketTrees = async (req, res, next) => {
   try {
     const locale = resolveLocale(req);
-    const items = await marketTreeService.getPublic({
-      featuredOnly: req.query.featured === 'true' || req.query.featured === '1',
-    });
+    const featuredOnly = req.query.featured === 'true' || req.query.featured === '1';
+    const cacheKey = cacheKeys.publicMarkets({ featuredOnly, locale });
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await marketTreeService.getPublic({ featuredOnly });
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_MARKETS);
+    }
     const localized = items.map((node) => localizeNode(node, locale));
     return apiResponse.ok(res, localized);
   } catch (err) {

@@ -128,6 +128,11 @@ export const adminApi = {
   // Floating contacts
   updateFloatingContacts: (data) => axiosClient.put('/admin/site-config/floating-contacts', data),
 
+  // Certificates, Testimonials, Home Sections
+  updateCertificates: (data) => axiosClient.put('/admin/site-config/certificates', data),
+  updateTestimonials: (data) => axiosClient.put('/admin/site-config/testimonials', data),
+  updateHomeSections: (data) => axiosClient.put('/admin/site-config/home-sections', data),
+
   // Members (Board of Directors)
   getMembers: () => axiosClient.get('/admin/members'),
   getMember: (id) => axiosClient.get(`/admin/members/${id}`),

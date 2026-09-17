@@ -14,14 +14,18 @@ import SEO from '../components/SEO';
 import ProductGallery from '../components/ProductGallery';
 import RelatedProducts from '../components/RelatedProducts';
 import PageHero from '../components/PageHero';
+import Skeleton from '../components/Skeleton';
+import ErrorState from '../components/ErrorState';
 import { useQuoteBag } from '../context/QuoteBagContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useToast } from '../context/ToastContext';
+import { useSiteConfig } from '../context/SiteConfigContext';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { sanitizeHtml } from '../utils/sanitize';
 import { htmlToText } from '../utils/html';
 import { getLocalizedField } from '../utils/i18nField';
+import { buildProductJsonLd } from '../utils/jsonLd';
 
 const LEGACY_COLUMNS = [
   { key: 'softeningPoint', name: 'Điểm làm mềm', nameEn: 'Softening Point', order: 1 },
@@ -43,6 +47,8 @@ const ProductDetail = () => {
   const { addToQuoteBag } = useQuoteBag();
   const { toggleWishlist, isInWishlist } = useWishlist();
   const toast = useToast();
+  const { footer } = useSiteConfig();
+  const siteConfigLite = { footer };
 
   useEffect(() => {
     fetchProduct();
@@ -106,23 +112,28 @@ const ProductDetail = () => {
   const wished = product ? isInWishlist(product._id) : false;
 
   if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary border-t-transparent" />
-      </div>
-    );
+    return <Skeleton.ProductDetail />;
   }
 
   if (notFound || !product) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-center px-4">
-        <h1 className="text-2xl font-semibold text-slate-900 mb-3">
-          {t('product.notFound')}
-        </h1>
-        <Link to={`/${lang}/products`} className="btn-primary">
-          {t('quote.browseProducts')}
-        </Link>
-      </div>
+      <ErrorState
+        variant="notFound"
+        title={t('product.notFound')}
+        description={
+          isEN
+            ? 'This product may have been removed or the link is incorrect.'
+            : 'Sản phẩm này có thể đã được gỡ hoặc liên kết không chính xác.'
+        }
+        action={
+          <Link
+            to={`/${lang}/products`}
+            className="btn-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            {t('quote.browseProducts')}
+          </Link>
+        }
+      />
     );
   }
 
@@ -142,7 +153,13 @@ const ProductDetail = () => {
     })
     .filter(({ value }) => value);
 
-  const galleryImages = [product.imageUrl, ...(product.images || [])].filter(Boolean);
+  const galleryImages = [
+    product.imageUrl,
+    ...(Array.isArray(product.gallery) ? product.gallery.map((g) => g?.url).filter(Boolean) : []),
+    ...(product.images || []),
+  ].filter(Boolean);
+  // Deduplicate while preserving order
+  const uniqueGalleryImages = Array.from(new Set(galleryImages));
   const priceLabel = product.priceVisible === false
     ? t('product.contactUs')
     : typeof product.price === 'number' && product.price > 0
@@ -191,6 +208,13 @@ const ProductDetail = () => {
         keywords={`${product.name}, rosin, resin, industrial,  Tungviet`}
         url={`/${lang}/products/${product._id}`}
         type="product"
+        image={product.imageUrl}
+        breadcrumb={breadcrumb}
+        jsonLd={buildProductJsonLd(product, {
+          lang,
+          url: `/${lang}/products/${product._id}`,
+          siteConfig: siteConfigLite,
+        })}
       />
 
       <PageHero
@@ -203,7 +227,7 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Gallery - 3 cols */}
           <div className="lg:col-span-3">
-            <ProductGallery images={galleryImages} name={product.name} tdsUrl={product.tdsUrl} />
+            <ProductGallery images={uniqueGalleryImages} name={product.name} tdsUrl={product.tdsUrl} />
           </div>
 
           {/* Info - 2 cols */}
@@ -314,7 +338,7 @@ const ProductDetail = () => {
                 <button
                   type="button"
                   onClick={handleAddToQuote}
-                  className={`flex-1 inline-flex items-center justify-center gap-2 font-medium py-3 rounded-xl transition-all duration-200 active:scale-[0.98] ${
+                  className={`flex-1 inline-flex items-center justify-center gap-2 font-medium py-3 rounded-xl transition-all duration-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
                     added
                       ? 'bg-primary text-white'
                       : 'bg-slate-900 text-white hover:bg-primary'
@@ -339,9 +363,9 @@ const ProductDetail = () => {
                   href={product.tdsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-slate-700 hover:text-primary py-2 transition-colors"
+                  className="mt-3 w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-slate-700 hover:text-primary py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
                 >
-                  <FiDownload size={14} />
+                  <FiDownload size={14} aria-hidden="true" />
                   {t('product.downloadTds')} (PDF)
                 </a>
               )}
@@ -367,7 +391,11 @@ const ProductDetail = () => {
       <RelatedProducts currentProduct={product} />
 
       {/* Sticky mobile CTA */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+      <div
+        role="region"
+        aria-label={t('product.requestQuote')}
+        className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-white/95 backdrop-blur border-t border-gray-200 px-4 py-3 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]"
+      >
         <div className="flex items-center gap-3">
           <div className="flex-1 min-w-0">
             <div className="text-xs text-gray-500 truncate">{product.name}</div>
@@ -378,7 +406,7 @@ const ProductDetail = () => {
           <button
             type="button"
             onClick={handleAddToQuote}
-            className={`inline-flex items-center justify-center gap-2 font-medium py-3 px-5 rounded-xl transition-all duration-200 active:scale-[0.98] ${
+            className={`inline-flex items-center justify-center gap-2 font-medium py-3 px-5 rounded-xl transition-all duration-200 active:scale-[0.98] focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 ${
               added ? 'bg-primary text-white' : 'bg-slate-900 text-white hover:bg-primary'
             }`}
           >

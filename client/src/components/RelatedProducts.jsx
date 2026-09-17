@@ -1,15 +1,13 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
 import { FiArrowRight } from 'react-icons/fi';
 import ProductCard from './ProductCard';
-import EmptyState from './EmptyState';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 
 /**
- * Sản phẩm liên quan: cùng category hoặc market.
+ * Sản phẩm liên quan dựa trên industries/markets chung (dùng /public/products/related/:id).
  */
 const RelatedProducts = ({ currentProduct, limit = 4 }) => {
   const { t } = useTranslation();
@@ -19,36 +17,14 @@ const RelatedProducts = ({ currentProduct, limit = 4 }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!currentProduct) return;
+    if (!currentProduct || !currentProduct._id) return;
     setLoading(true);
-    const params = {
-      lang,
-      limit: limit + 1, // +1 để loại trừ current
-    };
-    if (currentProduct.category) params.category = currentProduct.category;
-    else if (currentProduct.market) params.market = currentProduct.market;
-    else if (Array.isArray(currentProduct.industries) && currentProduct.industries.length > 0) {
-      // Product may belong to multiple industries; query by the first one for
-      // related-products suggestions.
-      const firstIndustryId = currentProduct.industries[0]?._id || currentProduct.industries[0];
-      if (firstIndustryId) params.industries = firstIndustryId;
-    } else if (currentProduct.mainTree) {
-      // Backward-compat for any legacy docs still carrying the old single-id field.
-      params.industries = currentProduct.mainTree;
-    }
-
     publicApi
-      .getProducts(params)
-      .then((r) => {
-        const list = (r?.data?.data || []).filter(
-          (p) => p._id !== currentProduct._id
-        );
-        setProducts(list.slice(0, limit));
-      })
+      .getRelatedProducts(currentProduct._id, { limit, lang })
+      .then((r) => setProducts(r?.data?.data || []))
       .catch(() => setProducts([]))
       .finally(() => setLoading(false));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentProduct?._id, lang]);
+  }, [currentProduct?._id, lang, limit]);
 
   if (loading) {
     return (

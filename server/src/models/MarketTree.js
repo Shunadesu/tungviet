@@ -72,6 +72,12 @@ const marketTreeSchema = new mongoose.Schema(
     },
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
+    industry: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'MainTree',
+      default: null,
+      index: true,
+    },
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false, index: true },
     applications: { type: [applicationSubSchema], default: [] },

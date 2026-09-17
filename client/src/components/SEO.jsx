@@ -19,6 +19,11 @@ const SEO = ({
   type = 'website',
   noindex = false,
   breadcrumb,
+  jsonLd,
+  publishedTime,
+  modifiedTime,
+  author,
+  section,
 }) => {
   const { t } = useTranslation();
   const { lang: urlLang } = useParams();
@@ -34,13 +39,14 @@ const SEO = ({
   const pathWithoutLocale = url ? url.replace(/^\/[^/]+/, '') : '';
   const finalUrl = url ? `${siteUrl}/${lang}${pathWithoutLocale}` : `${siteUrl}/${lang}`;
   const finalImage = image || `${siteUrl}/og-image.jpg`;
-
   const alternates = SUPPORTED_LOCALES.map((code) => ({
     hreflang: code,
     href: `${siteUrl}/${code}${pathWithoutLocale}`,
   }));
 
   const breadcrumbJson = breadcrumb ? buildBreadcrumbJsonLd(breadcrumb, lang) : null;
+  const jsonLdArray = Array.isArray(jsonLd) ? jsonLd.filter(Boolean) : jsonLd ? [jsonLd] : [];
+  if (breadcrumbJson) jsonLdArray.unshift(breadcrumbJson);
 
   return (
     <Helmet>
@@ -61,18 +67,41 @@ const SEO = ({
       <meta property="og:title" content={finalTitle} />
       <meta property="og:description" content={finalDescription} />
       <meta property="og:image" content={finalImage} />
+      <meta property="og:image:width" content="1200" />
+      <meta property="og:image:height" content="630" />
+      <meta property="og:image:alt" content={finalTitle} />
       <meta property="og:site_name" content={siteName} />
       <meta property="og:locale" content={OG_LOCALE[lang] || 'en_US'} />
+      <meta property="og:locale:alternate" content={OG_LOCALE.en === OG_LOCALE[lang] ? 'vi_VN' : 'en_US'} />
+
+      {type === 'article' && publishedTime && (
+        <meta property="article:published_time" content={publishedTime} />
+      )}
+      {type === 'article' && modifiedTime && (
+        <meta property="article:modified_time" content={modifiedTime} />
+      )}
+      {type === 'article' && author && (
+        <meta property="article:author" content={author} />
+      )}
+      {type === 'article' && section && (
+        <meta property="article:section" content={section} />
+      )}
 
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:url" content={finalUrl} />
       <meta name="twitter:title" content={finalTitle} />
       <meta name="twitter:description" content={finalDescription} />
       <meta name="twitter:image" content={finalImage} />
+      <meta name="twitter:image:alt" content={finalTitle} />
 
-      {breadcrumbJson && (
-        <script type="application/ld+json">{JSON.stringify(breadcrumbJson)}</script>
-      )}
+      {jsonLdArray.map((schema, idx) => (
+        <script
+          key={`jsonld-${idx}`}
+          type="application/ld+json"
+        >
+          {JSON.stringify(schema)}
+        </script>
+      ))}
     </Helmet>
   );
 };

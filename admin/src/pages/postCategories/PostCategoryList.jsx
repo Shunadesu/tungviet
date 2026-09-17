@@ -1,22 +1,34 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX, FiChevronUp, FiChevronDown } from 'react-icons/fi';
+import {
+  FiPlus,
+  FiEdit2,
+  FiTrash2,
+  FiSearch,
+  FiX,
+  FiChevronUp,
+  FiChevronDown,
+} from 'react-icons/fi';
 import Header from '../../components/Header';
 import Modal from '../../components/Modal';
 import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import DataTable from '../../components/DataTable';
 import adminApi from '../../api/adminApi';
-import { useNotification } from '../../context/NotificationContext';
+import { useAdminStore, useAdminStoreEntity, useNotification } from '../../hooks/useAdminStore';
 
 const PostCategoryList = () => {
-  const [categories, setCategories] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { addNotification } = useNotification();
+  const postCategories = useAdminStoreEntity('postCategories');
+  const ui = useAdminStore((s) => s.ui);
+  const openConfirm = useAdminStore((s) => s.ui.openConfirm);
+  const setFilter = useAdminStore((s) => s.ui.setFilter);
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState(null);
-  const [search, setSearch] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
-  const { addNotification } = useNotification();
+  const filters = ui.filters.postCategories || {};
+  const search = filters.search || '';
+  const showInactive = Boolean(filters.showInactive);
 
   const [formData, setFormData] = useState({
     name: '',
@@ -29,22 +41,11 @@ const PostCategoryList = () => {
   });
 
   useEffect(() => {
-    fetchCategories();
-  }, []);
-
-  const fetchCategories = async () => {
-    try {
-      const res = await adminApi.getPostCategories();
-      setCategories(res.data?.data || []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+    postCategories.fetchAll();
+  }, [postCategories]);
 
   const filtered = useMemo(() => {
-    let list = [...categories];
+    let list = [...postCategories.allItems];
     if (!showInactive) list = list.filter((c) => c.isActive !== false);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -56,7 +57,7 @@ const PostCategoryList = () => {
       );
     }
     return list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [categories, search, showInactive]);
+  }, [postCategories.allItems, search, showInactive]);
 
   const columns = useMemo(
     () => [
@@ -89,7 +90,9 @@ const PostCategoryList = () => {
             <div className="min-w-0">
               <span className="font-medium text-gray-800">{val}</span>
               {row.nameEn && (
-                <span className="block text-[10px] text-gray-400 truncate">{row.nameEn}</span>
+                <span className="block text-[10px] text-gray-400 truncate">
+                  {row.nameEn}
+                </span>
               )}
               {row.isActive === false && (
                 <span className="ml-1.5 text-[10px] px-1.5 py-0.5 bg-red-50 text-red-500 rounded">
@@ -119,78 +122,99 @@ const PostCategoryList = () => {
       {
         header: 'Thứ tự',
         accessor: 'order',
-        render: (val) => (
-          <span className="text-gray-500 text-xs">{val ?? 0}</span>
-        ),
+        render: (val) => <span className="text-gray-500 text-xs">{val ?? 0}</span>,
       },
     ],
     []
   );
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      const payload = {
-        ...formData,
-        // Nếu user không nhập slug thì bỏ trống để service tự slugify từ name
-        slug: formData.slug?.trim() || undefined,
-      };
-      if (editingCategory) {
-        await adminApi.updatePostCategory(editingCategory._id, payload);
-        addNotification('Cập nhật danh mục thành công');
-      } else {
-        await adminApi.createPostCategory(payload);
-        addNotification('Thêm danh mục thành công');
+  const handleSubmit = useCallback(
+    async (e) => {
+      e.preventDefault();
+      try {
+        const payload = {
+          ...formData,
+          slug: formData.slug?.trim() || undefined,
+        };
+        if (editingCategory) {
+          await postCategories.update(editingCategory._id, payload);
+          addNotification('Cập nhật danh mục thành công');
+        } else {
+          await postCategories.create(payload);
+          addNotification('Thêm danh mục thành công');
+        }
+        setModalOpen(false);
+        setEditingCategory(null);
+        resetForm();
+        postCategories.fetchAll();
+      } catch (error) {
+        addNotification(
+          error.response?.data?.message || 'Có lỗi xảy ra',
+          'error'
+        );
       }
-      setModalOpen(false);
-      setEditingCategory(null);
-      resetForm();
-      fetchCategories();
-    } catch (error) {
-      addNotification(error.response?.data?.message || 'Có lỗi xảy ra', 'error');
-    }
-  };
+    },
+    [formData, editingCategory, postCategories, addNotification]
+  );
 
-  const handleEdit = (category) => {
-    setEditingCategory(category);
-    setFormData({
-      name: category.name || '',
-      nameEn: category.nameEn || '',
-      slug: category.slug || '',
-      description: category.description || '',
-      descriptionEn: category.descriptionEn || '',
-      imageUrl: category.imageUrl || '',
-      isActive: category.isActive !== false,
-    });
-    setModalOpen(true);
-  };
+  const handleEdit = useCallback(
+    (category) => {
+      setEditingCategory(category);
+      setFormData({
+        name: category.name || '',
+        nameEn: category.nameEn || '',
+        slug: category.slug || '',
+        description: category.description || '',
+        descriptionEn: category.descriptionEn || '',
+        imageUrl: category.imageUrl || '',
+        isActive: category.isActive !== false,
+      });
+      setModalOpen(true);
+    },
+    []
+  );
 
-  const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa danh mục này? Bài viết dùng nó sẽ không còn danh mục.')) return;
-    try {
-      await adminApi.deletePostCategory(id);
-      addNotification('Xóa danh mục thành công');
-      fetchCategories();
-    } catch (error) {
-      addNotification('Có lỗi xảy ra', 'error');
-    }
-  };
+  const handleDelete = useCallback(
+    (id) => {
+      openConfirm({
+        title: 'Xóa danh mục tin tức',
+        message:
+          'Bạn có chắc muốn xóa danh mục này? Bài viết dùng nó sẽ không còn danh mục.',
+        confirmText: 'Xóa',
+        confirmStyle: 'danger',
+        onConfirm: async () => {
+          try {
+            await postCategories.remove(id);
+            addNotification('Xóa danh mục thành công');
+          } catch (error) {
+            addNotification(
+              error.response?.data?.message || 'Có lỗi xảy ra',
+              'error'
+            );
+          }
+        },
+      });
+    },
+    [openConfirm, postCategories, addNotification]
+  );
 
-  const moveItem = async (idx, direction) => {
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= filtered.length) return;
-    const list = [...filtered];
-    const tmp = list[idx];
-    list[idx] = list[targetIdx];
-    list[targetIdx] = tmp;
-    const orderList = list.map((it, i) => ({ _id: it._id, order: i }));
-    try {
-      await adminApi.reorderPostCategories(orderList);
-      fetchCategories();
-    } catch {
-      addNotification('Lỗi sắp xếp', 'error');
-    }
-  };
+  const moveItem = useCallback(
+    async (idx, direction) => {
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= filtered.length) return;
+      const list = [...filtered];
+      const tmp = list[idx];
+      list[idx] = list[targetIdx];
+      list[targetIdx] = tmp;
+      const orderList = list.map((it, i) => ({ _id: it._id, order: i }));
+      try {
+        await postCategories.reorder(orderList);
+      } catch {
+        addNotification('Lỗi sắp xếp', 'error');
+      }
+    },
+    [filtered, postCategories, addNotification]
+  );
 
   const resetForm = () => {
     setFormData({
@@ -239,11 +263,14 @@ const PostCategoryList = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <SEO title="Danh mục tin tức" description="Quản lý danh mục tin tức" url="/post-categories" />
+      <SEO
+        title="Danh mục tin tức"
+        description="Quản lý danh mục tin tức"
+        url="/post-categories"
+      />
       <Header title="Danh mục tin tức" />
 
       <div className="p-4">
-        {/* Toolbar */}
         <div className="flex flex-wrap gap-2 items-center justify-between mb-3">
           <h2 className="text-sm font-semibold text-gray-700">
             Danh sách danh mục tin tức
@@ -256,7 +283,9 @@ const PostCategoryList = () => {
               <input
                 type="checkbox"
                 checked={showInactive}
-                onChange={(e) => setShowInactive(e.target.checked)}
+                onChange={(e) =>
+                  setFilter('postCategories', { showInactive: e.target.checked })
+                }
                 className="rounded"
               />
               Hiện tạm ẩn
@@ -270,12 +299,16 @@ const PostCategoryList = () => {
                 type="text"
                 placeholder="Tìm tên, slug..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) =>
+                  setFilter('postCategories', { search: e.target.value })
+                }
                 className="input-field pl-8 pr-8 text-xs py-1.5 w-52"
               />
               {search && (
                 <button
-                  onClick={() => setSearch('')}
+                  onClick={() =>
+                    setFilter('postCategories', { search: '' })
+                  }
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <FiX size={12} />
@@ -296,11 +329,10 @@ const PostCategoryList = () => {
           </div>
         </div>
 
-        {/* Table */}
         <div className="card">
-          {loading ? (
+          {postCategories.loading ? (
             <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary"></div>
+              <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
@@ -321,12 +353,15 @@ const PostCategoryList = () => {
               )}
             </div>
           ) : (
-            <DataTable columns={columns} data={filtered} actions={renderActions} />
+            <DataTable
+              columns={columns}
+              data={filtered}
+              actions={renderActions}
+            />
           )}
         </div>
       </div>
 
-      {/* Modal */}
       <Modal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
@@ -334,7 +369,9 @@ const PostCategoryList = () => {
       >
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium mb-1">Tên danh mục (VI) *</label>
+            <label className="block text-xs font-medium mb-1">
+              Tên danh mục (VI) *
+            </label>
             <input
               type="text"
               value={formData.name}
@@ -344,7 +381,6 @@ const PostCategoryList = () => {
               placeholder="VD: Tin công nghệ"
             />
           </div>
-
           <div>
             <label className="block text-xs font-medium mb-1">Tên tiếng Anh</label>
             <input
@@ -355,7 +391,6 @@ const PostCategoryList = () => {
               placeholder="English name (tùy chọn)"
             />
           </div>
-
           <div>
             <label className="block text-xs font-medium mb-1">Slug</label>
             <input
@@ -369,53 +404,53 @@ const PostCategoryList = () => {
               Slug dùng trong URL: /news?category=&lt;slug&gt;
             </p>
           </div>
-
           <div>
             <label className="block text-xs font-medium mb-1">Link ảnh</label>
             <input
               type="url"
               value={formData.imageUrl}
-              onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, imageUrl: e.target.value })
+              }
               className="input-field"
               placeholder="https://..."
             />
           </div>
-
           <div>
             <label className="block text-xs font-medium mb-1">Mô tả (VI)</label>
             <RichEditor
               value={formData.description}
-              onChange={(value) => setFormData({ ...formData, description: value })}
+              onChange={(value) =>
+                setFormData({ ...formData, description: value })
+              }
               placeholder="Mô tả ngắn về danh mục..."
               minHeight={120}
             />
           </div>
-
           <div>
             <label className="block text-xs font-medium mb-1">Mô tả tiếng Anh</label>
             <RichEditor
               value={formData.descriptionEn}
-              onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
+              onChange={(value) =>
+                setFormData({ ...formData, descriptionEn: value })
+              }
               placeholder="English description (tùy chọn)"
               minHeight={120}
             />
           </div>
-
           <div>
             <label className="flex items-center gap-2 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={formData.isActive}
-                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                onChange={(e) =>
+                  setFormData({ ...formData, isActive: e.target.checked })
+                }
                 className="rounded"
               />
               <span className="text-xs font-medium">Đang hoạt động</span>
             </label>
-            <p className="text-[10px] text-gray-400 mt-0.5 ml-5">
-              Bỏ chọn để tạm ẩn danh mục khỏi trang công khai
-            </p>
           </div>
-
           <div className="flex justify-end gap-2 pt-3 border-t">
             <button
               type="button"

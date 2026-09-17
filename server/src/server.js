@@ -46,6 +46,8 @@ import publicMainTreeRoutes from './routes/public/mainTree.routes.js';
 import adminMainTreeRoutes from './routes/admin/mainTree.routes.js';
 import publicMarketTreeRoutes from './routes/public/marketTree.routes.js';
 import adminMarketTreeRoutes from './routes/admin/marketTree.routes.js';
+import publicHomeRoutes from './routes/public/home.routes.js';
+import publicSeoRoutes from './routes/public/seo.routes.js';
 
 import Product from './models/Product.js';
 import Category from './models/Category.js';
@@ -173,6 +175,10 @@ app.use(requestLogger);
 app.use(trackVisitor);
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
+// Root-level SEO endpoints (no /api prefix) — serve sitemap.xml directly at /
+app.use('/', publicSeoRoutes);
+
+
 app.use('/api/public/products', publicRoutes);
 app.use('/api/public/categories', publicCategoryRoutes);
 app.use('/api/public/site-config', publicSiteConfigRoutes);
@@ -186,6 +192,7 @@ app.use('/api/public/posts', publicPostRoutes);
 app.use('/api/public/post-categories', publicPostCategoryRoutes);
 app.use('/api/public/main-trees', publicMainTreeRoutes);
 app.use('/api/public/market-trees', publicMarketTreeRoutes);
+app.use('/api/public/home', publicHomeRoutes);
 app.use('/api/client/orders', clientOrderRoutes);
 app.use('/api/client/quote-section', clientQuoteSectionRoutes);
 app.use('/api/admin/products', adminProductRoutes);

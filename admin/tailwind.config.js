@@ -23,6 +23,15 @@ export default {
         'sm': ['0.875rem', { lineHeight: '1.25rem' }],
         'base': ['1rem', { lineHeight: '1.5rem' }],
       },
+      keyframes: {
+        shimmer: {
+          '0%': { backgroundPosition: '-200% 0' },
+          '100%': { backgroundPosition: '200% 0' },
+        },
+      },
+      animation: {
+        shimmer: 'shimmer 1.4s ease-in-out infinite',
+      },
     },
   },
   plugins: [],

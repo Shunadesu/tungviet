@@ -1,78 +1,67 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FiPlus, FiEdit2, FiTrash2, FiSearch, FiX } from 'react-icons/fi';
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
 import DataTable from '../../components/DataTable';
-import adminApi from '../../api/adminApi';
-import { useNotification } from '../../context/NotificationContext';
+import {
+  useAdminStore,
+  useAdminStoreEntity,
+  useEntitySelection,
+  useNotification,
+} from '../../hooks/useAdminStore';
 
 const CategoryList = () => {
   const navigate = useNavigate();
-  const [categories, setCategories] = useState([]);
-  const [mainTrees, setMainTrees] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [deleting, setDeleting] = useState(false);
-  const [filterMainTree, setFilterMainTree] = useState('');
   const { addNotification } = useNotification();
 
+  const categories = useAdminStoreEntity('categories');
+  const mainTrees = useAdminStoreEntity('mainTrees');
+  const products = useAdminStoreEntity('products');
+  const ui = useAdminStore((s) => s.ui);
+  const openConfirm = useAdminStore((s) => s.ui.openConfirm);
+
+  const { selectedIds, clearSelection } = useEntitySelection('categories');
+
+  const filters = ui.filters.categories || {};
+  const search = filters.search || '';
+  const showInactive = Boolean(filters.showInactive);
+  const filterMainTree = filters.mainTree || '';
+
+  const setFilter = useCallback(
+    (partial) => ui.setFilter('categories', partial),
+    [ui]
+  );
+
+  const loadedRef = useRef(false);
   useEffect(() => {
-    fetchMainTrees();
-    fetchCategories();
-    fetchProducts();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    categories.fetchAll();
+    mainTrees.fetchAll();
+    products.fetchAll();
+  }, [categories, mainTrees, products]);
 
+  const prevMainTree = useRef(filterMainTree);
   useEffect(() => {
-    fetchCategories();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterMainTree]);
-
-  const fetchMainTrees = async () => {
-    try {
-      const res = await adminApi.getMainTrees();
-      setMainTrees(Array.isArray(res.data?.data) ? res.data.data : []);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
+    if (filterMainTree !== prevMainTree.current) {
+      prevMainTree.current = filterMainTree;
+      categories.invalidateList();
       const params = filterMainTree ? { mainTree: filterMainTree } : undefined;
-      const res = await adminApi.getCategories(params);
-      const data = res.data?.data;
-      setCategories(Array.isArray(data) ? data : data?.items || []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
+      categories.fetchAll(params);
     }
-  };
-
-  const fetchProducts = async () => {
-    try {
-      const res = await adminApi.getProducts();
-      setProducts(Array.isArray(res.data?.data) ? res.data.data : res.data?.data?.items || []);
-    } catch (err) {
-      console.error('Error fetching products:', err);
-    }
-  };
+  }, [filterMainTree, categories]);
 
   const mainTreeById = useMemo(() => {
     const map = new Map();
-    for (const t of mainTrees) map.set(String(t._id), t);
+    for (const t of mainTrees.allItems) map.set(String(t._id), t);
     return map;
-  }, [mainTrees]);
+  }, [mainTrees.allItems]);
 
   const productsByCategory = useMemo(() => {
     const map = new Map();
-    for (const p of products) {
+    for (const p of products.allItems) {
       const lines = Array.isArray(p.productLines) ? p.productLines : [];
       for (const lineId of lines) {
         const key = String(typeof lineId === 'object' ? lineId._id : lineId);
@@ -81,11 +70,13 @@ const CategoryList = () => {
       }
     }
     return map;
-  }, [products]);
+  }, [products.allItems]);
 
   const filtered = useMemo(() => {
-    let list = [...categories].sort(
-      (a, b) => (a.order ?? 0) - (b.order ?? 0) || (a.name || '').localeCompare(b.name || '')
+    let list = [...categories.allItems].sort(
+      (a, b) =>
+        (a.order ?? 0) - (b.order ?? 0) ||
+        (a.name || '').localeCompare(b.name || '')
     );
     if (!showInactive) {
       list = list.filter((c) => c.isActive !== false);
@@ -100,7 +91,7 @@ const CategoryList = () => {
       );
     }
     return list;
-  }, [categories, search, showInactive]);
+  }, [categories.allItems, search, showInactive]);
 
   const columns = useMemo(
     () => [
@@ -114,7 +105,7 @@ const CategoryList = () => {
       {
         header: 'Hình ảnh',
         accessor: 'imageUrl',
-        render: (val) => (
+        render: (val) =>
           val ? (
             <img
               src={val}
@@ -128,8 +119,7 @@ const CategoryList = () => {
             <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400 text-xs">
               N/A
             </div>
-          )
-        ),
+          ),
       },
       {
         header: 'Tên',
@@ -152,7 +142,8 @@ const CategoryList = () => {
         header: 'Ngành hàng',
         accessor: 'mainTree',
         render: (val) => {
-          const mt = typeof val === 'object' ? val : mainTreeById.get(String(val));
+          const mt =
+            typeof val === 'object' ? val : mainTreeById.get(String(val));
           return (
             <span className="text-xs text-gray-500">{mt ? mt.name : '—'}</span>
           );
@@ -174,7 +165,8 @@ const CategoryList = () => {
                   onClick={() => navigate(`/products/${p._id}/edit`)}
                   className="text-left text-xs text-blue-600 hover:text-blue-800 hover:underline"
                 >
-                  {p.name} {p.productCode ? `(${p.productCode})` : ''}
+                  {p.name}{' '}
+                  {p.productCode ? `(${p.productCode})` : ''}
                 </button>
               ))}
             </div>
@@ -203,39 +195,58 @@ const CategoryList = () => {
     [mainTreeById, productsByCategory, navigate]
   );
 
-  const handleDelete = async (id) => {
-    if (!confirm('Bạn có chắc muốn xóa?')) return;
-    try {
-      await adminApi.deleteCategory(id);
-      addNotification('Xóa thành công');
-      fetchCategories();
-    } catch (error) {
-      addNotification('Có lỗi xảy ra', 'error');
-    }
-  };
+  const handleDelete = useCallback(
+    (id) => {
+      openConfirm({
+        title: 'Xóa product line',
+        message: 'Bạn có chắc muốn xóa product line này?',
+        confirmText: 'Xóa',
+        confirmStyle: 'danger',
+        onConfirm: async () => {
+          try {
+            await categories.remove(id);
+            addNotification('Xóa thành công');
+          } catch (err) {
+            addNotification(
+              err.response?.data?.message || 'Có lỗi xảy ra',
+              'error'
+            );
+          }
+        },
+      });
+    },
+    [openConfirm, categories, addNotification]
+  );
 
-  const handleDeleteSelected = async () => {
+  const handleDeleteSelected = useCallback(async () => {
     if (selectedIds.length === 0) return;
-    if (!confirm(`Xóa ${selectedIds.length} mục đã chọn?`)) return;
-    setDeleting(true);
-    try {
-      await adminApi.deleteCategories(selectedIds);
-      addNotification(`Đã xóa ${selectedIds.length} mục`);
-      setSelectedIds([]);
-      fetchCategories();
-    } catch (error) {
-      addNotification('Có lỗi xảy ra khi xóa nhiều', 'error');
-    } finally {
-      setDeleting(false);
-    }
-  };
+    openConfirm({
+      title: 'Xóa hàng loạt',
+      message: `Xóa ${selectedIds.length} mục đã chọn? Hành động này không thể hoàn tác.`,
+      confirmText: 'Xóa',
+      confirmStyle: 'danger',
+      onConfirm: async () => {
+        try {
+          await categories.removeMany(selectedIds);
+          addNotification(`Đã xóa ${selectedIds.length} mục`);
+          clearSelection();
+        } catch (err) {
+          addNotification(
+            err.response?.data?.message || 'Có lỗi xảy ra khi xóa nhiều',
+            'error'
+          );
+        }
+      },
+    });
+  }, [selectedIds, openConfirm, categories, addNotification, clearSelection]);
 
   const renderActions = (row) => {
-    const mainTreeId = typeof row.mainTree === 'object' ? row.mainTree?._id : row.mainTree;
+    const mainTreeId =
+      typeof row.mainTree === 'object' ? row.mainTree?._id : row.mainTree;
     const queryParams = new URLSearchParams();
     queryParams.set('productLine', row._id);
     if (mainTreeId) queryParams.set('industry', mainTreeId);
-    
+
     return (
       <>
         <button
@@ -265,7 +276,11 @@ const CategoryList = () => {
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <SEO title="Product line" description="Quản lý product line" url="/categories" />
+      <SEO
+        title="Product line"
+        description="Quản lý product line"
+        url="/categories"
+      />
       <Header title="Quản lý Product line" />
 
       <div className="p-4">
@@ -279,11 +294,11 @@ const CategoryList = () => {
           <div className="flex items-center gap-2 flex-wrap">
             <select
               value={filterMainTree}
-              onChange={(e) => setFilterMainTree(e.target.value)}
+              onChange={(e) => setFilter({ mainTree: e.target.value })}
               className="input-field text-xs py-1.5 w-44"
             >
               <option value="">Tất cả ngành hàng</option>
-              {mainTrees.map((t) => (
+              {mainTrees.allItems.map((t) => (
                 <option key={t._id} value={t._id}>
                   {t.name}
                 </option>
@@ -292,7 +307,6 @@ const CategoryList = () => {
             {selectedIds.length > 0 && (
               <button
                 onClick={handleDeleteSelected}
-                disabled={deleting}
                 className="btn-danger flex items-center gap-1 text-xs"
               >
                 <FiTrash2 size={14} />
@@ -303,23 +317,26 @@ const CategoryList = () => {
               <input
                 type="checkbox"
                 checked={showInactive}
-                onChange={(e) => setShowInactive(e.target.checked)}
+                onChange={(e) => setFilter({ showInactive: e.target.checked })}
                 className="rounded"
               />
               Hiện tạm ẩn
             </label>
             <div className="relative">
-              <FiSearch size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FiSearch
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 type="text"
                 placeholder="Tìm tên, mô tả..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => setFilter({ search: e.target.value })}
                 className="input-field pl-8 pr-8 text-xs py-1.5 w-52"
               />
               {search && (
                 <button
-                  onClick={() => setSearch('')}
+                  onClick={() => setFilter({ search: '' })}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <FiX size={12} />
@@ -337,7 +354,7 @@ const CategoryList = () => {
         </div>
 
         <div className="card">
-          {loading ? (
+          {categories.loading ? (
             <div className="flex justify-center py-12">
               <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
             </div>
@@ -363,7 +380,9 @@ const CategoryList = () => {
               actions={renderActions}
               selectable
               selected={selectedIds}
-              onSelectChange={setSelectedIds}
+              onSelectChange={(ids) =>
+                useAdminStore.getState().selection.setSelected('categories', ids)
+              }
             />
           )}
         </div>

@@ -1,21 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import HeroSlider from '../components/HeroSlider';
-import WhyUsSection from '../components/WhyUsSection';
-import ProcessSection from '../components/ProcessSection';
-import FeaturedProducts from '../components/FeaturedProducts';
-import MarketsGridSection from '../components/MarketsGridSection';
-import CertificatesSection from '../components/CertificatesSection';
-import BlogTeaserSection from '../components/BlogTeaserSection';
-import TestimonialsSection from '../components/TestimonialsSection';
-import PartnersSection from '../components/PartnersSection';
+import HomeAggregator from '../components/HomeAggregator';
 import SEO from '../components/SEO';
-import { FiBox } from 'react-icons/fi';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { useSiteConfig } from '../context/SiteConfigContext';
+import {
+  buildOrganizationJsonLd,
+  buildWebSiteJsonLd,
+} from '../utils/jsonLd';
 
 const Home = () => {
   const { t, i18n } = useTranslation();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
+  const siteConfig = useSiteConfig();
+
+  const homepageJsonLd = [
+    buildOrganizationJsonLd(siteConfig),
+    buildWebSiteJsonLd(),
+  ].filter(Boolean);
 
   return (
     <motion.div
@@ -29,20 +31,10 @@ const Home = () => {
         description={t('seo.home.description')}
         keywords={t('seo.home.keywords')}
         url={`/${lang}`}
+        type="website"
+        jsonLd={homepageJsonLd}
       />
-      <HeroSlider />
-      <WhyUsSection />
-      <ProcessSection />
-      <FeaturedProducts
-        eyebrow={t('home.featuredEyebrow')}
-        icon={FiBox}
-        limit={8}
-      />
-      <MarketsGridSection />
-      <CertificatesSection />
-      <BlogTeaserSection />
-      <TestimonialsSection />
-      <PartnersSection />
+      <HomeAggregator />
     </motion.div>
   );
 };

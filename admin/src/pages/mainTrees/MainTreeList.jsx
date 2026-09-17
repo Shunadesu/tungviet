@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -16,44 +16,43 @@ import {
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
 import DataTable from '../../components/DataTable';
-import ConfirmModal from '../../components/ConfirmModal';
-import adminApi from '../../api/adminApi';
-import { useNotification } from '../../context/NotificationContext';
+import Skeleton from '../../components/Skeleton';
+import {
+  useAdminStore,
+  useAdminStoreEntity,
+  useEntitySelection,
+  useNotification,
+} from '../../hooks/useAdminStore';
 
 const MainTreeList = () => {
   const navigate = useNavigate();
-  const [trees, setTrees] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [showInactive, setShowInactive] = useState(false);
-  const [selectedIds, setSelectedIds] = useState([]);
-  const [deleting, setDeleting] = useState(false);
-  const [toggling, setToggling] = useState(false);
-  const [confirmDelete, setConfirmDelete] = useState(null);
   const { addNotification } = useNotification();
 
-  useEffect(() => {
-    fetchTrees();
-  }, []);
+  const mainTrees = useAdminStoreEntity('mainTrees');
+  const ui = useAdminStore((s) => s.ui);
+  const openConfirm = useAdminStore((s) => s.ui.openConfirm);
 
-  useEffect(() => {
-    setSelectedIds([]);
-  }, [search, showInactive]);
+  const { selectedIds, clearSelection } = useEntitySelection('mainTrees');
 
-  const fetchTrees = async () => {
-    try {
-      const res = await adminApi.getMainTrees();
-      const data = res.data?.data;
-      setTrees(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.error('Error:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filters = ui.filters.mainTrees || {};
+  const search = filters.search || '';
+  const showInactive = Boolean(filters.showInactive);
+
+  const setFilter = useCallback(
+    (partial) => ui.setFilter('mainTrees', partial),
+    [ui]
+  );
+
+  // Load data on mount
+  const loadedRef = useRef(false);
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    mainTrees.fetchAll();
+  }, [mainTrees]);
 
   const filtered = useMemo(() => {
-    let list = [...trees];
+    let list = [...mainTrees.allItems];
     if (!showInactive) {
       list = list.filter((t) => t.isActive !== false);
     }
@@ -67,107 +66,119 @@ const MainTreeList = () => {
       );
     }
     return list.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  }, [trees, search, showInactive]);
+  }, [mainTrees.allItems, search, showInactive]);
 
-  const handleDelete = async (id) => {
-    setConfirmDelete({ ids: [id], mode: 'single' });
-  };
+  // Clear selection when filter changes
+  const prevSearch = useRef(search);
+  const prevShowInactive = useRef(showInactive);
+  useEffect(() => {
+    if (
+      search !== prevSearch.current ||
+      showInactive !== prevShowInactive.current
+    ) {
+      prevSearch.current = search;
+      prevShowInactive.current = showInactive;
+      clearSelection();
+    }
+  }, [search, showInactive, clearSelection]);
 
-  const handleDeleteSelected = async () => {
+  const handleDelete = useCallback(
+    (id) => {
+      openConfirm({
+        title: 'Xóa ngành hàng',
+        message: 'Bạn có chắc muốn xóa ngành hàng này?',
+        confirmText: 'Xóa',
+        confirmStyle: 'danger',
+        onConfirm: async () => {
+          try {
+            await mainTrees.remove(id);
+            addNotification('Xóa ngành hàng thành công');
+            clearSelection();
+          } catch (err) {
+            addNotification(
+              err.response?.data?.message || 'Có lỗi xảy ra khi xóa',
+              'error'
+            );
+          }
+        },
+      });
+    },
+    [openConfirm, mainTrees, addNotification, clearSelection]
+  );
+
+  const handleDeleteSelected = useCallback(async () => {
     if (selectedIds.length === 0) return;
-    setConfirmDelete({ ids: [...selectedIds], mode: 'bulk' });
-  };
+    openConfirm({
+      title: 'Xóa hàng loạt',
+      message: `Xóa ${selectedIds.length} ngành hàng đã chọn? Hành động này không thể hoàn tác.`,
+      confirmText: 'Xóa',
+      confirmStyle: 'danger',
+      onConfirm: async () => {
+        try {
+          await mainTrees.removeMany(selectedIds);
+          addNotification(`Đã xóa ${selectedIds.length} ngành hàng`);
+          clearSelection();
+        } catch (err) {
+          addNotification(
+            err.response?.data?.message || 'Có lỗi xảy ra khi xóa',
+            'error'
+          );
+        }
+      },
+    });
+  }, [selectedIds, openConfirm, mainTrees, addNotification, clearSelection]);
 
-  const executeDelete = async () => {
-    if (!confirmDelete) return;
-    const { ids } = confirmDelete;
-    setDeleting(true);
-    try {
-      if (ids.length === 1) {
-        await adminApi.deleteMainTree(ids[0]);
-        addNotification('Xóa ngành hàng thành công');
-      } else {
-        const res = await adminApi.bulkMainTrees({ action: 'delete', ids });
-        const deleted = res.data?.deleted ?? ids.length;
-        addNotification(`Đã xóa ${deleted} ngành hàng`);
+  const handleToggleActiveSelected = useCallback(
+    async (value) => {
+      if (selectedIds.length === 0) return;
+      openConfirm({
+        title: value ? 'Hiện ngành hàng' : 'Ẩn ngành hàng',
+        message: `Cập nhật trạng thái cho ${selectedIds.length} ngành hàng đã chọn?`,
+        confirmText: 'Cập nhật',
+        confirmStyle: 'primary',
+        onConfirm: async () => {
+          try {
+            await mainTrees.update(selectedIds[0], {
+              _bulk: selectedIds,
+              isActive: value,
+            });
+            addNotification(
+              `Đã cập nhật trạng thái cho ${selectedIds.length} ngành hàng`
+            );
+            clearSelection();
+            mainTrees.invalidateList();
+            mainTrees.fetchAll();
+          } catch (err) {
+            addNotification(
+              err.response?.data?.message || 'Có lỗi xảy ra khi cập nhật',
+              'error'
+            );
+          }
+        },
+      });
+    },
+    [selectedIds, openConfirm, mainTrees, addNotification, clearSelection]
+  );
+
+  const handleMove = useCallback(
+    async (tree, direction) => {
+      const sorted = [...filtered];
+      const idx = sorted.findIndex((t) => t._id === tree._id);
+      if (idx < 0) return;
+      const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (targetIdx < 0 || targetIdx >= sorted.length) return;
+      const tmp = sorted[idx];
+      sorted[idx] = sorted[targetIdx];
+      sorted[targetIdx] = tmp;
+      const order = sorted.map((t, i) => ({ _id: t._id, order: i }));
+      try {
+        await mainTrees.reorder(order);
+        addNotification('Cập nhật thứ tự thành công');
+      } catch {
+        addNotification('Cập nhật thứ tự thất bại', 'error');
       }
-      setConfirmDelete(null);
-      setSelectedIds([]);
-      fetchTrees();
-    } catch (error) {
-      addNotification(error.response?.data?.message || 'Có lỗi xảy ra khi xóa', 'error');
-    } finally {
-      setDeleting(false);
-    }
-  };
-
-  const handleToggleActiveSelected = async (value) => {
-    if (selectedIds.length === 0) return;
-    setToggling(true);
-    try {
-      await adminApi.bulkMainTrees({ action: 'toggleActive', ids: selectedIds, isActive: value });
-      addNotification(
-        `Đã cập nhật trạng thái cho ${selectedIds.length} ngành hàng`
-      );
-      setSelectedIds([]);
-      fetchTrees();
-    } catch (error) {
-      addNotification(error.response?.data?.message || 'Có lỗi xảy ra khi cập nhật', 'error');
-    } finally {
-      setToggling(false);
-    }
-  };
-
-  const handleMove = async (tree, direction) => {
-    const sorted = [...filtered];
-    const idx = sorted.findIndex((t) => t._id === tree._id);
-    if (idx < 0) return;
-    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (targetIdx < 0 || targetIdx >= sorted.length) return;
-    const tmp = sorted[idx];
-    sorted[idx] = sorted[targetIdx];
-    sorted[targetIdx] = tmp;
-    const order = sorted.map((t, i) => ({ _id: t._id, order: i }));
-    try {
-      await adminApi.reorderMainTrees(order);
-      addNotification('Cập nhật thứ tự thành công');
-      fetchTrees();
-    } catch (err) {
-      addNotification('Cập nhật thứ tự thất bại', 'error');
-    }
-  };
-
-  const renderActions = (row) => (
-    <>
-      <button
-        onClick={() => handleMove(row, 'up')}
-        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
-        title="Lên"
-      >
-        <FiArrowUp size={12} />
-      </button>
-      <button
-        onClick={() => handleMove(row, 'down')}
-        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
-        title="Xuống"
-      >
-        <FiArrowDown size={12} />
-      </button>
-      <button
-        onClick={() => navigate(`/main-trees/${row._id}/edit`)}
-        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
-        title="Sửa"
-      >
-        <FiEdit2 size={14} />
-      </button>
-      <button
-        onClick={() => handleDelete(row._id)}
-        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
-        title="Xóa"
-      >
-        <FiTrash2 size={14} />
-      </button>
-    </>
+    },
+    [filtered, mainTrees, addNotification]
   );
 
   const columns = useMemo(
@@ -182,7 +193,7 @@ const MainTreeList = () => {
       {
         header: 'Icon',
         accessor: 'iconUrl',
-        render: (val, row) => (
+        render: (val) => (
           <div className="flex items-center justify-center">
             {val ? (
               <img
@@ -249,15 +260,15 @@ const MainTreeList = () => {
         accessor: 'description',
         render: (val) => {
           if (!val) return <span className="text-gray-300">—</span>;
-          // Strip HTML tags và decode entities
           const temp = document.createElement('div');
           temp.innerHTML = val;
           const plainText = temp.textContent || temp.innerText || '';
-          const truncated = plainText.length > 80 ? plainText.slice(0, 80) + '...' : plainText;
+          const truncated =
+            plainText.length > 80 ? plainText.slice(0, 80) + '...' : plainText;
           return (
             <div className="max-w-xs">
-              <span 
-                className="text-gray-600 text-xs leading-relaxed line-clamp-2" 
+              <span
+                className="text-gray-600 text-xs leading-relaxed line-clamp-2"
                 title={plainText}
               >
                 {truncated}
@@ -278,11 +289,48 @@ const MainTreeList = () => {
     []
   );
 
+  const renderActions = (row) => (
+    <>
+      <button
+        onClick={() => handleMove(row, 'up')}
+        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+        title="Lên"
+      >
+        <FiArrowUp size={12} />
+      </button>
+      <button
+        onClick={() => handleMove(row, 'down')}
+        className="p-1.5 text-gray-500 hover:bg-gray-100 rounded"
+        title="Xuống"
+      >
+        <FiArrowDown size={12} />
+      </button>
+      <button
+        onClick={() => navigate(`/main-trees/${row._id}/edit`)}
+        className="p-1.5 text-blue-600 hover:bg-blue-50 rounded transition-colors"
+        title="Sửa"
+      >
+        <FiEdit2 size={14} />
+      </button>
+      <button
+        onClick={() => handleDelete(row._id)}
+        className="p-1.5 text-red-600 hover:bg-red-50 rounded transition-colors"
+        title="Xóa"
+      >
+        <FiTrash2 size={14} />
+      </button>
+    </>
+  );
+
   const hasSelection = selectedIds.length > 0;
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-      <SEO title="Cây ngành sản phẩm" description="Quản lý cây ngành sản phẩm" url="/main-trees" />
+      <SEO
+        title="Cây ngành sản phẩm"
+        description="Quản lý cây ngành sản phẩm"
+        url="/main-trees"
+      />
       <Header title="Quản lý cây ngành sản phẩm" />
 
       <div className="p-4">
@@ -298,23 +346,20 @@ const MainTreeList = () => {
               <>
                 <button
                   onClick={() => handleToggleActiveSelected(true)}
-                  disabled={toggling || deleting}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100 disabled:opacity-50"
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-green-50 text-green-700 rounded hover:bg-green-100"
                 >
                   <FiEye size={14} />
                   Hiện ({selectedIds.length})
                 </button>
                 <button
                   onClick={() => handleToggleActiveSelected(false)}
-                  disabled={toggling || deleting}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-amber-50 text-amber-700 rounded hover:bg-amber-100 disabled:opacity-50"
+                  className="flex items-center gap-1 text-xs px-2.5 py-1.5 bg-amber-50 text-amber-700 rounded hover:bg-amber-100"
                 >
                   <FiEyeOff size={14} />
                   Ẩn ({selectedIds.length})
                 </button>
                 <button
                   onClick={handleDeleteSelected}
-                  disabled={deleting || toggling}
                   className="btn-danger flex items-center gap-1 text-xs"
                 >
                   <FiTrash2 size={14} />
@@ -326,23 +371,26 @@ const MainTreeList = () => {
               <input
                 type="checkbox"
                 checked={showInactive}
-                onChange={(e) => setShowInactive(e.target.checked)}
+                onChange={(e) => setFilter({ showInactive: e.target.checked })}
                 className="rounded"
               />
               Hiện tạm ẩn
             </label>
             <div className="relative">
-              <FiSearch size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" />
+              <FiSearch
+                size={14}
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400"
+              />
               <input
                 type="text"
                 placeholder="Tìm kiếm..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => setFilter({ search: e.target.value })}
                 className="input-field pl-8 pr-8 text-xs py-1.5 w-52"
               />
               {search && (
                 <button
-                  onClick={() => setSearch('')}
+                  onClick={() => setFilter({ search: '' })}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
                 >
                   <FiX size={12} />
@@ -360,15 +408,15 @@ const MainTreeList = () => {
         </div>
 
         <div className="card">
-          {loading ? (
-            <div className="flex justify-center py-12">
-              <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary" />
-            </div>
+          {mainTrees.loading ? (
+            <Skeleton.List rows={6} />
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-gray-400 gap-2">
               <span className="text-3xl">🌳</span>
               <p className="text-sm">
-                {search ? 'Không tìm thấy ngành hàng phù hợp' : 'Chưa có ngành hàng nào'}
+                {search
+                  ? 'Không tìm thấy ngành hàng phù hợp'
+                  : 'Chưa có ngành hàng nào'}
               </p>
               {!search && (
                 <button
@@ -386,26 +434,13 @@ const MainTreeList = () => {
               actions={renderActions}
               selectable
               selected={selectedIds}
-              onSelectChange={setSelectedIds}
+              onSelectChange={(ids) =>
+                useAdminStore.getState().selection.setSelected('mainTrees', ids)
+              }
             />
           )}
         </div>
       </div>
-
-      <ConfirmModal
-        isOpen={Boolean(confirmDelete)}
-        onClose={() => !deleting && setConfirmDelete(null)}
-        onConfirm={executeDelete}
-        title="Xóa ngành hàng"
-        message={
-          confirmDelete?.ids.length === 1
-            ? 'Bạn có chắc muốn xóa ngành hàng này?'
-            : `Bạn có chắc muốn xóa ${confirmDelete?.ids.length ?? 0} ngành hàng đã chọn? Hành động này không thể hoàn tác.`
-        }
-        confirmText="Xóa"
-        confirmStyle="danger"
-        loading={deleting}
-      />
     </motion.div>
   );
 };

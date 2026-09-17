@@ -14,6 +14,16 @@ const productApplicationSubSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const productImageSubSchema = new mongoose.Schema(
+  {
+    url: { type: String, required: true, trim: true },
+    alt: { type: String, default: '' },
+    altEn: { type: String, default: '' },
+    order: { type: Number, default: 0 },
+  },
+  { _id: true }
+);
+
 const productSchema = new mongoose.Schema({
   productCode: {
     type: String,
@@ -89,6 +99,14 @@ const productSchema = new mongoose.Schema({
     type: [productApplicationSubSchema],
     default: [],
   },
+  gallery: {
+    type: [productImageSubSchema],
+    default: [],
+  },
+  tags: {
+    type: [String],
+    default: [],
+  },
   tdsUrl: {
     type: String,
     default: ''
@@ -100,6 +118,20 @@ const productSchema = new mongoose.Schema({
   isActive: {
     type: Boolean,
     default: true
+  },
+  isFeatured: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  isNew: {
+    type: Boolean,
+    default: false,
+    index: true,
+  },
+  displayOrder: {
+    type: Number,
+    default: 0,
   },
   viewCount: {
     type: Number,
@@ -116,6 +148,7 @@ productSchema.index({ createdAt: -1 });
 productSchema.index({ productCode: 1 }, { unique: true, partialFilterExpression: { productCode: { $type: 'string', $gt: '' } } });
 productSchema.index({ webStatus: 1, isActive: 1 });
 productSchema.index({ marketIds: 1 });
+productSchema.index({ isFeatured: 1, isActive: 1, webStatus: 1, displayOrder: 1 });
 
 const Product = mongoose.model('Product', productSchema);
 

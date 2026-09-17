@@ -25,8 +25,9 @@ import {
   FiGlobe,
 } from 'react-icons/fi';
 import { GiPlantRoots } from 'react-icons/gi';
-import { useState } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useAdminStore } from '../store/adminStore';
 
 // ── Menu configs ─────────────────────────────────────────────────────────────
 
@@ -200,24 +201,29 @@ const findActiveGroupKey = (node, pathname) => {
 const Sidebar = () => {
   const location = useLocation();
   const { user, logout } = useAuth();
-  const [collapsed, setCollapsed] = useState(false);
-  const [openKeys, setOpenKeys] = useState(() => {
-    const activeKeys = [productsMenu, marketsMenu, postsMenu, interfaceMenu]
-      .map((m) => findActiveGroupKey(m, location.pathname))
-      .filter(Boolean);
-    // Luôn mở các menu lồng nhau của sản phẩm
-    activeKeys.push('main-trees', 'categories');
-    return new Set(activeKeys);
-  });
 
-  const toggleKey = (key) => {
-    setOpenKeys((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
+  // Persisted via zustand + persist middleware
+  const collapsed = useAdminStore((s) => s.ui.collapsed);
+  const openKeys = useAdminStore((s) => s.ui.openKeys);
+  const setCollapsed = useAdminStore((s) => s.ui.setCollapsed);
+  const toggleOpenKey = useAdminStore((s) => s.ui.toggleOpenKey);
+  const setOpenKeys = useAdminStore((s) => s.ui.setOpenKeys);
+
+  // First-mount: seed openKeys with currently active groups if empty
+  // (so the menu opens correctly on a hard reload even before any
+  // user interaction has happened).
+  useEffect(() => {
+    if (openKeys.length === 0) {
+      const activeKeys = [productsMenu, marketsMenu, postsMenu, interfaceMenu]
+        .map((m) => findActiveGroupKey(m, location.pathname))
+        .filter(Boolean);
+      activeKeys.push('main-trees', 'categories');
+      setOpenKeys([...new Set(activeKeys)]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const toggleKey = (key) => toggleOpenKey(key);
 
   // NavNode render đệ quy cho các item/group lồng nhau
   const NavNode = ({ node, depth = 1 }) => {
@@ -238,7 +244,7 @@ const Sidebar = () => {
       );
     }
 
-    const open = openKeys.has(node.key);
+    const open = openKeys.includes(node.key);
     const childActiveKey = findActiveGroupKey(node, location.pathname);
     const isLinkableGroup = node.type === 'linkable-group';
     const isSelfActive = isLinkableGroup && isItemActive(location.pathname, node.path);
@@ -321,7 +327,7 @@ const Sidebar = () => {
   // TopLevelMenu component tái sử dụng cho mọi top-level dropdown
   const TopLevelMenu = ({ menu }) => {
     const isTopActive = location.pathname === menu.defaultPath;
-    const open = openKeys.has(menu.key);
+    const open = openKeys.includes(menu.key);
 
     if (collapsed) {
       return (

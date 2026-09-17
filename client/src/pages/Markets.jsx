@@ -8,6 +8,9 @@ import { getLocalizedField } from '../utils/i18nField';
 import { SUPPORTED_LOCALES } from '../i18n';
 import PageHero from '../components/PageHero';
 import EmptyState from '../components/EmptyState';
+import SEO from '../components/SEO';
+import { htmlToText } from '../utils/html';
+import { buildItemListJsonLd } from '../utils/jsonLd';
 
 const containerVariants = {
   hidden: {},
@@ -34,15 +37,19 @@ const Markets = () => {
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
   const isEN = i18n.language === 'en';
   const [items, setItems] = useState([]);
+  const [grouped, setGrouped] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     setLoading(true);
-    publicApi
-      .getMarketTrees({ lang })
-      .then((res) => {
-        setItems(Array.isArray(res.data?.data) ? res.data.data : []);
+    Promise.all([
+      publicApi.getMarketTrees({ lang }),
+      publicApi.getMarketsGrouped(lang),
+    ])
+      .then(([flatRes, groupedRes]) => {
+        setItems(Array.isArray(flatRes.data?.data) ? flatRes.data.data : []);
+        setGrouped(Array.isArray(groupedRes.data?.data) ? groupedRes.data.data : []);
       })
       .catch((err) => console.warn('[Markets] fetch failed:', err))
       .finally(() => setLoading(false));
@@ -60,8 +67,21 @@ const Markets = () => {
     });
   }, [items, search, lang]);
 
+  const itemListJsonLd = useMemo(
+    () => buildItemListJsonLd(filtered, { lang }),
+    [filtered, lang]
+  );
+
   return (
     <div>
+      <SEO
+        title={t('market.title')}
+        description={t('market.subtitle') || htmlToText(t('market.title'))}
+        keywords={isEN ? 'markets, applications, rosin, resin, Tungviet' : 'thị trường, ứng dụng, rosin, nhựa, Tungviet'}
+        url={`/${lang}/markets`}
+        type="website"
+        jsonLd={itemListJsonLd}
+      />
       <PageHero
         title={t('market.title')}
         subtitle={t('market.subtitle')}

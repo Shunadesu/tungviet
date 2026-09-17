@@ -58,6 +58,9 @@ export const SiteConfigProvider = ({ children }) => {
   const [seo, setSeo] = useState(null);
   const [faviconUrl, setFaviconUrl] = useState(null);
   const [floatingContacts, setFloatingContacts] = useState([]);
+  const [certificates, setCertificates] = useState([]);
+  const [testimonials, setTestimonials] = useState([]);
+  const [homeSections, setHomeSections] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -100,6 +103,9 @@ const normalizeContactId = (contact, index) => {
           ? data.floatingContacts.map((contact, index) => normalizeContactId(contact, index))
           : []
       );
+      setCertificates(Array.isArray(data.certificates) ? data.certificates : []);
+      setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
+      setHomeSections(Array.isArray(data.homeSections) ? data.homeSections : []);
     } catch (err) {
       console.warn('[SiteConfig] fetch failed, using defaults:', err?.message);
     } finally {
@@ -115,7 +121,23 @@ const normalizeContactId = (contact, index) => {
 
   return (
     <SiteConfigContext.Provider
-      value={{ logoUrl, heroSlides, aboutSlides, about, fastFacts, coreValues, footer, seo, faviconUrl, floatingContacts, loading, refresh: fetchConfig }}
+      value={{
+        logoUrl,
+        heroSlides,
+        aboutSlides,
+        about,
+        fastFacts,
+        coreValues,
+        footer,
+        seo,
+        faviconUrl,
+        floatingContacts,
+        certificates,
+        testimonials,
+        homeSections,
+        loading,
+        refresh: fetchConfig,
+      }}
     >
       {children}
     </SiteConfigContext.Provider>
