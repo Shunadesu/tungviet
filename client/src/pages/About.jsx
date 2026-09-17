@@ -2,7 +2,7 @@ import { useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination, Autoplay } from 'swiper/modules';
-import { FiAward, FiShield, FiStar, FiTrendingUp, FiGlobe, FiHeart, FiCheckCircle } from 'react-icons/fi';
+import { FiAward, FiShield, FiStar, FiTrendingUp, FiGlobe, FiHeart, FiCheckCircle, FiPhone, FiMail, FiMapPin, FiClock } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
@@ -287,6 +287,90 @@ function CoreValuesSection({ values }) {
   );
 }
 
+// ── Section 5: Contact Info (merged from former /contact page) ───────────────
+function ContactInfoSection({ lang }) {
+  const { t } = useTranslation();
+  const { footer } = useSiteConfig();
+
+  const items = [
+    {
+      icon: <FiPhone size={18} />,
+      labelKey: 'contact.phone',
+      value: footer?.phone,
+      href: footer?.phone ? `tel:${footer.phone.replace(/\s/g, '')}` : null,
+    },
+    {
+      icon: <FiMail size={18} />,
+      labelKey: 'contact.email',
+      value: footer?.email,
+      href: footer?.email ? `mailto:${footer.email}` : null,
+    },
+    {
+      icon: <FiMapPin size={18} />,
+      labelKey: 'contact.address',
+      value: footer?.address,
+      href: null,
+    },
+    {
+      icon: <FiClock size={18} />,
+      labelKey: 'contact.workingHours',
+      value: t('contact.workingHoursText'),
+      href: null,
+    },
+  ];
+
+  const hasAnyValue = items.some((i) => i.value);
+
+  if (!hasAnyValue) return null;
+
+  return (
+    <section className="max-w-5xl mx-auto px-4 py-12">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        className="text-center mb-8"
+      >
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('contact.title')}</h2>
+        <p className="text-sm text-gray-500">{t('contact.subtitle')}</p>
+      </motion.div>
+      <div className="grid md:grid-cols-2 gap-4">
+        <div className="space-y-3">
+          {items.map((item) => {
+            if (!item.value) return null;
+            return (
+              <div
+                key={item.labelKey}
+                className="bg-white rounded-lg p-4 border flex items-start gap-3"
+              >
+                <div className="text-primary flex-shrink-0 mt-0.5">{item.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-gray-500 uppercase">{t(item.labelKey)}</p>
+                  {item.href ? (
+                    <a href={item.href} className="text-sm text-gray-800 hover:text-primary break-all">
+                      {item.value}
+                    </a>
+                  ) : (
+                    <p className="text-sm text-gray-800">{item.value}</p>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="bg-white rounded-lg p-4 border">
+          <h2 className="text-sm font-semibold mb-3">{t('home.ctaTitle')}</h2>
+          <p className="text-xs text-gray-600 mb-3">{t('home.ctaSubtitle')}</p>
+          <Link to={`/${lang}/quote`} className="btn-primary inline-block text-sm">
+            {t('contact.sendMessage')}
+          </Link>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 // ── Main About Page ────────────────────────────────────────────────────────────
 const About = () => {
   const { t, i18n } = useTranslation();
@@ -320,7 +404,10 @@ const About = () => {
       {/* Section 4: Core Values */}
       <CoreValuesSection values={coreValues} />
 
-      {/* Section 5: CTA */}
+      {/* Section 5: Contact Info (merged from former /contact page) */}
+      <ContactInfoSection lang={lang} />
+
+      {/* Section 6: CTA */}
       <section className="bg-primary-50 rounded-lg mx-4 max-w-5xl mx-auto px-4 py-6 mb-6">
         <div className="flex items-center gap-3 mb-2">
           <FiAward size={20} className="text-primary" />

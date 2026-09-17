@@ -133,6 +133,8 @@ export const orderService = {
   },
 
   async getStats() {
+    // Fetch recent orders with a covered query — only 5 docs, no full table scan.
+    const recentOrdersQuery = Order.find().sort({ createdAt: -1 }).limit(5);
     const [totalOrders, totalProducts, revenueAgg, recentOrders, statusAgg] = await Promise.all([
       Order.countDocuments(),
       Product.countDocuments(),
@@ -140,7 +142,7 @@ export const orderService = {
         { $match: { status: { $ne: 'Cancelled' } } },
         { $group: { _id: null, total: { $sum: '$totalAmount' } } },
       ]),
-      Order.find().sort({ createdAt: -1 }).limit(5),
+      recentOrdersQuery,
       Order.aggregate([{ $group: { _id: '$status', count: { $sum: 1 } } }]),
     ]);
 

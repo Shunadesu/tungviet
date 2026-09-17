@@ -100,13 +100,14 @@ const FloatingContactBar = ({ contacts = [] }) => {
                 href={contact.url}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={contact.label || config.label}
                 className={`flex items-center justify-center w-12 h-12 rounded-full bg-white shadow-lg hover:shadow-xl transition-all duration-200 ${isImageIcon ? '' : config.color} hover:scale-110`}
                 title={contact.label || config.label}
               >
                 {isImageIcon ? (
                   <img src={contact.icon} alt="" className="w-6 h-6 object-contain" />
                 ) : (
-                  <IconComponent size={24} />
+                  <IconComponent size={24} aria-hidden="true" />
                 )}
               </a>
 

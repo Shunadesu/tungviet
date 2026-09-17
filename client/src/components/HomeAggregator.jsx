@@ -4,8 +4,10 @@ import { motion } from 'framer-motion';
 import { useEffect, useMemo, useRef } from 'react';
 import { FiArrowRight, FiAward, FiBox, FiCheckCircle, FiGlobe, FiMessageSquare, FiUsers, FiMapPin, FiPhone, FiMail, FiStar } from 'react-icons/fi';
 import HeroSlider from './HeroSlider';
+import LazyImage from './LazyImage';
 import { useHomeData } from '../hooks/useHomeData';
 import { getLocalizedField } from '../utils/i18nField';
+import { SUPPORTED_LOCALES } from '../i18n';
 import publicApi from '../api/publicApi';
 
 const pickText = (item, lang, viKey = 'name', enKey = null) => {
@@ -36,10 +38,10 @@ const ProductCard = ({ product, lang }) => (
   >
     <div className="aspect-square overflow-hidden bg-gray-50 relative">
       {product.imageUrl ? (
-        <img
+        <LazyImage
           src={product.imageUrl}
           alt={product.name}
-          loading="lazy"
+          aspectRatio="1/1"
           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
       ) : (
@@ -186,11 +188,12 @@ const Industries = ({ items }) => {
               className="group p-5 rounded-xl border border-gray-100 hover:border-primary/40 hover:shadow-md transition-all bg-gradient-to-br from-white to-gray-50"
             >
               {ind.imageUrl && (
-                <img
+                <LazyImage
                   src={ind.imageUrl}
                   alt={ind.name}
+                  width={48}
+                  height={48}
                   className="w-12 h-12 object-cover rounded-lg mb-3"
-                  loading="lazy"
                 />
               )}
               <h3 className="text-sm font-semibold text-gray-900 group-hover:text-primary">
@@ -231,10 +234,10 @@ const MarketsGrid = ({ items }) => {
               className="group relative overflow-hidden rounded-xl aspect-video bg-gray-200"
             >
               {market.imageUrl ? (
-                <img
+                <LazyImage
                   src={market.imageUrl}
                   alt={market.title}
-                  loading="lazy"
+                  aspectRatio="16/9"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
               ) : (
@@ -277,10 +280,11 @@ const Certificates = ({ items }) => {
               title={cert.name}
             >
               {cert.imageUrl ? (
-                <img
+                <LazyImage
                   src={cert.imageUrl}
                   alt={cert.name}
-                  loading="lazy"
+                  width={64}
+                  height={64}
                   className="h-16 w-auto object-contain opacity-70 group-hover:opacity-100 transition-opacity"
                 />
               ) : (
@@ -323,9 +327,11 @@ const Testimonials = ({ items }) => {
               </p>
               <div className="flex items-center gap-3 border-t pt-3">
                 {t.avatarUrl ? (
-                  <img
+                  <LazyImage
                     src={t.avatarUrl}
                     alt={t.author}
+                    width={40}
+                    height={40}
                     className="w-10 h-10 rounded-full object-cover"
                   />
                 ) : (
@@ -369,10 +375,10 @@ const BlogTeaser = ({ items }) => {
             >
               {post.thumbnail && (
                 <div className="aspect-video overflow-hidden">
-                  <img
+                  <LazyImage
                     src={post.thumbnail}
                     alt={post.title}
-                    loading="lazy"
+                    aspectRatio="16/9"
                     className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                   />
                 </div>
@@ -408,10 +414,11 @@ const Partners = ({ partner, customer }) => {
               {partner.map((p) => (
                 <div key={p._id} title={p.name}>
                   {p.logo ? (
-                    <img
+                    <LazyImage
                       src={p.logo}
                       alt={p.name}
-                      loading="lazy"
+                      width={48}
+                      height={48}
                       className="h-12 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity"
                     />
                   ) : (
@@ -431,10 +438,11 @@ const Partners = ({ partner, customer }) => {
               {customer.map((p) => (
                 <div key={p._id} title={p.name}>
                   {p.logo ? (
-                    <img
+                    <LazyImage
                       src={p.logo}
                       alt={p.name}
-                      loading="lazy"
+                      width={48}
+                      height={48}
                       className="h-12 w-auto object-contain opacity-70 hover:opacity-100 transition-opacity"
                     />
                   ) : (
@@ -464,10 +472,11 @@ const Members = ({ items }) => {
           {items.map((m) => (
             <div key={m._id} className="text-center">
               {m.imageUrl ? (
-                <img
+                <LazyImage
                   src={m.imageUrl}
                   alt={m.name}
-                  loading="lazy"
+                  width={96}
+                  height={96}
                   className="w-24 h-24 rounded-full mx-auto object-cover mb-3"
                 />
               ) : (

@@ -7,20 +7,13 @@ import {
   FiMenu,
   FiX,
   FiChevronDown,
-  FiHome,
   FiInfo,
-  FiMessageSquare,
-  FiSettings,
-  FiBox,
-  FiGrid,
+  FiMapPin,
   FiHeart,
   FiBarChart2,
-  FiAward,
-  FiUsers,
-  FiMapPin,
-  FiGitBranch,
+  FiBox,
 } from 'react-icons/fi';
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
 import { useQuoteBag } from '../context/QuoteBagContext';
@@ -35,7 +28,7 @@ import SearchModal from './SearchModal';
 const LOCALE_LABELS = { vi: 'VI', en: 'EN' };
 const SCROLL_THRESHOLD = 16;
 
-// ─── Mega menu for Products (MainTree > Category) ───────────────────────────
+// ─── Mega menu for Products (horizontal MainTree pills → Category grid) ─────
 const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
   const [open, setOpen] = useState(false);
   const [activeMainTreeId, setActiveMainTreeId] = useState(null);
@@ -106,9 +99,8 @@ const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
-              className="absolute top-full mt-2 w-[640px] bg-white shadow-xl rounded-xl border border-gray-100 overflow-hidden z-50"
+              className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[820px] max-w-[calc(100vw-2rem)] bg-white shadow-xl rounded-xl border border-gray-100 overflow-hidden z-50"
               role="menu"
-              onMouseLeave={close}
             >
               {mainTrees.length === 0 ? (
                 <div className="px-6 py-10 text-center">
@@ -125,49 +117,49 @@ const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
                   </button>
                 </div>
               ) : (
-                <div className="flex">
-                  {/* Left column: MainTree list */}
-                  <div className="w-44 bg-slate-50 border-r border-gray-100 py-2 max-h-[420px] overflow-y-auto">
-                    {mainTrees.map((m) => {
-                      const isActive = String(activeMainTree?._id) === String(m._id);
-                      return (
-                        <button
-                          key={m._id}
-                          type="button"
-                          onMouseEnter={() => setActiveMainTreeId(m._id)}
-                          onFocus={() => setActiveMainTreeId(m._id)}
-                          onClick={() => {
-                            close();
-                            navigate(`/${lang}/main-trees/${m._id}`);
-                          }}
-                          className={`w-full text-left px-4 py-2.5 text-xs font-medium truncate transition-colors ${
-                            isActive
-                              ? 'bg-white text-primary'
-                              : 'text-gray-600 hover:bg-white hover:text-primary'
-                          }`}
-                          title={getLocalizedField(m, lang, 'name', 'nameEn')}
-                        >
-                          {getLocalizedField(m, lang, 'name', 'nameEn')}
-                        </button>
-                      );
-                    })}
+                <>
+                  {/* Top row: MainTree pills, horizontal scroll */}
+                  <div className="border-b border-gray-100 bg-slate-50 px-3 py-2 overflow-x-auto">
+                    <div className="flex items-center gap-1.5 min-w-max">
+                      {mainTrees.map((m) => {
+                        const isActive = String(activeMainTree?._id) === String(m._id);
+                        return (
+                          <button
+                            key={m._id}
+                            type="button"
+                            onClick={() => setActiveMainTreeId(m._id)}
+                            onMouseEnter={() => setActiveMainTreeId(m._id)}
+                            onFocus={() => setActiveMainTreeId(m._id)}
+                            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                              isActive
+                                ? 'bg-primary text-white shadow-sm'
+                                : 'bg-white text-gray-600 hover:bg-white hover:text-primary border border-gray-200'
+                            }`}
+                            title={getLocalizedField(m, lang, 'name', 'nameEn')}
+                          >
+                            {getLocalizedField(m, lang, 'name', 'nameEn')}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
-                  {/* Right column: Category list */}
-                  <div className="flex-1 p-4 max-h-[420px] overflow-y-auto">
+
+                  {/* Bottom: 3-col grid of Categories for active MainTree */}
+                  <div className="p-4 max-h-[440px] overflow-y-auto">
                     {activeCategories.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">
+                      <p className="text-xs text-gray-400 italic px-2 py-6 text-center">
                         {lang === 'en'
                           ? 'No product lines yet for this industry.'
-                          : 'Chưa có ngành hàng nào trong cây ngành này.'}
+                          : 'Chưa có danh mục sản phẩm nào trong cây ngành này.'}
                       </p>
                     ) : (
-                      <div className="grid grid-cols-2 gap-1">
+                      <div className="grid grid-cols-3 gap-1.5">
                         {activeCategories.map((c) => (
                           <Link
                             key={c._id}
-                            to={`/${lang}/products?industries=${activeMainTree._id}&category=${c._id}`}
+                            to={`/${lang}/categories/${c._id}`}
                             onClick={close}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors truncate"
+                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors truncate border border-transparent hover:border-gray-100"
                             title={getLocalizedField(c, lang, 'name', 'nameEn')}
                           >
                             <FiBox size={14} className="opacity-60 flex-shrink-0" />
@@ -179,10 +171,11 @@ const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
                       </div>
                     )}
                   </div>
-                </div>
+                </>
               )}
+
               {mainTrees.length > 0 && (
-                <div className="border-t border-gray-100 px-4 py-2 bg-gray-50">
+                <div className="border-t border-gray-100 px-4 py-2 bg-gray-50 flex items-center justify-between">
                   <button
                     type="button"
                     onClick={() => {
@@ -193,6 +186,18 @@ const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
                   >
                     {t('common.viewAll')} {t('nav.products')} →
                   </button>
+                  {activeMainTree && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        close();
+                        navigate(`/${lang}/main-trees/${activeMainTree._id}`);
+                      }}
+                      className="text-[11px] text-gray-500 hover:text-primary"
+                    >
+                      {lang === 'en' ? 'View industry detail' : 'Xem chi tiết ngành'} →
+                    </button>
+                  )}
                 </div>
               )}
             </motion.div>
@@ -203,189 +208,19 @@ const MegaMenuProducts = ({ transparent, mainTrees, categories }) => {
   );
 };
 
-// ─── Mega menu for Markets (MarketTree parent > child) ──────────────────────
-const MegaMenuMarkets = ({ transparent, marketTrees }) => {
-  const [open, setOpen] = useState(false);
-  const [activeParentId, setActiveParentId] = useState(null);
-  const ref = useRef(null);
-  const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
-  const lang = i18n.language === 'en' ? 'en' : 'vi';
-
-  useEffect(() => {
-    const onClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    const onKey = (e) => {
-      if (e.key === 'Escape') setOpen(false);
-    };
-    document.addEventListener('mousedown', onClick);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onClick);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, []);
-
-  useEffect(() => {
-    if (!open) return;
-    setActiveParentId((prev) => prev || marketTrees[0]?._id || null);
-  }, [open, marketTrees]);
-
-  const triggerClass = transparent
-    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
-    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
-
-  const activeParent =
-    marketTrees.find((p) => String(p._id) === String(activeParentId)) || marketTrees[0];
-  const activeChildren = activeParent?.children || [];
-  const close = () => setOpen(false);
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        type="button"
-        className={triggerClass}
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="true"
-        aria-expanded={open}
-      >
-        {t('nav.marketTrees')}
-        <FiChevronDown
-          size={12}
-          className={`transition-transform ${open ? 'rotate-180' : ''}`}
-        />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
-              onClick={close}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-              className="absolute top-full mt-2 w-[640px] bg-white shadow-xl rounded-xl border border-gray-100 overflow-hidden z-50"
-              role="menu"
-              onMouseLeave={close}
-            >
-              {marketTrees.length === 0 ? (
-                <div className="px-6 py-10 text-center">
-                  <p className="text-xs text-gray-500 italic">{t('market.noMarkets')}</p>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close();
-                      navigate(`/${lang}/markets`);
-                    }}
-                    className="mt-3 text-xs font-semibold text-primary hover:underline"
-                  >
-                    {t('common.viewAll')} {t('nav.marketTrees')} →
-                  </button>
-                </div>
-              ) : (
-                <div className="flex">
-                  {/* Left column: MarketTree parent list */}
-                  <div className="w-44 bg-slate-50 border-r border-gray-100 py-2 max-h-[420px] overflow-y-auto">
-                    {marketTrees.map((p) => {
-                      const isActive = String(activeParent?._id) === String(p._id);
-                      return (
-                        <button
-                          key={p._id}
-                          type="button"
-                          onMouseEnter={() => setActiveParentId(p._id)}
-                          onFocus={() => setActiveParentId(p._id)}
-                          onClick={() => {
-                            close();
-                            navigate(`/${lang}/markets/${p._id}`);
-                          }}
-                          className={`w-full text-left px-4 py-2.5 text-xs font-medium truncate transition-colors ${
-                            isActive
-                              ? 'bg-white text-primary'
-                              : 'text-gray-600 hover:bg-white hover:text-primary'
-                          }`}
-                          title={getLocalizedField(p, lang, 'title', 'titleEn')}
-                        >
-                          {getLocalizedField(p, lang, 'title', 'titleEn')}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {/* Right column: MarketTree children */}
-                  <div className="flex-1 p-4 max-h-[420px] overflow-y-auto">
-                    {activeChildren.length === 0 ? (
-                      <p className="text-xs text-gray-400 italic">
-                        {lang === 'en'
-                          ? 'No sub-markets yet.'
-                          : 'Chưa có cây ngành sản phẩm nào.'}
-                      </p>
-                    ) : (
-                      <div className="grid grid-cols-2 gap-1">
-                        {activeChildren.map((c) => (
-                          <Link
-                            key={c._id}
-                            to={`/${lang}/markets/${c._id}`}
-                            onClick={close}
-                            className="flex items-center gap-2 px-3 py-2 rounded-lg text-xs text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors truncate"
-                            title={getLocalizedField(c, lang, 'title', 'titleEn')}
-                          >
-                            <FiGitBranch size={14} className="opacity-60 flex-shrink-0" />
-                            <span className="truncate">
-                              {getLocalizedField(c, lang, 'title', 'titleEn')}
-                            </span>
-                          </Link>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              {marketTrees.length > 0 && (
-                <div className="border-t border-gray-100 px-4 py-2 bg-gray-50">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      close();
-                      navigate(`/${lang}/markets`);
-                    }}
-                    className="text-xs font-semibold text-primary hover:underline"
-                  >
-                    {t('common.viewAll')} {t('nav.marketTrees')} →
-                  </button>
-                </div>
-              )}
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// ─── Mega menu for About ──────────────────────────────────────────────────────
+// ─── Mega menu for About (compact: 2 items only) ────────────────────────────
 const ABOUT_MENU_ITEMS = {
   vi: [
     { icon: FiInfo, label: 'Về chúng tôi', to: '/about' },
-    { icon: FiUsers, label: 'Ban lãnh đạo', to: '/about/board-of-directors' },
-    { icon: FiAward, label: 'Tầm nhìn & Sứ mệnh', to: '/about/leadership' },
-    { icon: FiGrid, label: 'Địa điểm', to: '/about/locations' },
+    { icon: FiMapPin, label: 'Địa điểm', to: '/about/locations' },
   ],
   en: [
     { icon: FiInfo, label: 'About Us', to: '/about' },
-    { icon: FiUsers, label: 'Board of Directors', to: '/about/board-of-directors' },
-    { icon: FiAward, label: 'Leadership', to: '/about/leadership' },
-    { icon: FiGrid, label: 'Locations', to: '/about/locations' },
+    { icon: FiMapPin, label: 'Locations', to: '/about/locations' },
   ],
 };
 
-const MegaMenuAbout = ({ transparent, isHomeTop }) => {
+const MegaMenuAbout = ({ transparent }) => {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const { t, i18n } = useTranslation();
@@ -404,13 +239,6 @@ const MegaMenuAbout = ({ transparent, isHomeTop }) => {
   const triggerClass = transparent
     ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
     : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
-
-  // Khi ở trang home đầu trang → luôn nền trắng cho mega menu
-  const panelBorder = 'border-gray-100';
-  const itemHover = 'hover:bg-gray-50 hover:text-primary';
-  const labelClass = 'text-gray-600';
-  const taglineClass = 'text-white';
-  const taglineSubClass = 'text-gray-400';
 
   return (
     <div ref={ref} className="relative">
@@ -434,123 +262,14 @@ const MegaMenuAbout = ({ transparent, isHomeTop }) => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
-              className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[680px] bg-white shadow-xl rounded-xl border ${panelBorder} overflow-hidden z-50`}
-            >
-              <div className="flex">
-                {/* Left: image + tagline */}
-                <div
-                  className="w-52 flex-shrink-0 relative overflow-hidden rounded-l-xl"
-                  style={{ minHeight: 280 }}
-                >
-                  <img
-                    src="https://images.unsplash.com/photo-1519332978332-21b7d621d05e?w=400&q=80"
-                    alt="About"
-                    className="absolute inset-0 w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                  <div className="absolute bottom-0 left-0 right-0 p-5">
-                    <p className={`text-sm font-semibold ${taglineClass}`}>
-                      {lang === 'en' ? 'About  Tungviet' : 'Về Tùng Việt'}
-                    </p>
-                    <p className={`text-[11px] mt-1 ${taglineSubClass}`}>
-                      {lang === 'en'
-                        ? 'Industrial rosin supplier with international quality standards'
-                        : 'Nhà cung cấp nhựa thông công nghiệp đạt tiêu chuẩn quốc tế'}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Right: 2-col grid menu */}
-                <div className="flex-1 p-4">
-                  <div className="grid grid-cols-2 gap-1">
-                    {menuItems.map((item) => (
-                      <Link
-                        key={item.label}
-                        to={`/${lang}${item.to}`}
-                        className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${itemHover} ${labelClass}`}
-                        onClick={() => setOpen(false)}
-                      >
-                        <item.icon size={16} className="flex-shrink-0 opacity-70" />
-                        {item.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-// ─── Mega menu for Contact ───────────────────────────────────────────────────
-const CONTACT_MENU_ITEMS = {
-  vi: [
-    { icon: FiMessageSquare, label: 'Liên hệ', to: '/contact' },
-    { icon: FiMapPin, label: 'Địa điểm', to: '/about/locations' },
-  ],
-  en: [
-    { icon: FiMessageSquare, label: 'Contact Us', to: '/contact' },
-    { icon: FiMapPin, label: 'Location', to: '/about/locations' },
-  ],
-};
-
-const MegaMenuContact = ({ transparent }) => {
-  const [open, setOpen] = useState(false);
-  const ref = useRef(null);
-  const { t, i18n } = useTranslation();
-  const lang = i18n.language === 'en' ? 'en' : 'vi';
-
-  useEffect(() => {
-    const onClick = (e) => {
-      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
-    };
-    document.addEventListener('mousedown', onClick);
-    return () => document.removeEventListener('mousedown', onClick);
-  }, []);
-
-  const menuItems = CONTACT_MENU_ITEMS[lang] || CONTACT_MENU_ITEMS.vi;
-
-  const triggerClass = transparent
-    ? 'text-sm text-white/95 hover:text-white transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap'
-    : 'text-sm text-gray-700 hover:text-primary transition-colors font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap';
-
-  const panelBorder = 'border-gray-100';
-  const itemHover = 'hover:bg-gray-50 hover:text-primary';
-  const labelClass = 'text-gray-600';
-
-  return (
-    <div ref={ref} className="relative">
-      <button className={triggerClass} onClick={() => setOpen((v) => !v)}>
-        {t('nav.contact')}
-        <FiChevronDown size={12} className={`transition-transform ${open ? 'rotate-180' : ''}`} />
-      </button>
-
-      <AnimatePresence>
-        {open && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 z-40"
-              onClick={() => setOpen(false)}
-            />
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.18 }}
-              className={`absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[320px] bg-white shadow-xl rounded-xl border ${panelBorder} overflow-hidden z-50`}
+              className="absolute left-1/2 -translate-x-1/2 top-full mt-2 w-[320px] bg-white shadow-xl rounded-xl border border-gray-100 overflow-hidden z-50"
             >
               <div className="p-3">
                 {menuItems.map((item) => (
                   <Link
                     key={item.label}
                     to={`/${lang}${item.to}`}
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium transition-colors ${itemHover} ${labelClass}`}
+                    className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs font-medium text-gray-700 hover:bg-gray-50 hover:text-primary transition-colors"
                     onClick={() => setOpen(false)}
                   >
                     <item.icon size={16} className="flex-shrink-0 opacity-70" />
@@ -584,7 +303,6 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mainTrees, setMainTrees] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [marketTrees, setMarketTrees] = useState([]);
 
   // Cmd+K / Ctrl+K to open search modal from anywhere
   useEffect(() => {
@@ -611,8 +329,7 @@ const Header = () => {
     Promise.allSettled([
       publicApi.getMainTrees(currentLang),
       publicApi.getCategories({ lang: currentLang, limit: 200 }),
-      publicApi.getMarketTrees({ lang: currentLang }),
-    ]).then(([mtRes, catRes, mktRes]) => {
+    ]).then(([mtRes, catRes]) => {
       if (cancelled) return;
       if (mtRes.status === 'fulfilled') {
         const data = mtRes.value?.data?.data;
@@ -621,10 +338,6 @@ const Header = () => {
       if (catRes.status === 'fulfilled') {
         const raw = catRes.value?.data?.data;
         setCategories(Array.isArray(raw) ? raw : raw?.items || []);
-      }
-      if (mktRes.status === 'fulfilled') {
-        const data = mktRes.value?.data?.data;
-        setMarketTrees(Array.isArray(data) ? data : []);
       }
     });
     return () => {
@@ -733,7 +446,7 @@ const Header = () => {
 
           {/* Nav */}
           <nav className="hidden md:flex col-span-5 items-center justify-center gap-4 lg:gap-5">
-            <MegaMenuAbout transparent={transparent} isHomeTop={isHome && !scrolled} />
+            <MegaMenuAbout transparent={transparent} />
 
             <MegaMenuProducts
               transparent={transparent}
@@ -741,10 +454,12 @@ const Header = () => {
               categories={categories}
             />
 
-            <MegaMenuMarkets
-              transparent={transparent}
-              marketTrees={marketTrees}
-            />
+            <Link
+              to={`/${currentLang}/markets`}
+              className={linkClass}
+            >
+              {t('nav.markets')}
+            </Link>
 
             <Link
               to={`/${currentLang}/news`}
@@ -752,8 +467,6 @@ const Header = () => {
             >
               {t('nav.news')}
             </Link>
-
-            <MegaMenuContact transparent={transparent} />
           </nav>
 
           {/* Right controls */}
@@ -909,32 +622,6 @@ const Header = () => {
                   </>
                 )}
 
-                {marketTrees.length > 0 && (
-                  <>
-                    <span className={`px-1 text-[10px] uppercase font-semibold tracking-wide ${transparent ? 'text-white/60' : 'text-gray-400'}`}>
-                      {t('nav.marketTreeMenuTitle')}
-                    </span>
-                    {marketTrees.slice(0, 5).map((p) => (
-                      <Link
-                        key={p._id}
-                        to={`/${currentLang}/markets/${p._id}`}
-                        onClick={() => setMenuOpen(false)}
-                        className={mobileLinkClass}
-                      >
-                        <span className="ml-3">{getLocalizedField(p, currentLang, 'title', 'titleEn')}</span>
-                      </Link>
-                    ))}
-                    <Link
-                      to={`/${currentLang}/markets`}
-                      onClick={() => setMenuOpen(false)}
-                      className={`${mobileLinkClass} text-primary font-medium ml-3`}
-                    >
-                      {t('common.viewAll')} →
-                    </Link>
-                    <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
-                  </>
-                )}
-
                 <Link
                   to={`/${currentLang}/products`}
                   onClick={() => setMenuOpen(false)}
@@ -942,14 +629,19 @@ const Header = () => {
                 >
                   {t('common.viewAll')} {t('nav.products')} →
                 </Link>
+
+                <Link
+                  to={`/${currentLang}/markets`}
+                  onClick={() => setMenuOpen(false)}
+                  className={mobileLinkClass}
+                >
+                  {t('nav.markets')}
+                </Link>
+
                 <div className={`my-1 ${transparent ? 'border-t border-white/20' : 'border-t border-gray-200'}`} />
 
                 <Link to={`/${currentLang}/news`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
                   {t('nav.news')}
-                </Link>
-
-                <Link to={`/${currentLang}/contact`} onClick={() => setMenuOpen(false)} className={mobileLinkClass}>
-                  {t('nav.contact')}
                 </Link>
 
                 <div className="flex items-center gap-2 py-2">

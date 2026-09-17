@@ -1,8 +1,8 @@
-import { cacheGet, cacheSet } from '../utils/cache.js';
-import Product from '../models/Product.js';
-import Post from '../models/Post.js';
-import MainTree from '../models/MainTree.js';
-import MarketTree from '../models/MarketTree.js';
+import { cacheStore } from '../../utils/cache.js';
+import Product from '../../models/Product.js';
+import Post from '../../models/Post.js';
+import MainTree from '../../models/MainTree.js';
+import MarketTree from '../../models/MarketTree.js';
 
 /**
  * Generate sitemap.xml for the public site.
@@ -68,7 +68,7 @@ const pairEntry = (path, lastmod) => {
 export const getSitemap = async (req, res) => {
   try {
     const cacheKey = 'sitemap.xml:v1';
-    const cached = cacheGet(cacheKey);
+    const cached = cacheStore.get(cacheKey);
     if (cached) {
       res.set('Content-Type', 'application/xml; charset=utf-8');
       res.set('Cache-Control', 'public, max-age=3600');
@@ -133,7 +133,7 @@ export const getSitemap = async (req, res) => {
       `${entries.join('\n')}\n` +
       `</urlset>`;
 
-    cacheSet(cacheKey, xml, 60 * 60 * 1000);
+    cacheStore.set(cacheKey, xml, 60 * 60);
 
     res.set('Content-Type', 'application/xml; charset=utf-8');
     res.set('Cache-Control', 'public, max-age=3600');

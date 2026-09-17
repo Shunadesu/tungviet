@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FiZoomIn } from 'react-icons/fi';
 import placeholderProduct from '../assets/placeholder-product.svg';
+import LazyImage from './LazyImage';
 
 /**
  * Gallery sản phẩm: ảnh chính lớn + thumbnails bên dưới.
@@ -39,24 +40,28 @@ const ProductGallery = ({ images = [], name = '', tdsUrl }) => {
         onMouseMove={handleMove}
       >
         <AnimatePresence mode="wait">
-          <motion.img
+          <motion.div
             key={activeIdx}
-            src={current || placeholderProduct}
-            alt={name}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.25 }}
-            className="w-full h-full object-cover"
-            style={{
-              transform: zoom ? 'scale(1.15)' : 'scale(1)',
-              transformOrigin: origin,
-              transition: 'transform 0.4s ease-out',
-            }}
-            onError={(e) => {
-              e.currentTarget.src = placeholderProduct;
-            }}
-          />
+            className="w-full h-full"
+          >
+            <LazyImage
+              src={current || placeholderProduct}
+              alt={name}
+              eager={activeIdx === 0}
+              fallback={placeholderProduct}
+              aspectRatio="1/1"
+              className="w-full h-full object-cover"
+              style={{
+                transform: zoom ? 'scale(1.15)' : 'scale(1)',
+                transformOrigin: origin,
+                transition: 'transform 0.4s ease-out, opacity 240ms ease-out',
+              }}
+            />
+          </motion.div>
         </AnimatePresence>
 
         {/* Zoom hint */}
@@ -83,20 +88,22 @@ const ProductGallery = ({ images = [], name = '', tdsUrl }) => {
           {safeImages.map((img, idx) => (
             <button
               key={idx}
+              type="button"
               onClick={() => setActiveIdx(idx)}
+              aria-label={`View image ${idx + 1} of ${safeImages.length}: ${name}`}
+              aria-pressed={idx === activeIdx}
               className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
                 idx === activeIdx
                   ? 'border-primary ring-2 ring-primary/20'
                   : 'border-gray-100 hover:border-gray-300'
               }`}
             >
-              <img
+              <LazyImage
                 src={img || placeholderProduct}
                 alt={`${name}-${idx}`}
+                fallback={placeholderProduct}
+                aspectRatio="1/1"
                 className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.src = placeholderProduct;
-                }}
               />
             </button>
           ))}

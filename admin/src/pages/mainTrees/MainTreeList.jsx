@@ -49,7 +49,8 @@ const MainTreeList = () => {
     if (loadedRef.current) return;
     loadedRef.current = true;
     mainTrees.fetchAll();
-  }, [mainTrees]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // mainTrees.fetchAll is stable — do NOT add mainTrees to deps
 
   const filtered = useMemo(() => {
     let list = [...mainTrees.allItems];

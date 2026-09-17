@@ -31,7 +31,8 @@ const PartnerList = () => {
 
   useEffect(() => {
     partners.fetchAll({ type: tab });
-  }, [tab, partners]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab]); // partners.fetchAll is stable — do NOT add partners to deps
 
   const items = partners.allItems;
 

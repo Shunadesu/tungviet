@@ -20,6 +20,16 @@ export const resolveLocale = (req) => {
 };
 
 export const localizeText = (value, locale, fallback) => {
+  // Handle `{ vi, en }` object shape used by schemas (QuoteSection.title,
+  // homeSection.title/subtitle, certificate.name, testimonial.*, etc.).
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    const primary = locale === 'en' ? value.en : value.vi;
+    if (primary != null && String(primary).trim()) return primary;
+    const secondary = locale === 'en' ? value.vi : value.en;
+    if (secondary != null && String(secondary).trim()) return secondary;
+    return fallback ?? '';
+  }
+  // Plain string (or empty) input — preserve existing behaviour.
   if (locale === 'en') {
     if (value && String(value).trim()) return value;
     return fallback ?? '';

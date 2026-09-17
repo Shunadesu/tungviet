@@ -48,6 +48,7 @@ orderSchema.index({ userId: 1, orderDate: -1 });
 orderSchema.index({ status: 1, orderDate: -1 });
 orderSchema.index({ userEmail: 1 });
 orderSchema.index({ userPhone: 1 });
+orderSchema.index({ createdAt: -1 }); // used by admin dashboard stats — must cover recentOrders query
 orderSchema.plugin(mongooseDelete, { deletedAt: true, overrideMethods: 'all' });
 
 const Order = mongoose.model('Order', orderSchema);

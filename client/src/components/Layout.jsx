@@ -5,6 +5,7 @@ import Footer from './Footer';
 import QuoteSection from './QuoteSection';
 import SeoMeta from './SeoMeta';
 import FloatingContactBar from './FloatingContactBar';
+import SkipLink from './SkipLink';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import publicApi from '../api/publicApi';
 
@@ -40,8 +41,9 @@ const Layout = () => {
   return (
     <div className="flex flex-col min-h-screen bg-white">
       <SeoMeta seo={seo} faviconUrl={faviconUrl} />
+      <SkipLink />
       <Header />
-      <main className="flex-1">
+      <main id="main-content" className="flex-1" tabIndex={-1}>
         <Outlet />
       </main>
       {quoteSection && (

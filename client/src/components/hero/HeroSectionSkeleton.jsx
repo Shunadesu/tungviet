@@ -25,7 +25,7 @@ const HeroSectionSkeleton = () => {
     },
     ctaSecondary: {
       label: { vi: t('hero.fallback.ctaSecondary'), en: t('hero.fallback.ctaSecondary') },
-      href: '/contact',
+      href: '/about',
       style: 'outline',
     },
   };

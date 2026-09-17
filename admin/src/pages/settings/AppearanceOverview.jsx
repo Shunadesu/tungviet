@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { FiImage, FiEdit2, FiArrowRight, FiSliders, FiSearch } from 'react-icons/fi';
+import { FiImage, FiEdit2, FiArrowRight, FiSliders, FiSearch, FiAward } from 'react-icons/fi';
 import { motion } from 'framer-motion';
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';

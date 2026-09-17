@@ -42,7 +42,8 @@ const PostCategoryList = () => {
 
   useEffect(() => {
     postCategories.fetchAll();
-  }, [postCategories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // postCategories.fetchAll is stable — do NOT add postCategories to deps
 
   const filtered = useMemo(() => {
     let list = [...postCategories.allItems];

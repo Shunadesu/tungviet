@@ -89,7 +89,8 @@ const ProductList = () => {
       products.invalidateList();
       products.fetchAll(params);
     }
-  }, [filterMainTree, filterWebStatus, products]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterMainTree, filterWebStatus]); // products.invalidateList/fetchAll are stable store methods
 
   const mainTreeById = useMemo(() => {
     const map = new Map();

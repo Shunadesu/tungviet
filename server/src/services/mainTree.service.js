@@ -68,10 +68,8 @@ export const mainTreeService = {
         path: 'technologies.linkToMainTree',
         select: '_id name nameEn slug',
       })
-      .populate({
-        path: 'applications.linkToMainTree',
-        select: '_id name nameEn slug',
-      })
+      // NOTE: applications live inside technologySubSchema (technologies[].applications),
+      // not at the MainTree top level, so no top-level applications populate.
       .lean();
     return items.map((node) => sortSubDocs(node));
   },
@@ -91,10 +89,7 @@ export const mainTreeService = {
         path: 'technologies.linkToMainTree',
         select: '_id name nameEn slug',
       })
-      .populate({
-        path: 'applications.linkToMainTree',
-        select: '_id name nameEn slug',
-      })
+      // NOTE: applications are nested inside technologies[].applications, not top-level.
       .lean();
   },
 

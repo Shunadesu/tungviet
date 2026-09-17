@@ -7,6 +7,7 @@ import { useQuoteBag } from '../context/QuoteBagContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useCompare } from '../context/CompareContext';
 import { useToast } from '../context/ToastContext';
+import LazyImage from './LazyImage';
 import placeholderProduct from '../assets/placeholder-product.svg';
 
 const MAX_COMPARE = 4;
@@ -70,10 +71,11 @@ const ProductCard = ({ product, index = 0 }) => {
         to={`/${lang}/products/${product._id}`}
         className="relative block aspect-[4/3] overflow-hidden bg-gray-50 flex-shrink-0"
       >
-        <img
+        <LazyImage
           src={product.imageUrl || placeholderProduct}
           alt={product.name}
-          loading="lazy"
+          fallback={placeholderProduct}
+          aspectRatio="4/3"
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
           onError={(e) => {
             e.currentTarget.src = placeholderProduct;

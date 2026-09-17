@@ -100,6 +100,11 @@
     }
     </script>
 
+    <!-- DNS-prefetch & preconnect for the API / uploads origin so image
+         bytes start downloading as early as possible after HTML parse. -->
+    <link rel="dns-prefetch" href="https://tungviet.fun" />
+    <link rel="preconnect" href="https://tungviet.fun" crossorigin />
+
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>

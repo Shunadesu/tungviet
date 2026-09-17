@@ -20,7 +20,8 @@ const OrderList = () => {
 
   useEffect(() => {
     orders.fetchAll();
-  }, [orders]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // orders.fetchAll is a stable reference from the store — do NOT add orders to deps
 
   const handleView = useCallback(async (id) => {
     try {

@@ -40,9 +40,7 @@
     "mainTrees": "Cây ngành",
     "mainTreeMenuTitle": "Cây ngành",
     "marketTrees": "Cây ngành thị trường",
-    "marketTreeMenuTitle": "Cây ngành thị trường",
     "about": "Giới thiệu",
-    "contact": "Liên hệ",
     "news": "Tin tức",
     "quote": "Yêu cầu báo giá",
     "wishlist": "Yêu thích",
@@ -304,7 +302,13 @@
     "successDetail": "Chúng tôi sẽ xem xét và phản hồi lại cho bạn qua {{channel}} trong thời gian sớm nhất.",
     "sendAnother": "Gửi yêu cầu khác",
     "sendViaEmail": "Mở ứng dụng email",
-    "itemsCount": "{{n}} sản phẩm"
+    "itemsCount": "{{n}} sản phẩm",
+    "stepContact": "Liên hệ",
+    "stepContactSub": "Thông tin của bạn",
+    "stepReview": "Sản phẩm",
+    "stepReviewSub": "Xem lại sản phẩm đã chọn",
+    "stepConfirm": "Xác nhận",
+    "stepConfirmSub": "Kiểm tra và gửi"
   },
   "auth": {
     "loginTitle": "Đăng nhập",
@@ -567,5 +571,8 @@
       "benefits": "Lợi ích",
       "targetAudience": "Đối tượng"
     }
+  },
+  "a11y": {
+    "skipToContent": "Skip to main content"
   }
 }

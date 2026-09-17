@@ -41,7 +41,8 @@ const CategoryList = () => {
     categories.fetchAll();
     mainTrees.fetchAll();
     products.fetchAll();
-  }, [categories, mainTrees, products]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // fetchAll methods are stable — do NOT add entity objects to deps
 
   const prevMainTree = useRef(filterMainTree);
   useEffect(() => {
@@ -51,7 +52,8 @@ const CategoryList = () => {
       const params = filterMainTree ? { mainTree: filterMainTree } : undefined;
       categories.fetchAll(params);
     }
-  }, [filterMainTree, categories]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterMainTree]); // categories.invalidateList/fetchAll are stable
 
   const mainTreeById = useMemo(() => {
     const map = new Map();

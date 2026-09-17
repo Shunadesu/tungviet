@@ -27,7 +27,8 @@ const QuoteSubmissionList = () => {
 
   useEffect(() => {
     quoteSubmissions.fetchAll().finally(() => setLoading(false));
-  }, [quoteSubmissions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // quoteSubmissions.fetchAll is stable — do NOT add quoteSubmissions to deps
 
   const handleStatusChange = useCallback(
     async (id, status) => {

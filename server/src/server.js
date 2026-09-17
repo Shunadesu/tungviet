@@ -8,6 +8,7 @@ import connectDB from './config/db.js';
 import { logger, requestLogger } from './utils/logger.js';
 import { errorHandler, notFoundHandler } from './middlewares/errorHandler.js';
 import { trackVisitor } from './middlewares/trackVisitor.js';
+import securityHeaders from './middlewares/securityHeaders.js';
 import { apiResponse } from './utils/apiResponse.js';
 import { swaggerSpec } from './config/swagger.js';
 import { productColumnService } from './services/productColumn.service.js';
@@ -78,6 +79,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.set('trust proxy', 1);
 
+// Security headers (CSP, HSTS, X-Frame-Options, etc.) — applied first.
+app.use(securityHeaders);
+
 connectDB()
   .then(async () => {
     try {
@@ -106,20 +110,12 @@ connectDB()
       logger.info('MongoDB indexes synced');
 
       const seed = await productColumnService.seedDefaults();
-      logger.info(
-        { skipped: seed.skipped, total: seed.total },
-        'ProductColumn seed done'
-      );
+      logger.info({ skipped: seed.skipped, total: seed.total }, 'ProductColumn seed done');
 
-      // Seed default PostCategory + migrate existing posts (string category -> ObjectId)
       const { postCategoryService } = await import('./services/postCategory.service.js');
       const pcSeed = await postCategoryService.seedDefaults();
-      logger.info(
-        { skipped: pcSeed.skipped, total: pcSeed.total },
-        'PostCategory seed done'
-      );
+      logger.info({ skipped: pcSeed.skipped, total: pcSeed.total }, 'PostCategory seed done');
 
-      // One-time migration: ensure old Products and Categories have webStatus/mainTree defaults
       const { migrationService } = await import('./services/migration.service.js');
       await migrationService.runHierarchyMigration();
     } catch (err) {
@@ -144,13 +140,14 @@ app.use((req, res, next) => {
     'https://www.tungviet.fun',
   ].filter(Boolean);
 
-  if (!origin || allowedOrigins.includes(origin) || allowedOrigins.some((o) => o && origin.endsWith('.vercel.app'))) {
+  if (
+    !origin ||
+    allowedOrigins.includes(origin) ||
+    allowedOrigins.some((o) => o && origin.endsWith('.vercel.app'))
+  ) {
     res.setHeader('Access-Control-Allow-Origin', origin || '*');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader(
-      'Access-Control-Allow-Methods',
-      'GET, POST, PUT, DELETE, PATCH, OPTIONS'
-    );
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
     res.setHeader(
       'Access-Control-Allow-Headers',
       'Content-Type, Authorization, X-Requested-With, Accept, Origin'
@@ -164,20 +161,21 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-}));
+app.use(
+  cors({
+    origin: '*',
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  })
+);
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use(requestLogger);
 app.use(trackVisitor);
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
-// Root-level SEO endpoints (no /api prefix) — serve sitemap.xml directly at /
+// Root-level SEO endpoints — serve sitemap.xml at /
 app.use('/', publicSeoRoutes);
-
 
 app.use('/api/public/products', publicRoutes);
 app.use('/api/public/categories', publicCategoryRoutes);
@@ -215,9 +213,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/estimates', estimateRoutes);
 app.use('/api/project-reports', projectReportRoutes);
 
-app.get('/api/health', (req, res) => {
-  return apiResponse.ok(res, { status: 'OK', message: 'Server is running' });
-});
+app.get('/api/health', (req, res) => apiResponse.ok(res, { status: 'OK', message: 'Server is running' }));
 
 app.get('/api/openapi.json', (req, res) => res.json(swaggerSpec));
 app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));

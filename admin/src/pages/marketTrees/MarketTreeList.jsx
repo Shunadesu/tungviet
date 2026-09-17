@@ -348,7 +348,8 @@ const MarketTreeList = () => {
     loadedRef.current = true;
     marketTrees.fetchAll();
     products.fetchAll({ limit: 200 });
-  }, [marketTrees, products]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // marketTrees.fetchAll, products.fetchAll are stable — do NOT add them to deps
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();

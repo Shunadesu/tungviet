@@ -40,9 +40,7 @@
     "mainTrees": "Industries",
     "mainTreeMenuTitle": "Industries",
     "marketTrees": "Application Markets",
-    "marketTreeMenuTitle": "Application Markets",
     "about": "About",
-    "contact": "Contact",
     "news": "News",
     "quote": "Request quote",
     "wishlist": "Wishlist",
@@ -305,7 +303,13 @@
     "successDetail": "We will review your request and get back to you via {{channel}} shortly.",
     "sendAnother": "Send another request",
     "sendViaEmail": "Open email app",
-    "itemsCount": "{{n}} products"
+    "itemsCount": "{{n}} products",
+    "stepContact": "Contact",
+    "stepContactSub": "Your information",
+    "stepReview": "Products",
+    "stepReviewSub": "Review selected items",
+    "stepConfirm": "Confirm",
+    "stepConfirmSub": "Review and submit"
   },
   "auth": {
     "loginTitle": "Sign in",
@@ -578,5 +582,8 @@
       "benefits": "Benefits",
       "targetAudience": "Target audience"
     }
+  },
+  "a11y": {
+    "skipToContent": "Skip to main content"
   }
 }
