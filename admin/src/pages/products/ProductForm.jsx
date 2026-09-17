@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiPackage } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiPackage, FiCheck, FiCpu } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import RichEditor from '../../components/RichEditor';
+import Modal from '../../components/Modal';
 import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
@@ -264,6 +265,7 @@ const emptyForm = {
   industries: [],
   productLines: [],
   marketIds: [],
+  marketEntries: [],
   price: 0,
   priceVisible: true,
   webStatus: 'draft',
@@ -287,14 +289,68 @@ const WEB_STATUS_OPTIONS = [
 ];
 
 const ApplicationEditor = ({ items, onChange, onUpload, uploading }) => {
-  const updateItem = (idx, patch) => {
-    onChange(items.map((it, i) => (i === idx ? { ...it, ...patch } : it)));
+  const { addNotification } = useNotification();
+  const [modal, setModal] = useState({ open: false, index: null, draft: emptyApplication });
+
+  const stripHtml = (html) => {
+    if (!html) return '';
+    return String(html)
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
   };
-  const removeItem = (idx) => {
+
+  const openCreate = () => {
+    setModal({
+      open: true,
+      index: null,
+      draft: { ...emptyApplication, order: items.length },
+    });
+  };
+
+  const openEdit = (idx) => {
+    setModal({
+      open: true,
+      index: idx,
+      draft: { ...emptyApplication, ...items[idx] },
+    });
+  };
+
+  const closeModal = () =>
+    setModal({ open: false, index: null, draft: { ...emptyApplication } });
+
+  const updateDraft = (patch) =>
+    setModal((m) => ({ ...m, draft: { ...m.draft, ...patch } }));
+
+  const handleSave = () => {
+    if (!modal.draft.title?.trim()) {
+      addNotification('Vui lòng nhập tiêu đề ứng dụng', 'error');
+      return;
+    }
+    const cleanOrder = Number(modal.draft.order) || 0;
+    if (modal.index === null) {
+      onChange([...items, { ...modal.draft, order: cleanOrder }]);
+    } else {
+      const next = items.map((it, i) =>
+        i === modal.index ? { ...it, ...modal.draft, order: cleanOrder } : it
+      );
+      onChange(next);
+    }
+    closeModal();
+  };
+
+  const handleRemove = (idx) => {
+    if (!window.confirm('Bạn có chắc muốn xoá ứng dụng này?')) return;
     onChange(items.filter((_, i) => i !== idx));
   };
-  const addItem = () => {
-    onChange([...items, { ...emptyApplication, order: items.length }]);
+
+  const handleUploadImage = async (e, idxInList) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const url = await onUpload(file, idxInList);
+    if (url) updateDraft({ imageUrl: url });
   };
 
   return (
@@ -306,7 +362,7 @@ const ApplicationEditor = ({ items, onChange, onUpload, uploading }) => {
         </label>
         <button
           type="button"
-          onClick={addItem}
+          onClick={openCreate}
           className="text-xs text-primary hover:underline flex items-center gap-1"
         >
           <FiPlus size={12} />
@@ -316,146 +372,372 @@ const ApplicationEditor = ({ items, onChange, onUpload, uploading }) => {
       <p className="text-[10px] text-gray-500">
         Mỗi ứng dụng của sản phẩm. Khi sản phẩm được chọn trong "Ứng dụng" của cây ngành thị trường, bạn sẽ chọn được ứng dụng cụ thể này.
       </p>
+
       {items.length === 0 ? (
         <p className="text-[11px] text-gray-400 italic">Chưa có ứng dụng nào.</p>
       ) : (
-        <div className="space-y-2">
-          {items.map((item, idx) => (
-            <div
-              key={`app-${idx}`}
-              className="border border-gray-200 rounded-lg p-3 bg-gray-50/40 space-y-2"
-            >
-              <div className="flex items-center justify-between">
-                <div className="text-xs font-semibold text-gray-700">
-                  #{idx + 1} {item.title || '(Chưa đặt tên)'}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removeItem(idx)}
-                  className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
-                  title="Xóa"
-                >
-                  <FiTrash2 size={12} />
-                </button>
-              </div>
-              <div className="grid md:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                    Tiêu đề <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={item.title || ''}
-                    onChange={(e) => updateItem(idx, { title: e.target.value })}
-                    className="input-field text-xs"
-                    placeholder="VD: Sơn lót"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                    Tiêu đề tiếng Anh
-                  </label>
-                  <input
-                    type="text"
-                    value={item.titleEn || ''}
-                    onChange={(e) => updateItem(idx, { titleEn: e.target.value })}
-                    className="input-field text-xs"
-                    placeholder="English title"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                  Mô tả
-                </label>
-                <RichEditor
-                  value={item.description || ''}
-                  onChange={(value) => updateItem(idx, { description: value })}
-                  placeholder="Mô tả ứng dụng..."
-                  minHeight={100}
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                  Mô tả tiếng Anh
-                </label>
-                <RichEditor
-                  value={item.descriptionEn || ''}
-                  onChange={(value) => updateItem(idx, { descriptionEn: value })}
-                  placeholder="English description"
-                  minHeight={100}
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                  Hình ảnh ứng dụng
-                </label>
-                <div className="flex items-center gap-2">
-                  {item.imageUrl ? (
-                    <img
-                      src={item.imageUrl}
-                      alt=""
-                      className="w-10 h-10 rounded object-cover border"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-10 h-10 rounded bg-gray-100 text-gray-400 flex items-center justify-center">
-                      <FiImage size={14} />
+        <div className="overflow-x-auto border border-gray-200 rounded-lg">
+          <table className="w-full text-xs">
+            <thead className="bg-gray-50 text-gray-600">
+              <tr>
+                <th className="px-2 py-2 text-left font-medium w-10">#</th>
+                <th className="px-2 py-2 text-left font-medium w-16">Ảnh</th>
+                <th className="px-2 py-2 text-left font-medium">Tiêu đề</th>
+                <th className="px-2 py-2 text-left font-medium">Mô tả</th>
+                <th className="px-2 py-2 text-center font-medium w-16">Thứ tự</th>
+                <th className="px-2 py-2 text-center font-medium w-20">Hiển thị</th>
+                <th className="px-2 py-2 text-right font-medium w-32">Thao tác</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {items.map((item, idx) => (
+                <tr key={`app-${idx}`} className="hover:bg-gray-50/50">
+                  <td className="px-2 py-2 text-gray-500 align-middle">{idx + 1}</td>
+                  <td className="px-2 py-2 align-middle">
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt=""
+                        className="w-10 h-10 rounded object-cover border"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <div className="w-10 h-10 rounded bg-gray-100 text-gray-400 flex items-center justify-center">
+                        <FiImage size={14} />
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-2 py-2 align-middle">
+                    <div className="font-medium text-gray-800">
+                      {item.title || <span className="text-gray-400 italic">(Chưa đặt tên)</span>}
                     </div>
-                  )}
-                  <label className="btn-secondary text-[10px] flex items-center gap-1 cursor-pointer">
-                    <FiUpload size={10} />
-                    {uploading ? 'Đang upload...' : 'Upload'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) onUpload(file, idx);
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                  <input
-                    type="url"
-                    value={item.imageUrl || ''}
-                    onChange={(e) => updateItem(idx, { imageUrl: e.target.value })}
-                    className="input-field text-[10px] flex-1"
-                    placeholder="Hoặc URL"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <div>
-                  <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
-                    Thứ tự
-                  </label>
-                  <input
-                    type="number"
-                    value={item.order ?? 0}
-                    onChange={(e) =>
-                      updateItem(idx, { order: Number(e.target.value) || 0 })
-                    }
-                    className="input-field w-20 text-xs"
-                  />
-                </div>
-                <label className="flex items-center gap-1 cursor-pointer select-none mt-3.5">
-                  <input
-                    type="checkbox"
-                    checked={item.isActive !== false}
-                    onChange={(e) => updateItem(idx, { isActive: e.target.checked })}
-                    className="rounded w-3 h-3"
-                  />
-                  <span className="text-[10px] font-medium">Hiển thị</span>
-                </label>
-              </div>
-            </div>
-          ))}
+                    {item.titleEn && (
+                      <div className="text-[10px] text-gray-500 truncate max-w-[260px]">
+                        {item.titleEn}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-2 py-2 align-middle text-gray-600 max-w-[280px]">
+                    {stripHtml(item.description) ? (
+                      <div className="line-clamp-2">{stripHtml(item.description)}</div>
+                    ) : (
+                      <span className="text-gray-400 italic">—</span>
+                    )}
+                  </td>
+                  <td className="px-2 py-2 align-middle text-center text-gray-700">
+                    {item.order ?? 0}
+                  </td>
+                  <td className="px-2 py-2 align-middle text-center">
+                    {item.isActive !== false ? (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-green-50 text-green-700">
+                        Bật
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-500">
+                        Tắt
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-2 py-2 align-middle">
+                    <div className="flex items-center justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => openEdit(idx)}
+                        className="px-2 py-1 text-[10px] font-medium text-blue-700 bg-blue-50 rounded hover:bg-blue-100"
+                      >
+                        Sửa
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(idx)}
+                        className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100"
+                        title="Xóa"
+                      >
+                        <FiTrash2 size={12} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
+
+      <Modal
+        isOpen={modal.open}
+        onClose={closeModal}
+        title={modal.index === null ? 'Thêm ứng dụng' : 'Sửa ứng dụng'}
+        size="lg"
+      >
+        <div className="space-y-3">
+          <div className="grid md:grid-cols-2 gap-2">
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Tiêu đề <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={modal.draft.title || ''}
+                onChange={(e) => updateDraft({ title: e.target.value })}
+                className="input-field text-xs"
+                placeholder="VD: Sơn lót"
+                autoFocus
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Tiêu đề tiếng Anh
+              </label>
+              <input
+                type="text"
+                value={modal.draft.titleEn || ''}
+                onChange={(e) => updateDraft({ titleEn: e.target.value })}
+                className="input-field text-xs"
+                placeholder="English title"
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700">Mô tả</label>
+            <RichEditor
+              value={modal.draft.description || ''}
+              onChange={(value) => updateDraft({ description: value })}
+              placeholder="Mô tả ứng dụng..."
+              minHeight={120}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700">
+              Mô tả tiếng Anh
+            </label>
+            <RichEditor
+              value={modal.draft.descriptionEn || ''}
+              onChange={(value) => updateDraft({ descriptionEn: value })}
+              placeholder="English description"
+              minHeight={120}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1 text-gray-700">
+              Hình ảnh ứng dụng
+            </label>
+            <div className="flex items-center gap-2">
+              {modal.draft.imageUrl ? (
+                <img
+                  src={modal.draft.imageUrl}
+                  alt=""
+                  className="w-12 h-12 rounded object-cover border"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-12 h-12 rounded bg-gray-100 text-gray-400 flex items-center justify-center">
+                  <FiImage size={16} />
+                </div>
+              )}
+              <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
+                <FiUpload size={12} />
+                {uploading ? 'Đang upload...' : 'Upload'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) =>
+                    handleUploadImage(e, modal.index ?? items.length)
+                  }
+                />
+              </label>
+              <input
+                type="url"
+                value={modal.draft.imageUrl || ''}
+                onChange={(e) => updateDraft({ imageUrl: e.target.value })}
+                className="input-field text-xs flex-1"
+                placeholder="Hoặc URL"
+              />
+            </div>
+          </div>
+          <div className="flex items-center gap-4">
+            <div>
+              <label className="block text-xs font-medium mb-1 text-gray-700">
+                Thứ tự
+              </label>
+              <input
+                type="number"
+                value={modal.draft.order ?? 0}
+                onChange={(e) =>
+                  updateDraft({ order: Number(e.target.value) || 0 })
+                }
+                className="input-field w-24 text-xs"
+              />
+            </div>
+            <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
+              <input
+                type="checkbox"
+                checked={modal.draft.isActive !== false}
+                onChange={(e) => updateDraft({ isActive: e.target.checked })}
+                className="rounded w-3.5 h-3.5"
+              />
+              <span className="text-xs font-medium">Hiển thị</span>
+            </label>
+          </div>
+          <div className="flex items-center justify-end gap-2 pt-3 border-t">
+            <button type="button" onClick={closeModal} className="btn-secondary text-xs">
+              Hủy
+            </button>
+            <button type="button" onClick={handleSave} className="btn-primary text-xs">
+              {modal.index === null ? 'Thêm' : 'Lưu'}
+            </button>
+          </div>
+        </div>
+      </Modal>
+    </div>
+  );
+};
+
+// ── Per-Market Techs & Apps Picker ───────────────────────────────────────────
+const MarketAppsTechsPanel = ({ markets, entries, onChange }) => {
+  const updateEntry = (marketId, patch) => {
+    const next = (entries || []).map((e) =>
+      String(e.marketId) === String(marketId) ? { ...e, ...patch } : e
+    );
+    onChange(next);
+  };
+
+  const toggleId = (arr, id) => {
+    const set = new Set((arr || []).map(String));
+    const sid = String(id);
+    if (set.has(sid)) set.delete(sid);
+    else set.add(sid);
+    return Array.from(set);
+  };
+
+  const toggleTech = (marketId, techId) => {
+    const entry = (entries || []).find((e) => String(e.marketId) === String(marketId));
+    if (!entry) return;
+    updateEntry(marketId, { technologyIds: toggleId(entry.technologyIds, techId) });
+  };
+
+  const toggleApp = (marketId, appId) => {
+    const entry = (entries || []).find((e) => String(e.marketId) === String(marketId));
+    if (!entry) return;
+    updateEntry(marketId, { applicationIds: toggleId(entry.applicationIds, appId) });
+  };
+
+  if (!entries || entries.length === 0) {
+    return (
+      <p className="text-[10px] text-gray-400 italic mt-1.5">
+        Chọn thị trường ở trên trước để cấu hình công nghệ &amp; ứng dụng tương ứng.
+      </p>
+    );
+  }
+
+  return (
+    <div className="space-y-3 mt-3">
+      {entries.map((entry) => {
+        const market = (markets || []).find((m) => String(m._id) === String(entry.marketId));
+        if (!market) return null;
+        const techs = Array.isArray(market.technologies) ? market.technologies : [];
+        const apps = Array.isArray(market.applications) ? market.applications : [];
+        const selectedTechs = new Set((entry.technologyIds || []).map(String));
+        const selectedApps = new Set((entry.applicationIds || []).map(String));
+        const techCount = selectedTechs.size;
+        const appCount = selectedApps.size;
+
+        return (
+          <div
+            key={String(entry.marketId)}
+            className="border border-gray-200 rounded-lg p-3 bg-slate-50/30"
+          >
+            <div className="flex items-center justify-between mb-2">
+              <div className="text-xs font-semibold text-gray-800 truncate">
+                {market.title || market.titleEn}
+              </div>
+              <div className="text-[10px] text-gray-500 shrink-0 ml-2">
+                {techCount > 0 && (
+                  <span className="inline-flex items-center gap-0.5 mr-2">
+                    <FiCpu size={10} /> {techCount}
+                  </span>
+                )}
+                {appCount > 0 && (
+                  <span className="inline-flex items-center gap-0.5">
+                    <FiPackage size={10} /> {appCount}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {techs.length === 0 && apps.length === 0 ? (
+              <p className="text-[10px] text-gray-400 italic">
+                Thị trường này chưa có công nghệ/ứng dụng nào. Tạo trong mục Cây ngành thị trường trước.
+              </p>
+            ) : (
+              <>
+                {techs.length > 0 && (
+                  <div className="mb-2">
+                    <div className="text-[10px] uppercase text-gray-500 mb-1 font-semibold flex items-center gap-1">
+                      <FiCpu size={10} />
+                      Công nghệ
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {techs.map((t) => {
+                        const checked = selectedTechs.has(String(t._id));
+                        return (
+                          <button
+                            type="button"
+                            key={String(t._id)}
+                            onClick={() => toggleTech(market._id, t._id)}
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
+                              checked
+                                ? 'bg-blue-100 text-blue-800 border border-blue-300'
+                                : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-300 hover:text-blue-700'
+                            }`}
+                          >
+                            {checked && <FiCheck size={10} />}
+                            {t.title || t.titleEn}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {apps.length > 0 && (
+                  <div>
+                    <div className="text-[10px] uppercase text-gray-500 mb-1 font-semibold flex items-center gap-1">
+                      <FiPackage size={10} />
+                      Ứng dụng
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {apps.map((a) => {
+                        const checked = selectedApps.has(String(a._id));
+                        return (
+                          <button
+                            type="button"
+                            key={String(a._id)}
+                            onClick={() => toggleApp(market._id, a._id)}
+                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
+                              checked
+                                ? 'bg-amber-100 text-amber-800 border border-amber-300'
+                                : 'bg-white text-gray-600 border border-gray-200 hover:border-amber-300 hover:text-amber-700'
+                            }`}
+                          >
+                            {checked && <FiCheck size={10} />}
+                            {a.title || a.titleEn}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 };
@@ -608,6 +890,20 @@ const ProductForm = () => {
       const marketIds = marketIdsRaw
         .map((m) => (m && typeof m === 'object' ? m._id : m))
         .filter(Boolean);
+      const marketEntriesRaw = Array.isArray(product.marketEntries)
+        ? product.marketEntries
+        : [];
+      const marketEntries = marketEntriesRaw
+        .map((e) => ({
+          marketId: e && typeof e.marketId === 'object' ? e.marketId?._id : e?.marketId,
+          technologyIds: Array.isArray(e?.technologyIds)
+            ? e.technologyIds.map((id) => (id && typeof id === 'object' ? id?._id : id)).filter(Boolean)
+            : [],
+          applicationIds: Array.isArray(e?.applicationIds)
+            ? e.applicationIds.map((id) => (id && typeof id === 'object' ? id?._id : id)).filter(Boolean)
+            : [],
+        }))
+        .filter((e) => e.marketId);
       setFormData({
         productCode: product.productCode || '',
         name: product.name || '',
@@ -620,6 +916,7 @@ const ProductForm = () => {
         industries,
         productLines,
         marketIds,
+        marketEntries,
         price: product.price ?? 0,
         priceVisible: product.priceVisible !== false,
         webStatus: product.webStatus || 'draft',
@@ -655,6 +952,34 @@ const ProductForm = () => {
     navigate('/products');
   };
 
+  // Keep `marketEntries` aligned with the list of chosen markets.
+  // - Entries whose marketId is no longer in marketIds are dropped.
+  // - Markets present in marketIds but missing from marketEntries get an empty entry.
+  const handleMarketIdsChange = (nextIds) => {
+    setFormData((prev) => {
+      const nextSet = new Set((nextIds || []).map(String));
+      const keptEntries = (prev.marketEntries || []).filter((e) =>
+        nextSet.has(String(e.marketId))
+      );
+      const newEntries = (nextIds || [])
+        .filter((id) => !keptEntries.some((e) => String(e.marketId) === String(id)))
+        .map((id) => ({
+          marketId: id,
+          technologyIds: [],
+          applicationIds: [],
+        }));
+      return {
+        ...prev,
+        marketIds: nextIds || [],
+        marketEntries: [...keptEntries, ...newEntries],
+      };
+    });
+  };
+
+  const handleMarketEntriesChange = (nextEntries) => {
+    setFormData((prev) => ({ ...prev, marketEntries: nextEntries }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -668,6 +993,13 @@ const ProductForm = () => {
         industries: (formData.industries || []).filter(Boolean),
         productLines: (formData.productLines || []).filter(Boolean),
         marketIds: (formData.marketIds || []).filter(Boolean),
+        marketEntries: (formData.marketEntries || [])
+          .filter((e) => e && e.marketId)
+          .map((e) => ({
+            marketId: String(e.marketId),
+            technologyIds: (e.technologyIds || []).map(String).filter(Boolean),
+            applicationIds: (e.applicationIds || []).map(String).filter(Boolean),
+          })),
       };
 
       if (isEditing) {
@@ -728,14 +1060,19 @@ const ProductForm = () => {
       if (url) {
         setFormData((prev) => {
           const list = [...(prev.applications || [])];
-          if (!list[index]) return prev;
-          list[index] = { ...list[index], imageUrl: url };
-          return { ...prev, applications: list };
+          if (list[index]) {
+            list[index] = { ...list[index], imageUrl: url };
+            return { ...prev, applications: list };
+          }
+          return prev;
         });
         addNotification('Upload ảnh thành công');
+        return url;
       }
+      return null;
     } catch (error) {
       addNotification('Upload ảnh thất bại', 'error');
+      return null;
     } finally {
       setApplicationUploading(false);
     }
@@ -878,11 +1215,17 @@ const ProductForm = () => {
               <MultiMarketSelect
                 items={marketTrees}
                 selected={formData.marketIds || []}
-                onChange={(ids) => setFormData({ ...formData, marketIds: ids })}
+                onChange={handleMarketIdsChange}
               />
               <p className="text-[10px] text-gray-400 mt-1">
                 Chọn các thị trường mà sản phẩm này được sử dụng. Có thể chọn nhiều thị trường.
               </p>
+              {/* Per-market techs & apps picker */}
+              <MarketAppsTechsPanel
+                markets={marketTrees}
+                entries={formData.marketEntries || []}
+                onChange={handleMarketEntriesChange}
+              />
             </div>
 
             {/* Price + visibility */}

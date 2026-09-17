@@ -89,6 +89,45 @@ export const sanitizeApplications = (list = []) =>
       isActive: s.isActive !== false,
     }));
 
+const normalizeId = (val) => {
+  if (!val) return null;
+  const raw = val && typeof val === 'object' ? (val._id || val) : val;
+  try {
+    const str = String(raw);
+    return mongoose.Types.ObjectId.isValid(str) ? str : null;
+  } catch (_) {
+    return null;
+  }
+};
+
+/**
+ * Sanitize product.marketEntries: array of
+ *   { marketId, technologyIds: [...], applicationIds: [...] }
+ * `technologyIds` and `applicationIds` reference subdoc _ids inside
+ * MarketTree.technologies[] and MarketTree.applications[].
+ */
+export const sanitizeMarketEntries = (list = []) => {
+  if (!Array.isArray(list)) return [];
+  const out = [];
+  for (const entry of list) {
+    if (!entry || typeof entry !== 'object') continue;
+    const marketId = normalizeId(entry.marketId);
+    if (!marketId) continue;
+    const techIds = Array.isArray(entry.technologyIds)
+      ? entry.technologyIds.map(normalizeId).filter(Boolean)
+      : [];
+    const appIds = Array.isArray(entry.applicationIds)
+      ? entry.applicationIds.map(normalizeId).filter(Boolean)
+      : [];
+    out.push({
+      marketId,
+      technologyIds: techIds,
+      applicationIds: appIds,
+    });
+  }
+  return out;
+};
+
 /**
  * Build a `$in` query for a list of MainTree ids.
  *   empty list  → no constraint (match all)
@@ -322,6 +361,7 @@ export const productService = {
       industries = [],
       productLines = [],
       marketIds = [],
+      marketEntries = [],
       price = 0,
       priceVisible = true,
       webStatus = 'draft',
@@ -356,6 +396,8 @@ export const productService = {
       ? marketIds.filter(Boolean)
       : [];
 
+    const sanitizedMarketEntries = sanitizeMarketEntries(marketEntries);
+
     const sanitizedGallery = Array.isArray(gallery)
       ? gallery
           .filter((g) => g && g.url)
@@ -385,6 +427,7 @@ export const productService = {
       industries: sanitizedIndustries,
       productLines: sanitizedProductLines,
       marketIds: sanitizedMarketIds,
+      marketEntries: sanitizedMarketEntries,
       price: Number(price) || 0,
       priceVisible: priceVisible !== false,
       webStatus: ['draft', 'published', 'archived'].includes(webStatus) ? webStatus : 'draft',
@@ -409,7 +452,8 @@ export const productService = {
   async update(id, payload) {
     const allowedFields = [
       'productCode', 'name', 'nameEn', 'description', 'descriptionEn', 'imageUrl',
-      'gallery', 'tags', 'industries', 'productLines', 'marketIds', 'price', 'priceVisible',
+      'gallery', 'tags', 'industries', 'productLines', 'marketIds', 'marketEntries',
+      'price', 'priceVisible',
       'webStatus', 'targetAudience', 'softeningPoint', 'acidValue', 'color', 'benefits',
       'applications', 'tdsUrl', 'attributes', 'isActive', 'isFeatured', 'isNew', 'displayOrder',
     ];
@@ -428,6 +472,8 @@ export const productService = {
           updateData.marketIds = Array.isArray(payload.marketIds)
             ? payload.marketIds.filter(Boolean)
             : [];
+        } else if (field === 'marketEntries') {
+          updateData.marketEntries = sanitizeMarketEntries(payload.marketEntries);
         } else if (field === 'industries') {
           updateData.industries = Array.isArray(payload.industries)
             ? payload.industries.filter(Boolean).map(String)

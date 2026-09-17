@@ -65,6 +65,24 @@ const productSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MarketTree',
   }],
+  // For each chosen market, which of that market's technologies and applications
+  // this product is associated with. `technologyIds` reference MarketTree.technologies._id,
+  // `applicationIds` reference MarketTree.applications._id.
+  marketEntries: [
+    {
+      marketId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'MarketTree',
+        required: true,
+      },
+      technologyIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+      }],
+      applicationIds: [{
+        type: mongoose.Schema.Types.ObjectId,
+      }],
+    },
+  ],
   price: {
     type: Number,
     default: 0,
