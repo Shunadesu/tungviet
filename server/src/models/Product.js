@@ -121,10 +121,6 @@ const productSchema = new mongoose.Schema({
     type: [productImageSubSchema],
     default: [],
   },
-  tags: {
-    type: [String],
-    default: [],
-  },
   tdsUrl: {
     type: String,
     default: ''

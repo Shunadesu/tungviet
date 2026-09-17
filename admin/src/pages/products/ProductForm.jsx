@@ -261,7 +261,6 @@ const emptyForm = {
   descriptionEn: '',
   imageUrl: '',
   gallery: [],
-  tags: [],
   industries: [],
   productLines: [],
   marketIds: [],
@@ -912,7 +911,6 @@ const ProductForm = () => {
         descriptionEn: product.descriptionEn || '',
         imageUrl: product.imageUrl || '',
         gallery: Array.isArray(product.gallery) ? product.gallery : [],
-        tags: Array.isArray(product.tags) ? product.tags : [],
         industries,
         productLines,
         marketIds,
@@ -1322,28 +1320,6 @@ const ProductForm = () => {
                   Sản phẩm mới
                 </span>
               </label>
-            </div>
-
-            {/* Tags */}
-            <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">
-                Tags (phân cách bằng dấu phẩy)
-              </label>
-              <input
-                type="text"
-                value={(formData.tags || []).join(', ')}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    tags: e.target.value
-                      .split(',')
-                      .map((t) => t.trim())
-                      .filter(Boolean),
-                  })
-                }
-                className="input-field"
-                placeholder="VD: chống thấm, công nghiệp, gỗ"
-              />
             </div>
 
             {/* Target Audience */}

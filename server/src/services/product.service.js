@@ -22,7 +22,7 @@ const SORT_MAP = {
   isNew: { isNew: -1, createdAt: -1 },
 };
 
-const PRODUCT_PUBLIC_PROJECTION = '_id productCode name nameEn description descriptionEn imageUrl gallery tags price priceVisible webStatus targetAudience softeningPoint acidValue color applications attributes tdsUrl isFeatured isNew displayOrder viewCount industries productLines createdAt updatedAt';
+const PRODUCT_PUBLIC_PROJECTION = '_id productCode name nameEn description descriptionEn imageUrl gallery price priceVisible webStatus targetAudience softeningPoint acidValue color applications attributes tdsUrl isFeatured isNew displayOrder viewCount industries productLines createdAt updatedAt';
 
 const PRODUCT_LIST_PROJECTION = '_id productCode name nameEn imageUrl price priceVisible isFeatured isNew viewCount industries productLines';
 
@@ -357,7 +357,6 @@ export const productService = {
       descriptionEn = '',
       imageUrl = '',
       gallery = [],
-      tags = [],
       industries = [],
       productLines = [],
       marketIds = [],
@@ -409,10 +408,6 @@ export const productService = {
           }))
       : [];
 
-    const sanitizedTags = Array.isArray(tags)
-      ? tags.map((t) => String(t).trim()).filter(Boolean)
-      : [];
-
     const sanitizedApplications = sanitizeApplications(applications);
 
     const product = new Product({
@@ -423,7 +418,6 @@ export const productService = {
       descriptionEn,
       imageUrl,
       gallery: sanitizedGallery,
-      tags: sanitizedTags,
       industries: sanitizedIndustries,
       productLines: sanitizedProductLines,
       marketIds: sanitizedMarketIds,
@@ -452,7 +446,7 @@ export const productService = {
   async update(id, payload) {
     const allowedFields = [
       'productCode', 'name', 'nameEn', 'description', 'descriptionEn', 'imageUrl',
-      'gallery', 'tags', 'industries', 'productLines', 'marketIds', 'marketEntries',
+      'gallery', 'industries', 'productLines', 'marketIds', 'marketEntries',
       'price', 'priceVisible',
       'webStatus', 'targetAudience', 'softeningPoint', 'acidValue', 'color', 'benefits',
       'applications', 'tdsUrl', 'attributes', 'isActive', 'isFeatured', 'isNew', 'displayOrder',
@@ -494,10 +488,6 @@ export const productService = {
                   altEn: g.altEn || '',
                   order: Number.isFinite(Number(g.order)) ? Number(g.order) : idx,
                 }))
-            : [];
-        } else if (field === 'tags') {
-          updateData.tags = Array.isArray(payload.tags)
-            ? payload.tags.map((t) => String(t).trim()).filter(Boolean)
             : [];
         } else if (field === 'isFeatured') {
           updateData.isFeatured = payload.isFeatured === true;
