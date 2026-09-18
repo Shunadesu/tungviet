@@ -19,13 +19,13 @@ const PRODUCT_PREVIEW_FIELDS =
 const APPLICATION_PREVIEW_FIELDS =
   '_id title titleEn description descriptionEn imageUrl';
 
-const sanitizeRootProductEntries = (entries = []) =>
+const sanitizeProductLineEntries = (entries = []) =>
   (Array.isArray(entries) ? entries : [])
     .map((entry) => {
-      const productId = entry?.productId?._id || entry?.productId
-        ? String(entry.productId?._id || entry.productId)
+      const productLineId = entry?.productLineId?._id || entry?.productLineId
+        ? String(entry.productLineId?._id || entry.productLineId)
         : null;
-      return productId ? { productId } : null;
+      return productLineId ? { productLineId } : null;
     })
     .filter(Boolean);
 
@@ -104,8 +104,8 @@ export const marketTreeService = {
         select: '_id name nameEn slug',
       })
       .populate({
-        path: 'productEntries.productId',
-        select: PRODUCT_PREVIEW_FIELDS,
+        path: 'productLineEntries.productLineId',
+        select: 'name nameEn slug imageUrl description descriptionEn',
       })
       .populate({
         path: 'applications.productEntries.productId',
@@ -170,8 +170,8 @@ export const marketTreeService = {
         select: '_id name nameEn slug',
       })
       .populate({
-        path: 'productEntries.productId',
-        select: PRODUCT_PREVIEW_FIELDS,
+        path: 'productLineEntries.productLineId',
+        select: 'name nameEn slug imageUrl description descriptionEn',
       })
       .populate({
         path: 'applications.productEntries.productId',
@@ -259,7 +259,7 @@ export const marketTreeService = {
       isFeatured: data.isFeatured === true,
       applications: sanitizeSubDocs(data.applications),
       technologies: sanitizeSubDocs(data.technologies),
-      productEntries: sanitizeRootProductEntries(data.productEntries),
+      productLineEntries: sanitizeProductLineEntries(data.productLineEntries),
     });
     await doc.save();
     invalidate();
@@ -282,8 +282,8 @@ export const marketTreeService = {
     if (data.technologies !== undefined) {
       updatePayload.technologies = sanitizeSubDocs(data.technologies);
     }
-    if (data.productEntries !== undefined) {
-      updatePayload.productEntries = sanitizeRootProductEntries(data.productEntries);
+    if (data.productLineEntries !== undefined) {
+      updatePayload.productLineEntries = sanitizeProductLineEntries(data.productLineEntries);
     }
     if (data.isFeatured !== undefined) {
       updatePayload.isFeatured = data.isFeatured === true;

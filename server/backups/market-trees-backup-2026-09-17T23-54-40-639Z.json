@@ -1,0 +1,103 @@
+[
+  {
+    "_id": "6a886c18a3fa6e752d7c7d91",
+    "slug": "",
+    "title": "Sơn",
+    "titleEn": "Coatings",
+    "description": "",
+    "descriptionEn": "",
+    "introductions": {
+      "vi": "",
+      "en": ""
+    },
+    "imageUrl": "",
+    "order": 0,
+    "isActive": true,
+    "isFeatured": false,
+    "applications": [
+      {
+        "title": "Sơn Nitrocellulose",
+        "titleEn": "",
+        "description": "",
+        "descriptionEn": "",
+        "imageUrl": "",
+        "order": 0,
+        "isActive": true,
+        "linkToMainTree": "6a885f25f58c89e6c5227b7b",
+        "linkCustomUrl": "",
+        "productEntries": [
+          {
+            "productId": "6a886eb73f64db874ecd42b6",
+            "applicationIndex": 0,
+            "_id": "6a9ee4d8d2971479cc345610"
+          }
+        ],
+        "_id": "6a886c18a3fa6e752d7c7d92"
+      },
+      {
+        "title": "Sơn PU",
+        "titleEn": "",
+        "description": "",
+        "descriptionEn": "",
+        "imageUrl": "",
+        "order": 1,
+        "isActive": true,
+        "linkToMainTree": "6a885f25f58c89e6c5227b7b",
+        "linkCustomUrl": "",
+        "productEntries": [],
+        "_id": "6a9edbe7d2971479cc345211"
+      }
+    ],
+    "technologies": [
+      {
+        "title": "Sơn gỗ (gốc dung môi)",
+        "titleEn": "Wood Paints (Solvent-based)",
+        "description": "<p></p>",
+        "descriptionEn": "",
+        "imageUrl": "",
+        "order": 0,
+        "isActive": true,
+        "linkToMainTree": "6a885f25f58c89e6c5227b7b",
+        "linkCustomUrl": "",
+        "_id": "6a886c18a3fa6e752d7c7d93",
+        "specifications": []
+      },
+      {
+        "title": "Sơn công nghiệp",
+        "titleEn": "Industrial Paints",
+        "description": "",
+        "descriptionEn": "",
+        "imageUrl": "",
+        "order": 1,
+        "isActive": true,
+        "linkToMainTree": "6a885f25f58c89e6c5227b7b",
+        "linkCustomUrl": "",
+        "_id": "6a9edbfbd2971479cc345231",
+        "specifications": []
+      },
+      {
+        "title": "Sơn kẻ đường nhiệt dẻo",
+        "titleEn": "Road Marking Paint",
+        "description": "",
+        "descriptionEn": "",
+        "imageUrl": "",
+        "order": 2,
+        "isActive": true,
+        "linkToMainTree": "6a885f25f58c89e6c5227b7b",
+        "linkCustomUrl": "",
+        "_id": "6a9ee437d2971479cc34554f",
+        "specifications": []
+      }
+    ],
+    "productEntries": [
+      {
+        "productId": "6a886eb73f64db874ecd42b6",
+        "_id": "6a9edb59d2971479cc34514c"
+      }
+    ],
+    "deleted": false,
+    "createdAt": "2026-08-21T15:17:44.105Z",
+    "updatedAt": "2026-09-17T15:22:23.856Z",
+    "__v": 0
+  }
+]

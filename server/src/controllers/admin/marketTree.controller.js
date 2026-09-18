@@ -15,13 +15,13 @@ const sanitizeApplicationProductEntries = (entries = []) =>
     })
     .filter(Boolean);
 
-const sanitizeRootProductEntries = (entries = []) =>
+const sanitizeProductLineEntries = (entries = []) =>
   (Array.isArray(entries) ? entries : [])
     .map((entry) => {
-      const productId = entry?.productId?._id || entry?.productId
-        ? String(entry.productId?._id || entry.productId)
+      const productLineId = entry?.productLineId?._id || entry?.productLineId
+        ? String(entry.productLineId?._id || entry.productLineId)
         : null;
-      return productId ? { productId } : null;
+      return productLineId ? { productLineId } : null;
     })
     .filter(Boolean);
 
@@ -64,6 +64,10 @@ const sanitizeSubDocPayload = (list) =>
       if (Array.isArray(s.specifications) || s.specifications !== undefined) {
         base.specifications = sanitizeSpecifications(s.specifications);
       }
+      // Support nested applications for technologies
+      if (Array.isArray(s.applications) || s.applications !== undefined) {
+        base.applications = sanitizeSubDocPayload(s.applications);
+      }
       return base;
     });
 
@@ -93,7 +97,7 @@ export const createMarketTree = async (req, res, next) => {
       ...req.body,
       applications: sanitizeSubDocPayload(req.body?.applications),
       technologies: sanitizeSubDocPayload(req.body?.technologies),
-      productEntries: sanitizeRootProductEntries(req.body?.productEntries),
+      productLineEntries: sanitizeProductLineEntries(req.body?.productLineEntries),
     };
     const tree = await marketTreeService.create(payload);
     return apiResponse.created(res, tree, 'Tạo cây ngành thành công');
@@ -111,8 +115,8 @@ export const updateMarketTree = async (req, res, next) => {
     if (req.body?.technologies !== undefined) {
       payload.technologies = sanitizeSubDocPayload(req.body.technologies);
     }
-    if (req.body?.productEntries !== undefined) {
-      payload.productEntries = sanitizeRootProductEntries(req.body.productEntries);
+    if (req.body?.productLineEntries !== undefined) {
+      payload.productLineEntries = sanitizeProductLineEntries(req.body.productLineEntries);
     }
     const tree = await marketTreeService.update(req.params.id, payload);
     if (!tree) return apiResponse.notFound(res, 'Cây ngành không tồn tại');

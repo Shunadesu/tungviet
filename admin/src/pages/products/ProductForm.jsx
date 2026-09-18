@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiPackage, FiCheck, FiCpu } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
@@ -175,15 +175,30 @@ const emptyApplication = {
 
 const MultiMarketSelect = ({ items, selected, onChange, disabled }) => {
   const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
   const selectedIds = Array.isArray(selected) ? selected : [];
   const selectedSet = new Set(selectedIds);
   const selectedNodes = items.filter((m) => selectedSet.has(m._id));
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
 
   const toggle = (id) => {
     const next = new Set(selectedIds);
     if (next.has(id)) next.delete(id);
     else next.add(id);
     onChange(Array.from(next));
+    // Auto-close dropdown after selection for better UX
+    setTimeout(() => setOpen(false), 150);
   };
 
   const remove = (id, e) => {
@@ -192,7 +207,7 @@ const MultiMarketSelect = ({ items, selected, onChange, disabled }) => {
   };
 
   return (
-    <div className={`relative ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
+    <div ref={dropdownRef} className={`relative ${disabled ? 'opacity-60 pointer-events-none' : ''}`}>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -211,7 +226,7 @@ const MultiMarketSelect = ({ items, selected, onChange, disabled }) => {
           {selectedNodes.map((m) => (
             <span
               key={m._id}
-              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded-lg"
+              className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-amber-50 text-amber-700 rounded-lg border border-amber-200"
             >
               {m.title}
               <button type="button" onClick={(e) => remove(m._id, e)} className="hover:text-red-500">
@@ -355,7 +370,7 @@ const ApplicationEditor = ({ items, onChange, onUpload, uploading }) => {
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <label className="block text-xs font-semibold text-gray-700 flex items-center gap-1">
+        <label className="flex items-center gap-1 text-xs font-semibold text-gray-700">
           <FiPackage size={14} />
           Ứng dụng sản phẩm (có ảnh + mô tả)
         </label>
@@ -597,7 +612,114 @@ const ApplicationEditor = ({ items, onChange, onUpload, uploading }) => {
   );
 };
 
-// ── Per-Market Techs & Apps Picker ───────────────────────────────────────────
+// ── Multi-select component for technologies/applications ────────────────────
+const MultiSelectDropdown = ({ 
+  items, 
+  selected, 
+  onChange, 
+  placeholder, 
+  disabled,
+  emptyMessage = "Chưa có dữ liệu"
+}) => {
+  const [open, setOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const selectedIds = Array.isArray(selected) ? selected : [];
+  const selectedSet = new Set(selectedIds.map(String));
+  const selectedNodes = items.filter((item) => selectedSet.has(String(item._id)));
+
+  useEffect(() => {
+    if (!open) return;
+    const handleClickOutside = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [open]);
+
+  const toggle = (id) => {
+    const next = new Set(selectedIds.map(String));
+    const sid = String(id);
+    if (next.has(sid)) next.delete(sid);
+    else next.add(sid);
+    onChange(Array.from(next));
+    // Auto-close dropdown after selection for better UX
+    setTimeout(() => setOpen(false), 150);
+  };
+
+  const remove = (id, e) => {
+    e.stopPropagation();
+    onChange(selectedIds.filter((x) => String(x) !== String(id)));
+  };
+
+  return (
+    <div ref={dropdownRef} className={`relative ${disabled ? 'opacity-50 pointer-events-none' : ''}`}>
+      <button
+        type="button"
+        onClick={() => !disabled && setOpen((v) => !v)}
+        disabled={disabled}
+        className="input-field text-xs flex items-center justify-between w-full min-h-[36px]"
+      >
+        <span className="truncate text-left flex-1">
+          {selectedNodes.length === 0
+            ? placeholder
+            : `Đã chọn ${selectedNodes.length}`}
+        </span>
+        {open ? <FiChevronUp size={14} /> : <FiChevronDown size={14} />}
+      </button>
+      
+      {selectedNodes.length > 0 && (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {selectedNodes.map((node) => (
+            <span
+              key={String(node._id)}
+              className="inline-flex items-center gap-1 text-[11px] px-1.5 py-0.5 bg-blue-50 text-blue-700 rounded border border-blue-200"
+            >
+              {node.title || node.titleEn || node.name}
+              <button 
+                type="button" 
+                onClick={(e) => remove(node._id, e)} 
+                className="hover:text-red-600"
+              >
+                <FiX size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {open && !disabled && (
+        <div className="absolute z-50 mt-1 w-full max-h-64 overflow-y-auto bg-white border border-gray-300 rounded-lg shadow-xl">
+          {items.length === 0 ? (
+            <p className="text-xs text-gray-400 px-3 py-2">{emptyMessage}</p>
+          ) : (
+            <ul className="py-1">
+              {items.map((item) => {
+                const isChecked = selectedSet.has(String(item._id));
+                return (
+                  <li key={String(item._id)}>
+                    <label className="flex items-center gap-2 px-3 py-1.5 text-xs cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => toggle(item._id)}
+                        className="rounded w-3.5 h-3.5"
+                      />
+                      <span className="flex-1">{item.title || item.titleEn || item.name}</span>
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+// ── Per-Market Techs & Apps Table ───────────────────────────────────────────
 const MarketAppsTechsPanel = ({ markets, entries, onChange }) => {
   const updateEntry = (marketId, patch) => {
     const next = (entries || []).map((e) =>
@@ -606,137 +728,81 @@ const MarketAppsTechsPanel = ({ markets, entries, onChange }) => {
     onChange(next);
   };
 
-  const toggleId = (arr, id) => {
-    const set = new Set((arr || []).map(String));
-    const sid = String(id);
-    if (set.has(sid)) set.delete(sid);
-    else set.add(sid);
-    return Array.from(set);
-  };
-
-  const toggleTech = (marketId, techId) => {
-    const entry = (entries || []).find((e) => String(e.marketId) === String(marketId));
-    if (!entry) return;
-    updateEntry(marketId, { technologyIds: toggleId(entry.technologyIds, techId) });
-  };
-
-  const toggleApp = (marketId, appId) => {
-    const entry = (entries || []).find((e) => String(e.marketId) === String(marketId));
-    if (!entry) return;
-    updateEntry(marketId, { applicationIds: toggleId(entry.applicationIds, appId) });
-  };
-
   if (!entries || entries.length === 0) {
     return (
-      <p className="text-[10px] text-gray-400 italic mt-1.5">
-        Chọn thị trường ở trên trước để cấu hình công nghệ &amp; ứng dụng tương ứng.
-      </p>
+      <div className="mt-3 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
+        <p className="text-xs text-gray-500 text-center italic">
+          Chọn thị trường ở trên trước để cấu hình công nghệ &amp; ứng dụng tương ứng.
+        </p>
+      </div>
     );
   }
 
   return (
-    <div className="space-y-3 mt-3">
-      {entries.map((entry) => {
-        const market = (markets || []).find((m) => String(m._id) === String(entry.marketId));
-        if (!market) return null;
-        const techs = Array.isArray(market.technologies) ? market.technologies : [];
-        const apps = Array.isArray(market.applications) ? market.applications : [];
-        const selectedTechs = new Set((entry.technologyIds || []).map(String));
-        const selectedApps = new Set((entry.applicationIds || []).map(String));
-        const techCount = selectedTechs.size;
-        const appCount = selectedApps.size;
-
-        return (
-          <div
-            key={String(entry.marketId)}
-            className="border border-gray-200 rounded-lg p-3 bg-slate-50/30"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div className="text-xs font-semibold text-gray-800 truncate">
-                {market.title || market.titleEn}
+    <div className="mt-3 border border-gray-300 rounded-lg overflow-visible">
+      <table className="w-full text-xs">
+        <thead className="bg-slate-700 text-white">
+          <tr>
+            <th className="px-3 py-2.5 text-left font-semibold w-1/3">Thị trường</th>
+            <th className="px-3 py-2.5 text-left font-semibold w-1/3">
+              <div className="flex items-center gap-1.5">
+                <FiCpu size={13} />
+                Công nghệ
               </div>
-              <div className="text-[10px] text-gray-500 shrink-0 ml-2">
-                {techCount > 0 && (
-                  <span className="inline-flex items-center gap-0.5 mr-2">
-                    <FiCpu size={10} /> {techCount}
-                  </span>
-                )}
-                {appCount > 0 && (
-                  <span className="inline-flex items-center gap-0.5">
-                    <FiPackage size={10} /> {appCount}
-                  </span>
-                )}
+            </th>
+            <th className="px-3 py-2.5 text-left font-semibold w-1/3">
+              <div className="flex items-center gap-1.5">
+                <FiPackage size={13} />
+                Ứng dụng
               </div>
-            </div>
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-gray-200 bg-white">
+          {entries.map((entry) => {
+            const market = (markets || []).find((m) => String(m._id) === String(entry.marketId));
+            if (!market) return null;
+            
+            const techs = Array.isArray(market.technologies) ? market.technologies : [];
+            const apps = Array.isArray(market.applications) ? market.applications : [];
 
-            {techs.length === 0 && apps.length === 0 ? (
-              <p className="text-[10px] text-gray-400 italic">
-                Thị trường này chưa có công nghệ/ứng dụng nào. Tạo trong mục Cây ngành thị trường trước.
-              </p>
-            ) : (
-              <>
-                {techs.length > 0 && (
-                  <div className="mb-2">
-                    <div className="text-[10px] uppercase text-gray-500 mb-1 font-semibold flex items-center gap-1">
-                      <FiCpu size={10} />
-                      Công nghệ
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {techs.map((t) => {
-                        const checked = selectedTechs.has(String(t._id));
-                        return (
-                          <button
-                            type="button"
-                            key={String(t._id)}
-                            onClick={() => toggleTech(market._id, t._id)}
-                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
-                              checked
-                                ? 'bg-blue-100 text-blue-800 border border-blue-300'
-                                : 'bg-white text-gray-600 border border-gray-200 hover:border-blue-300 hover:text-blue-700'
-                            }`}
-                          >
-                            {checked && <FiCheck size={10} />}
-                            {t.title || t.titleEn}
-                          </button>
-                        );
-                      })}
-                    </div>
+            return (
+              <tr key={String(entry.marketId)} className="hover:bg-gray-50/50">
+                <td className="px-3 py-3 align-top">
+                  <div className="font-semibold text-gray-800">
+                    {market.title || market.titleEn}
                   </div>
-                )}
-
-                {apps.length > 0 && (
-                  <div>
-                    <div className="text-[10px] uppercase text-gray-500 mb-1 font-semibold flex items-center gap-1">
-                      <FiPackage size={10} />
-                      Ứng dụng
+                  {market.titleEn && market.title && (
+                    <div className="text-[10px] text-gray-500 mt-0.5">
+                      {market.titleEn}
                     </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {apps.map((a) => {
-                        const checked = selectedApps.has(String(a._id));
-                        return (
-                          <button
-                            type="button"
-                            key={String(a._id)}
-                            onClick={() => toggleApp(market._id, a._id)}
-                            className={`inline-flex items-center gap-1 text-xs px-2 py-1 rounded-lg transition-colors ${
-                              checked
-                                ? 'bg-amber-100 text-amber-800 border border-amber-300'
-                                : 'bg-white text-gray-600 border border-gray-200 hover:border-amber-300 hover:text-amber-700'
-                            }`}
-                          >
-                            {checked && <FiCheck size={10} />}
-                            {a.title || a.titleEn}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        );
-      })}
+                  )}
+                </td>
+                <td className="px-3 py-3 align-top">
+                  <MultiSelectDropdown
+                    items={techs}
+                    selected={entry.technologyIds || []}
+                    onChange={(ids) => updateEntry(entry.marketId, { technologyIds: ids })}
+                    placeholder="— Chọn công nghệ —"
+                    disabled={techs.length === 0}
+                    emptyMessage="Thị trường này chưa có công nghệ"
+                  />
+                </td>
+                <td className="px-3 py-3 align-top">
+                  <MultiSelectDropdown
+                    items={apps}
+                    selected={entry.applicationIds || []}
+                    onChange={(ids) => updateEntry(entry.marketId, { applicationIds: ids })}
+                    placeholder="— Chọn ứng dụng —"
+                    disabled={apps.length === 0}
+                    emptyMessage="Thị trường này chưa có ứng dụng"
+                  />
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
     </div>
   );
 };
@@ -1207,7 +1273,7 @@ const ProductForm = () => {
 
             {/* Markets (multi-select, không phụ thuộc ngành) */}
             <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">
+              <label className="block text-xs font-semibold mb-1 text-gray-800">
                 Thị trường ứng dụng
               </label>
               <MultiMarketSelect
@@ -1215,10 +1281,10 @@ const ProductForm = () => {
                 selected={formData.marketIds || []}
                 onChange={handleMarketIdsChange}
               />
-              <p className="text-[10px] text-gray-400 mt-1">
-                Chọn các thị trường mà sản phẩm này được sử dụng. Có thể chọn nhiều thị trường.
+              <p className="text-[10px] text-gray-500 mt-1.5 mb-2">
+                Chọn các thị trường mà sản phẩm này được sử dụng, sau đó chọn công nghệ và ứng dụng tương ứng trong bảng bên dưới.
               </p>
-              {/* Per-market techs & apps picker */}
+              {/* Per-market techs & apps table */}
               <MarketAppsTechsPanel
                 markets={marketTrees}
                 entries={formData.marketEntries || []}
@@ -1226,51 +1292,53 @@ const ProductForm = () => {
               />
             </div>
 
-            {/* Price + visibility */}
+            {/* Giá & Trạng thái */}
             <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium mb-1 text-gray-700">
-                  Giá (VND)
-                </label>
-                <input
-                  type="number"
-                  value={formData.price}
-                  onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) || 0 })}
-                  className="input-field"
-                  min={0}
-                  placeholder="0"
-                />
-              </div>
               <div>
                 <label className="block text-xs font-medium mb-1 text-gray-700">
                   Hiển thị giá
                 </label>
-                <label className="flex items-center gap-2 mt-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={formData.priceVisible}
-                    onChange={(e) => setFormData({ ...formData, priceVisible: e.target.checked })}
-                    className="rounded w-4 h-4"
-                  />
-                  <span className="text-xs">
-                    {formData.priceVisible ? 'Hiển thị số tiền' : 'Hiển thị "Liên hệ"'}
-                  </span>
-                </label>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1 text-gray-700">
-                  Trạng thái web
-                </label>
                 <select
-                  value={formData.webStatus}
-                  onChange={(e) => setFormData({ ...formData, webStatus: e.target.value })}
+                  value={formData.priceVisible ? 'price' : 'contact'}
+                  onChange={(e) => {
+                    const showPrice = e.target.value === 'price';
+                    setFormData({ ...formData, priceVisible: showPrice });
+                  }}
                   className="input-field"
                 >
-                  {WEB_STATUS_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
+                  <option value="price">Hiển thị giá</option>
+                  <option value="contact">Liên hệ</option>
+                </select>
+              </div>
+              {formData.priceVisible && (
+                <div>
+                  <label className="block text-xs font-medium mb-1 text-gray-700">
+                    Giá (VND)
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.price}
+                    onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) || 0 })}
+                    className="input-field"
+                    min={0}
+                    placeholder="Nhập giá sản phẩm"
+                  />
+                </div>
+              )}
+              <div>
+                <label className="block text-xs font-medium mb-1 text-gray-700">
+                  Hiển thị trên web
+                </label>
+                <select
+                  value={formData.webStatus === 'published' ? 'show' : 'hide'}
+                  onChange={(e) => {
+                    const status = e.target.value === 'show' ? 'published' : 'draft';
+                    setFormData({ ...formData, webStatus: status });
+                  }}
+                  className="input-field"
+                >
+                  <option value="show">Hiện</option>
+                  <option value="hide">Ẩn</option>
                 </select>
               </div>
               <div>
@@ -1292,48 +1360,35 @@ const ProductForm = () => {
               </div>
             </div>
 
-            {/* Feature toggles */}
-            <div className="flex items-center gap-4 p-2 bg-amber-50/40 border border-amber-200 rounded-lg">
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={formData.isFeatured === true}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isFeatured: e.target.checked })
-                  }
-                  className="rounded w-4 h-4"
-                />
-                <span className="text-xs font-semibold text-amber-900">
-                  Sản phẩm nổi bật (Home)
-                </span>
-              </label>
-              <label className="flex items-center gap-2 cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={formData.isNew === true}
-                  onChange={(e) =>
-                    setFormData({ ...formData, isNew: e.target.checked })
-                  }
-                  className="rounded w-4 h-4"
-                />
-                <span className="text-xs font-semibold text-amber-900">
-                  Sản phẩm mới
-                </span>
-              </label>
-            </div>
-
-            {/* Target Audience */}
-            <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">
-                Đối tượng mục tiêu
-              </label>
-              <textarea
-                value={formData.targetAudience}
-                onChange={(e) => setFormData({ ...formData, targetAudience: e.target.value })}
-                rows={2}
-                className="input-field resize-none"
-                placeholder="VD: Nhà máy sản xuất sơn, xưởng mộc..."
-              />
+            {/* Giao diện trang chủ */}
+            <div className="border border-slate-300 rounded-lg p-3 bg-slate-50/30">
+              <h3 className="text-xs font-semibold text-slate-700 mb-3">Hiển thị trang chủ</h3>
+              <div className="flex items-center gap-6">
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.isFeatured === true}
+                    onChange={(e) =>
+                      setFormData({ ...formData, isFeatured: e.target.checked })
+                    }
+                    className="rounded w-4 h-4"
+                  />
+                  <span className="text-xs text-slate-700">
+                    Sản phẩm nổi bật
+                  </span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.isNew === true}
+                    onChange={(e) => setFormData({ ...formData, isNew: e.target.checked })}
+                    className="rounded w-4 h-4"
+                  />
+                  <span className="text-xs text-slate-700">
+                    Sản phẩm mới
+                  </span>
+                </label>
+              </div>
             </div>
 
             {/* Thông số kỹ thuật */}

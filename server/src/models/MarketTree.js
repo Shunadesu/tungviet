@@ -49,6 +49,7 @@ const technologySubSchema = new mongoose.Schema(
     linkToMainTree: { type: mongoose.Schema.Types.ObjectId, ref: 'MainTree', default: null },
     linkCustomUrl: { type: String, default: '' },
     specifications: { type: [specificationSubSchema], default: [] },
+    applications: { type: [applicationSubSchema], default: [] },
   },
   { _id: true }
 );
@@ -80,13 +81,12 @@ const marketTreeSchema = new mongoose.Schema(
     },
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false, index: true },
-    applications: { type: [applicationSubSchema], default: [] },
     technologies: { type: [technologySubSchema], default: [] },
-    productEntries: [
+    productLineEntries: [
       {
-        productId: {
+        productLineId: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'Product',
+          ref: 'Category',
           required: true,
         },
       },

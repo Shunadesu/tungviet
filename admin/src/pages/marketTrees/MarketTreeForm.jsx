@@ -54,7 +54,7 @@ const emptyForm = {
   isFeatured: false,
   technologies: [],
   applications: [],
-  productEntries: [],
+  productLineEntries: [],
 };
 
 const SubDocCard = ({ item, index, onUpdate, onRemove, onUpload, uploading, availableMainTrees }) => {
@@ -373,6 +373,7 @@ const MarketTreeForm = () => {
   const [uploadingSubDoc, setUploadingSubDoc] = useState(false);
 
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [availableProductLines, setAvailableProductLines] = useState([]);
   const [availableMainTrees, setAvailableMainTrees] = useState([]);
   const [formData, setFormData] = useState({ ...emptyForm });
 
@@ -390,6 +391,11 @@ const MarketTreeForm = () => {
         const prodRes = await adminApi.getProducts({ limit: 200 });
         setAvailableProducts(
           Array.isArray(prodRes.data?.data) ? prodRes.data.data : []
+        );
+        
+        const catRes = await adminApi.getCategories({ limit: 200 });
+        setAvailableProductLines(
+          Array.isArray(catRes.data?.data) ? catRes.data.data : []
         );
       } catch (err) {
         console.error(err);
@@ -463,9 +469,10 @@ const MarketTreeForm = () => {
                   : [],
               }))
             : [],
-          productEntries: Array.isArray(node.productEntries)
-            ? node.productEntries.map((entry) => ({
-                productId: entry.productId?._id || entry.productId || null,
+          productLineEntries: Array.isArray(node.productLineEntries)
+            ? node.productLineEntries.map((entry) => ({
+                productLineId:
+                  entry.productLineId?._id || entry.productLineId || null,
               }))
             : [],
         });
@@ -542,8 +549,8 @@ const MarketTreeForm = () => {
           entry.applicationIndex >= 0
       ),
     })),
-    productEntries: (formData.productEntries || []).filter(
-      (entry) => entry.productId
+    productLineEntries: (formData.productLineEntries || []).filter(
+      (entry) => entry.productLineId
     ),
   });
 
@@ -667,24 +674,24 @@ const MarketTreeForm = () => {
     });
   };
 
-  const addRootProduct = (productId) => {
+  const addRootProductLine = (productLineId) => {
     setFormData((prev) => {
-      const current = Array.isArray(prev.productEntries)
-        ? [...prev.productEntries]
+      const current = Array.isArray(prev.productLineEntries)
+        ? [...prev.productLineEntries]
         : [];
-      if (current.some((entry) => String(entry.productId) === String(productId))) {
+      if (current.some((entry) => String(entry.productLineId) === String(productLineId))) {
         return prev;
       }
-      current.push({ productId });
-      return { ...prev, productEntries: current };
+      current.push({ productLineId });
+      return { ...prev, productLineEntries: current };
     });
   };
 
-  const removeRootProduct = (productId) => {
+  const removeRootProductLine = (productLineId) => {
     setFormData((prev) => ({
       ...prev,
-      productEntries: (prev.productEntries || []).filter(
-        (entry) => String(entry.productId) !== String(productId)
+      productLineEntries: (prev.productLineEntries || []).filter(
+        (entry) => String(entry.productLineId) !== String(productLineId)
       ),
     }));
   };
@@ -972,36 +979,36 @@ const MarketTreeForm = () => {
             </div>
           </div>
 
-          {/* Section: Sản phẩm sử dụng (cấp cây ngành) */}
+          {/* Section: Danh mục sản phẩm sử dụng (cấp cây ngành) */}
           <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between">
               <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wide flex items-center gap-1">
                 <FiPackage size={14} />
-                Sản phẩm sử dụng (cây ngành)
+                DANH MỤC SẢN PHẨM SỬ DỤNG (CÂY NGÀNH)
               </h3>
               <span className="text-[10px] text-gray-500">
-                {(formData.productEntries || []).length} đã chọn
+                {(formData.productLineEntries || []).length} đã chọn
               </span>
             </div>
             <p className="text-[10px] text-gray-500">
-              Danh sách sản phẩm chính áp dụng cho toàn bộ cây ngành này
+              Danh sách <strong>danh mục sản phẩm (Product Line)</strong> chính áp dụng cho toàn bộ cây ngành này
               (ngoài các sản phẩm đã gắn trong từng Ứng dụng).
             </p>
 
             {(() => {
               const usedIds = new Set(
-                (formData.productEntries || []).map((entry) =>
-                  String(entry.productId)
+                (formData.productLineEntries || []).map((entry) =>
+                  String(entry.productLineId)
                 )
               );
-              const candidates = availableProducts.filter(
-                (p) => !usedIds.has(String(p._id))
+              const candidates = availableProductLines.filter(
+                (pl) => !usedIds.has(String(pl._id))
               );
               return candidates.length === 0 ? (
                 <p className="text-[10px] text-gray-400 italic">
-                  {availableProducts.length === 0
-                    ? 'Chưa có sản phẩm nào trong hệ thống.'
-                    : 'Đã thêm tất cả sản phẩm.'}
+                  {availableProductLines.length === 0
+                    ? 'Chưa có danh mục sản phẩm nào trong hệ thống.'
+                    : 'Đã thêm tất cả danh mục sản phẩm.'}
                 </p>
               ) : (
                 <select
@@ -1009,15 +1016,15 @@ const MarketTreeForm = () => {
                   onChange={(e) => {
                     const value = e.target.value;
                     e.target.value = '';
-                    if (value) addRootProduct(value);
+                    if (value) addRootProductLine(value);
                   }}
                   className="input-field text-xs w-full"
                 >
-                  <option value="">-- Chọn sản phẩm để thêm --</option>
-                  {candidates.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name}
-                      {p.productCode ? ` (${p.productCode})` : ''}
+                  <option value="">-- Chọn danh mục sản phẩm để thêm --</option>
+                  {candidates.map((pl) => (
+                    <option key={pl._id} value={pl._id}>
+                      {pl.name}
+                      {pl.nameEn ? ` / ${pl.nameEn}` : ''}
                     </option>
                   ))}
                 </select>
@@ -1025,16 +1032,18 @@ const MarketTreeForm = () => {
             })()}
 
             <div className="space-y-1">
-              {(formData.productEntries || []).map((entry) => {
-                const product = productMap.get(String(entry.productId));
+              {(formData.productLineEntries || []).map((entry) => {
+                const productLine = availableProductLines.find(
+                  (pl) => String(pl._id) === String(entry.productLineId)
+                );
                 return (
                   <div
-                    key={String(entry.productId)}
+                    key={String(entry.productLineId)}
                     className="flex items-start gap-2 p-2 border border-gray-100 rounded bg-white"
                   >
-                    {product?.imageUrl ? (
+                    {productLine?.imageUrl ? (
                       <img
-                        src={product.imageUrl}
+                        src={productLine.imageUrl}
                         alt=""
                         className="w-10 h-10 rounded object-cover border flex-shrink-0"
                         onError={(e) => {
@@ -1048,28 +1057,28 @@ const MarketTreeForm = () => {
                     )}
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-medium truncate">
-                        {product?.name || `Sản phẩm #${entry.productId}`}
+                        {productLine?.name || `Danh mục #${entry.productLineId}`}
                       </div>
-                      {product?.productCode && (
-                        <div className="text-[10px] text-gray-400 font-mono">
-                          {product.productCode}
+                      {productLine?.nameEn && (
+                        <div className="text-[10px] text-gray-400">
+                          {productLine.nameEn}
                         </div>
                       )}
                     </div>
                     <button
                       type="button"
-                      onClick={() => removeRootProduct(entry.productId)}
+                      onClick={() => removeRootProductLine(entry.productLineId)}
                       className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 flex-shrink-0"
-                      title="Bỏ sản phẩm"
+                      title="Bỏ danh mục"
                     >
                       <FiTrash2 size={12} />
                     </button>
                   </div>
                 );
               })}
-              {(formData.productEntries || []).length === 0 && (
+              {(formData.productLineEntries || []).length === 0 && (
                 <p className="text-[10px] text-gray-400 italic">
-                  Chưa chọn sản phẩm nào cho cây ngành.
+                  Chưa chọn danh mục sản phẩm nào cho cây ngành.
                 </p>
               )}
             </div>
