@@ -82,6 +82,7 @@ const marketTreeSchema = new mongoose.Schema(
     isActive: { type: Boolean, default: true },
     isFeatured: { type: Boolean, default: false, index: true },
     technologies: { type: [technologySubSchema], default: [] },
+    applications: { type: [applicationSubSchema], default: [] },
     productLineEntries: [
       {
         productLineId: {

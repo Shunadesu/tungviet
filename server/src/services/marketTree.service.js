@@ -16,9 +16,6 @@ const invalidate = () => {
 const PRODUCT_PREVIEW_FIELDS =
   'name nameEn imageUrl slug productCode applications';
 
-const APPLICATION_PREVIEW_FIELDS =
-  '_id title titleEn description descriptionEn imageUrl';
-
 const sanitizeProductLineEntries = (entries = []) =>
   (Array.isArray(entries) ? entries : [])
     .map((entry) => {
@@ -44,7 +41,7 @@ const sanitizeProductEntries = (entries = []) =>
     })
     .filter(Boolean);
 
-const sanitizeSubDocs = (list = []) =>
+const sanitizeSubDocs = (list = [], kind = 'application') =>
   (Array.isArray(list) ? list : [])
     .filter((s) => s && s.title)
     .map((s) => {
@@ -57,7 +54,7 @@ const sanitizeSubDocs = (list = []) =>
           linkToMainTree = null;
         }
       }
-      return {
+      const base = {
         _id: s._id,
         title: s.title || '',
         titleEn: s.titleEn || '',
@@ -70,6 +67,11 @@ const sanitizeSubDocs = (list = []) =>
         linkCustomUrl: typeof s.linkCustomUrl === 'string' ? s.linkCustomUrl.trim() : '',
         productEntries: sanitizeProductEntries(s.productEntries),
       };
+      // Preserve nested applications when sanitising a technology node.
+      if (kind === 'technology') {
+        base.applications = sanitizeSubDocs(s.applications, 'application');
+      }
+      return base;
     });
 
 const sortSubDocs = (node) => {
@@ -102,29 +104,37 @@ export const marketTreeService = {
       .populate({
         path: 'industry',
         select: '_id name nameEn slug',
+        strictPopulate: false,
       })
       .populate({
         path: 'productLineEntries.productLineId',
         select: 'name nameEn slug imageUrl description descriptionEn',
+        strictPopulate: false,
       })
       .populate({
         path: 'applications.productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
-        populate: {
-          path: 'applications',
-          select: APPLICATION_PREVIEW_FIELDS,
-        },
-      })
-      .populate({
-        path: 'technologies',
-      })
-      .populate({
-        path: 'technologies.linkToMainTree',
-        select: '_id name nameEn slug',
+        strictPopulate: false,
       })
       .populate({
         path: 'applications.linkToMainTree',
         select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.applications.productEntries.productId',
+        select: PRODUCT_PREVIEW_FIELDS,
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.applications.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
       })
       .lean();
 
@@ -168,29 +178,37 @@ export const marketTreeService = {
       .populate({
         path: 'industry',
         select: '_id name nameEn slug',
+        strictPopulate: false,
       })
       .populate({
         path: 'productLineEntries.productLineId',
         select: 'name nameEn slug imageUrl description descriptionEn',
+        strictPopulate: false,
       })
       .populate({
         path: 'applications.productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
-        populate: {
-          path: 'applications',
-          select: APPLICATION_PREVIEW_FIELDS,
-        },
-      })
-      .populate({
-        path: 'technologies',
-      })
-      .populate({
-        path: 'technologies.linkToMainTree',
-        select: '_id name nameEn slug',
+        strictPopulate: false,
       })
       .populate({
         path: 'applications.linkToMainTree',
         select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.applications.productEntries.productId',
+        select: PRODUCT_PREVIEW_FIELDS,
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.applications.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
       })
       .lean();
   },
@@ -257,8 +275,8 @@ export const marketTreeService = {
       order,
       isActive: data.isActive !== false,
       isFeatured: data.isFeatured === true,
-      applications: sanitizeSubDocs(data.applications),
-      technologies: sanitizeSubDocs(data.technologies),
+      applications: sanitizeSubDocs(data.applications, 'application'),
+      technologies: sanitizeSubDocs(data.technologies, 'technology'),
       productLineEntries: sanitizeProductLineEntries(data.productLineEntries),
     });
     await doc.save();
@@ -277,10 +295,10 @@ export const marketTreeService = {
     }
 
     if (data.applications !== undefined) {
-      updatePayload.applications = sanitizeSubDocs(data.applications);
+      updatePayload.applications = sanitizeSubDocs(data.applications, 'application');
     }
     if (data.technologies !== undefined) {
-      updatePayload.technologies = sanitizeSubDocs(data.technologies);
+      updatePayload.technologies = sanitizeSubDocs(data.technologies, 'technology');
     }
     if (data.productLineEntries !== undefined) {
       updatePayload.productLineEntries = sanitizeProductLineEntries(data.productLineEntries);
@@ -346,3 +364,5 @@ export const marketTreeService = {
 };
 
 export default marketTreeService;
+
+// touched 09/18/2026 17:16:41
