@@ -407,17 +407,7 @@ const About = () => {
       {/* Section 5: Contact Info (merged from former /contact page) */}
       <ContactInfoSection lang={lang} />
 
-      {/* Section 6: CTA */}
-      <section className="bg-primary-50 rounded-lg mx-4 max-w-5xl mx-auto px-4 py-6 mb-6">
-        <div className="flex items-center gap-3 mb-2">
-          <FiAward size={20} className="text-primary" />
-          <h2 className="text-base font-semibold text-primary">{t('home.ctaTitle')}</h2>
-        </div>
-        <p className="text-sm text-gray-700 mb-3">{t('home.ctaSubtitle')}</p>
-        <Link to={`/${lang}/quote`} className="btn-primary inline-block text-sm">
-          {t('banner.fallbackCta')}
-        </Link>
-      </section>
+      
     </motion.div>
   );
 };

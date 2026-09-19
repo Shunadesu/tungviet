@@ -1,4 +1,5 @@
 import multer from 'multer';
+import fs from 'fs/promises';
 import path from 'path';
 import { randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
@@ -9,6 +10,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const UPLOAD_DIR = path.resolve(__dirname, '../../public/uploads');
+
+// Ensure upload directory exists at startup
+fs.mkdir(UPLOAD_DIR, { recursive: true }).catch((err) => {
+  console.error('[upload] Failed to create upload directory:', err.message);
+});
 
 // Image upload config
 const ALLOWED_IMAGE_MIME = [

@@ -501,14 +501,14 @@
     "readBio": "Xem tieu su"
   },
   "contact": {
-    "title": "Liên he",
-    "subtitle": "Chung toi san sang ho tro ban",
-    "phone": "Dien thoai",
+    "title": "Liên hệ",
+    "subtitle": "Chúng tôi sẵn sàng hỗ trợ bạn",
+    "phone": "Điện thoại",
     "email": "Email",
-    "address": "Dia chi",
-    "workingHours": "Gio lam viec",
+    "address": "Địa chỉ",
+    "workingHours": "Giờ làm việc",
     "workingHoursText": "Thu 2 - Thu 7: 8:00 - 17:30",
-    "sendMessage": "Gui tin nhan"
+    "sendMessage": "Gửi tin nhắn"
   },
   "errors": {
     "generic": "Đã có lỗi xảy ra, vui lòng thử lại",

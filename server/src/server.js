@@ -49,6 +49,7 @@ import publicMarketTreeRoutes from './routes/public/marketTree.routes.js';
 import adminMarketTreeRoutes from './routes/admin/marketTree.routes.js';
 import publicHomeRoutes from './routes/public/home.routes.js';
 import publicSeoRoutes from './routes/public/seo.routes.js';
+import publicMarketRoutes from './routes/public/market.routes.js';
 
 import Product from './models/Product.js';
 import Category from './models/Category.js';
@@ -190,6 +191,7 @@ app.use('/api/public/posts', publicPostRoutes);
 app.use('/api/public/post-categories', publicPostCategoryRoutes);
 app.use('/api/public/main-trees', publicMainTreeRoutes);
 app.use('/api/public/market-trees', publicMarketTreeRoutes);
+app.use('/api/public/markets', publicMarketRoutes);
 app.use('/api/public/home', publicHomeRoutes);
 app.use('/api/client/orders', clientOrderRoutes);
 app.use('/api/client/quote-section', clientQuoteSectionRoutes);

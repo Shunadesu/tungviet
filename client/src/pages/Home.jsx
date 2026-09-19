@@ -34,7 +34,7 @@ const Home = () => {
         type="website"
         jsonLd={homepageJsonLd}
       />
-      <HomeAggregator />
+       <HomeAggregator />
     </motion.div>
   );
 };

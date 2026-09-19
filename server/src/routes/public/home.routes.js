@@ -6,8 +6,6 @@ import {
   getFeaturedProducts,
   getRelatedProducts,
   getProductsBulk,
-  getFeaturedMarkets,
-  getMarketsGrouped,
   getStats,
   unifiedSearch,
 } from '../../controllers/public/home.controller.js';
@@ -78,24 +76,6 @@ router.get('/products/related/:id', getRelatedProducts);
  *         schema: { type: string }
  */
 router.get('/products/bulk', getProductsBulk);
-
-/**
- * @openapi
- * /api/public/markets/featured:
- *   get:
- *     tags: [Public]
- *     summary: Markets marked isFeatured=true
- */
-router.get('/markets/featured', getFeaturedMarkets);
-
-/**
- * @openapi
- * /api/public/markets/grouped:
- *   get:
- *     tags: [Public]
- *     summary: Markets grouped by industry
- */
-router.get('/markets/grouped', getMarketsGrouped);
 
 /**
  * @openapi

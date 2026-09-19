@@ -6,14 +6,12 @@ import {
   FiUser,
   FiMenu,
   FiX,
-  FiInfo,
   FiMapPin,
   FiHeart,
   FiBarChart2,
   FiBox,
-  FiGlobe,
-  FiFile,
   FiArrowRight,
+  FiChevronDown,
 } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,412 +28,150 @@ import SearchModal from './SearchModal';
 const LOCALE_LABELS = { vi: 'VI', en: 'EN' };
 const SCROLL_THRESHOLD = 16;
 
-// ─── Mega Menu Triggers ──────────────────────────────────────────────────────
-const MegaMenuTriggers = ({
-  activeKey,
-  onSectionEnter,
-  transparent,
-  lang,
-  containerRef,
-}) => {
-  const triggerClass = (key) => {
-    const isActive = activeKey === key;
-    if (transparent) {
-      return `text-sm font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap transition-colors ${
-        isActive ? 'text-white' : 'text-white/85 hover:text-white'
-      }`;
-    }
-    return `text-sm font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap transition-colors ${
-      isActive ? 'text-primary' : 'text-gray-700 hover:text-primary'
-    }`;
-  };
-
-  const underlineClass = (key) =>
-    activeKey === key
-      ? 'absolute left-0 right-0 -bottom-[18px] h-0.5 bg-primary rounded-full'
-      : 'absolute left-0 right-0 -bottom-[18px] h-0.5 bg-transparent';
-
-  return (
-    <div ref={containerRef} className="hidden md:flex col-span-5 items-center justify-center gap-5 lg:gap-6">
-      {/* ─── Trigger: Giới thiệu ─── */}
-      <div
-        className="relative"
-        onMouseEnter={() => onSectionEnter('about')}
-      >
-        <button type="button" className={triggerClass('about')}>
-          {lang === 'en' ? 'About' : 'Giới thiệu'}
-        </button>
-        <span className={underlineClass('about')} />
-      </div>
-
-      {/* ─── Trigger: Sản phẩm ─── */}
-      <div
-        className="relative"
-        onMouseEnter={() => onSectionEnter('products')}
-      >
-        <button type="button" className={triggerClass('products')}>
-          {lang === 'en' ? 'Products' : 'Sản phẩm'}
-        </button>
-        <span className={underlineClass('products')} />
-      </div>
-
-      {/* ─── Trigger: Thị trường ─── */}
-      <div
-        className="relative"
-        onMouseEnter={() => onSectionEnter('markets')}
-      >
-        <button type="button" className={triggerClass('markets')}>
-          {lang === 'en' ? 'Markets' : 'Thị trường'}
-        </button>
-        <span className={underlineClass('markets')} />
-      </div>
-
-      {/* ─── Trigger: Tin tức ─── */}
-      <div
-        className="relative"
-        onMouseEnter={() => onSectionEnter('news')}
-      >
-        <button type="button" className={triggerClass('news')}>
-          {lang === 'en' ? 'News' : 'Tin tức'}
-        </button>
-        <span className={underlineClass('news')} />
-      </div>
-    </div>
-  );
-};
-
-// ─── Mega Menu Panel (renders outside grid, relative to header container) ───
-const MegaMenuPanel = ({
+// ─── Products Dropdown ───────────────────────────────────────────────────────
+const ProductsDropdown = ({
   open,
-  activeKey,
   onClose,
-  onSectionEnter,
   lang,
-  aboutItems,
   mainTrees,
   categories,
-  markets,
-  marketsLoading,
-  posts,
-  postsLoading,
-  containerRect,
+  products,
+  productsLoading,
 }) => {
-  const PANEL_WIDTH = 800;
+  // Group categories by mainTree for each tree's column
+  const getCategoriesForTree = (treeId) =>
+    (categories || []).filter((c) => String(c.mainTree) === String(treeId));
 
-  // Calculate left to center panel under the nav triggers container
-  const panelStyle = containerRect
-    ? {
-        left: containerRect.left + containerRect.width / 2,
-        transform: 'translateX(-50%)',
-      }
-    : {};
+  // Group products by mainTree (via category.mainTree)
+  const getProductsForTree = (treeId) =>
+    (products || []).filter((p) => {
+      const cat = p.category || p.categoryId;
+      if (!cat) return false;
+      return String(typeof cat === 'object' ? cat.mainTree : cat) === String(treeId);
+    });
+
+  // Take first 4 main trees for 2-column layout
+  const visibleTrees = (mainTrees || []).slice(0, 4);
 
   return (
     <AnimatePresence>
       {open && (
         <motion.div
-          initial={{ opacity: 0, y: -8 }}
+          initial={{ opacity: 0, y: -6 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -8 }}
-          transition={{ duration: 0.18 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.15 }}
           onMouseEnter={onClose.cancel}
           onMouseLeave={onClose.schedule}
-          style={{ ...panelStyle, top: '100%', marginTop: '12px', width: `${PANEL_WIDTH}px`, maxWidth: 'calc(100vw - 2rem)' }}
-          className="bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden z-50 absolute"
-          role="menu"
+          className="absolute left-0 right-0 mx-auto top-full mt-2 w-[700px] max-w-[calc(100vw-2rem)] bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden z-50"
         >
-          {/* Section Tabs Header */}
-          <div className="flex border-b border-gray-100 bg-gray-50/60">
-            {[
-              { key: 'about', label: lang === 'en' ? 'About' : 'Giới thiệu', icon: FiInfo },
-              { key: 'products', label: lang === 'en' ? 'Products' : 'Sản phẩm', icon: FiBox },
-              { key: 'markets', label: lang === 'en' ? 'Markets' : 'Thị trường', icon: FiGlobe },
-              { key: 'news', label: lang === 'en' ? 'News' : 'Tin tức', icon: FiFile },
-            ].map((tab) => {
-              const isActive = activeKey === tab.key;
-              return (
-                <button
-                  key={tab.key}
-                  type="button"
-                  onMouseEnter={() => onSectionEnter(tab.key)}
-                  onClick={() => onSectionEnter(tab.key)}
-                  className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-semibold uppercase tracking-wide transition-colors ${
-                    isActive
-                      ? 'text-primary bg-white border-b-2 border-primary'
-                      : 'text-gray-500 hover:text-gray-800 border-b-2 border-transparent'
-                  }`}
-                >
-                  <tab.icon size={14} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Section Content */}
           <div className="p-5">
-            {/* ─── Section: Giới thiệu ─── */}
-            {activeKey === 'about' && (
-              <div className="grid grid-cols-2 gap-2">
-                {aboutItems.map((item) => (
-                  <Link
-                    key={item.to}
-                    to={`/${lang}${item.to}`}
-                    onClick={onClose.immediate}
-                    className="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-gray-100 hover:border-primary/30 hover:bg-gray-50 transition-all"
-                  >
-                    <div>
-                      <h4 className="text-xs font-semibold text-gray-800 group-hover:text-primary transition-colors leading-tight">
-                        {item.label}
-                      </h4>
-                      <p className="text-[11px] text-gray-400 leading-tight mt-0.5">{item.desc}</p>
+            {productsLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary mx-auto" />
+              </div>
+            ) : visibleTrees.length === 0 ? (
+              <div className="text-center py-10">
+                <FiBox size={32} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-sm text-gray-500">
+                  {lang === 'en' ? 'No products available yet.' : 'Chưa có sản phẩm nào.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-5">
+                {visibleTrees.map((tree) => {
+                  const treeProducts = getProductsForTree(tree._id);
+                  const treeCategories = getCategoriesForTree(tree._id);
+
+                  return (
+                    <div key={tree._id} className="flex flex-col min-w-0">
+                      {/* Tree title */}
+                      <Link
+                        to={`/${lang}/main-trees/${tree._id}`}
+                        onClick={onClose.immediate}
+                        className="mb-3 pb-2 border-b border-gray-200 group flex items-center justify-between"
+                      >
+                        <h3 className="text-[11px] font-bold text-gray-800 uppercase tracking-wide group-hover:text-primary transition-colors truncate">
+                          {getLocalizedField(tree, lang, 'name', 'nameEn')}
+                        </h3>
+                        <FiArrowRight size={12} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0 ml-2" />
+                      </Link>
+
+                      {/* Products row */}
+                      {treeProducts.length > 0 ? (
+                        <div className="flex flex-wrap gap-2">
+                          {treeProducts.slice(0, 4).map((product) => (
+                            <Link
+                              key={product._id}
+                              to={`/${lang}/products/${product._id}`}
+                              onClick={onClose.immediate}
+                              className="group flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-gray-50 transition-colors w-full"
+                            >
+                              {product.thumbnail ? (
+                                <img
+                                  src={product.thumbnail}
+                                  alt={getLocalizedField(product, lang, 'name', 'nameEn')}
+                                  className="w-9 h-9 rounded-md object-cover flex-shrink-0 bg-gray-100"
+                                />
+                              ) : (
+                                <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                                  <FiBox size={14} className="text-gray-300" />
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium text-gray-800 group-hover:text-primary transition-colors truncate leading-tight">
+                                  {getLocalizedField(product, lang, 'name', 'nameEn')}
+                                </p>
+                                {product.shortCode && (
+                                  <p className="text-[10px] text-gray-400 truncate">{product.shortCode}</p>
+                                )}
+                              </div>
+                            </Link>
+                          ))}
+                        </div>
+                      ) : treeCategories.length > 0 ? (
+                        /* Fallback: show categories if no products */
+                        <div className="flex flex-wrap gap-1">
+                          {treeCategories.slice(0, 6).map((cat) => (
+                            <Link
+                              key={cat._id}
+                              to={`/${lang}/categories/${cat._id}`}
+                              onClick={onClose.immediate}
+                              className="text-[11px] text-gray-600 hover:text-primary px-2 py-1 rounded bg-gray-50 hover:bg-primary/5 transition-colors"
+                            >
+                              {getLocalizedField(cat, lang, 'name', 'nameEn')}
+                            </Link>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">
+                          {lang === 'en' ? 'No products yet.' : 'Chưa có sản phẩm.'}
+                        </p>
+                      )}
                     </div>
-                  </Link>
-                ))}
+                  );
+                })}
               </div>
             )}
+          </div>
 
-            {/* ─── Section: Sản phẩm ─── */}
-            {activeKey === 'products' && (
-              <ProductsSection
-                lang={lang}
-                mainTrees={mainTrees}
-                categories={categories}
-                onClose={onClose.immediate}
-              />
-            )}
-
-            {/* ─── Section: Thị trường ─── */}
-            {activeKey === 'markets' && (
-              <MarketsSection
-                lang={lang}
-                markets={markets}
-                loading={marketsLoading}
-                onClose={onClose.immediate}
-              />
-            )}
-
-            {/* ─── Section: Tin tức ─── */}
-            {activeKey === 'news' && (
-              <NewsSection
-                lang={lang}
-                posts={posts}
-                loading={postsLoading}
-                onClose={onClose.immediate}
-              />
-            )}
+          {/* Footer */}
+          <div className="px-5 pb-4 flex items-center justify-between border-t border-gray-100 pt-3">
+            <Link
+              to={`/${lang}/products`}
+              onClick={onClose.immediate}
+              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+            >
+              {lang === 'en' ? 'View all products' : 'Xem tất cả sản phẩm'}
+              <FiArrowRight size={12} />
+            </Link>
+            <span className="text-[10px] text-gray-400">
+              {mainTrees?.length || 0} {lang === 'en' ? 'industries' : 'ngành'}
+            </span>
           </div>
         </motion.div>
       )}
     </AnimatePresence>
-  );
-};
-
-// ─── Section con: Sản phẩm ───────────────────────────────────────────────────
-const ProductsSection = ({ lang, mainTrees, categories, onClose }) => {
-  // Always show all industries as separate columns; no toggle
-  const gridCols =
-    mainTrees.length >= 3
-      ? 'grid-cols-3'
-      : mainTrees.length === 2
-        ? 'grid-cols-2'
-        : 'grid-cols-1';
-
-  if (mainTrees.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <FiBox size={32} className="mx-auto text-gray-300 mb-2" />
-        <p className="text-sm text-gray-500">
-          {lang === 'en' ? 'No products available yet.' : 'Chưa có sản phẩm nào.'}
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {/* Industries Grid - each MainTree is its own column */}
-      <div className={`grid gap-x-5 gap-y-3 ${gridCols}`}>
-        {mainTrees.map((m) => {
-          const treeCategories = (categories || []).filter(
-            (c) => String(c.mainTree) === String(m._id)
-          );
-          return (
-            <div key={m._id} className="flex flex-col min-w-0">
-              {/* Industry Header */}
-              <Link
-                to={`/${lang}/main-trees/${m._id}`}
-                onClick={onClose}
-                className="mb-2 pb-1.5 border-b border-gray-200 group"
-              >
-                <h4 className="text-[11px] font-bold text-gray-800 uppercase tracking-wide group-hover:text-primary transition-colors truncate">
-                  {getLocalizedField(m, lang, 'name', 'nameEn')}
-                </h4>
-              </Link>
-
-              {/* Categories List */}
-              {treeCategories.length === 0 ? (
-                <p className="text-xs text-gray-400 italic">
-                  {lang === 'en'
-                    ? 'No categories yet.'
-                    : 'Chưa có danh mục.'}
-                </p>
-              ) : (
-                <ul className="space-y-0.5 max-h-[200px] overflow-y-auto">
-                  {treeCategories.map((c) => (
-                    <li key={c._id}>
-                      <Link
-                        to={`/${lang}/categories/${c._id}`}
-                        onClick={onClose}
-                        className="flex items-center gap-1.5 text-xs text-gray-600 hover:text-primary hover:bg-primary/5 -mx-1.5 px-1.5 py-1 rounded transition-colors"
-                      >
-                        <FiBox size={10} className="opacity-60 flex-shrink-0" />
-                        <span className="truncate">{getLocalizedField(c, lang, 'name', 'nameEn')}</span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Footer */}
-      <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-        <Link
-          to={`/${lang}/products`}
-          onClick={onClose}
-          className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-        >
-          {lang === 'en' ? 'View all products' : 'Xem tất cả sản phẩm'}
-          <FiArrowRight size={12} />
-        </Link>
-        <span className="text-[10px] text-gray-400">
-          {mainTrees.length} {lang === 'en' ? 'industries' : 'ngành'}
-        </span>
-      </div>
-    </div>
-  );
-};
-
-// ─── Section con: Thị trường ─────────────────────────────────────────────────
-const MarketsSection = ({ lang, markets, loading, onClose }) => {
-  if (loading) {
-    return (
-      <div className="text-center py-10">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
-      </div>
-    );
-  }
-  if (markets.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <FiGlobe size={40} className="mx-auto text-gray-300 mb-3" />
-        <p className="text-sm text-gray-500">
-          {lang === 'en' ? 'No markets available yet.' : 'Chưa có thị trường nào.'}
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div>
-      <div className="grid grid-cols-4 gap-3 max-h-[280px] overflow-y-auto">
-        {markets.map((m) => (
-          <Link
-            key={m._id}
-            to={`/${lang}/markets/${m._id}`}
-            onClick={onClose}
-            className="group p-4 rounded-xl border border-gray-100 hover:border-primary/30 hover:shadow-md transition-all text-center"
-          >
-            <div className="w-11 h-11 rounded-lg bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2 group-hover:bg-primary group-hover:text-white transition-colors">
-              <FiGlobe size={20} />
-            </div>
-            <h4 className="text-xs font-semibold text-gray-900 group-hover:text-primary line-clamp-1">
-              {m.title}
-            </h4>
-            {m.industry?.name && (
-              <p className="text-[10px] text-gray-500 mt-0.5 line-clamp-1">{m.industry.name}</p>
-            )}
-          </Link>
-        ))}
-      </div>
-      <div className="mt-5 pt-4 border-t border-gray-100 text-center">
-        <Link
-          to={`/${lang}/markets`}
-          onClick={onClose}
-          className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-        >
-          {lang === 'en' ? 'View all markets' : 'Xem tất cả thị trường'}
-          <FiArrowRight size={12} />
-        </Link>
-      </div>
-    </div>
-  );
-};
-
-// ─── Section con: Tin tức ────────────────────────────────────────────────────
-const NewsSection = ({ lang, posts, loading, onClose }) => {
-  if (loading) {
-    return (
-      <div className="text-center py-10">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mx-auto" />
-      </div>
-    );
-  }
-  if (posts.length === 0) {
-    return (
-      <div className="text-center py-10">
-        <FiFile size={40} className="mx-auto text-gray-300 mb-3" />
-        <p className="text-sm text-gray-500">
-          {lang === 'en' ? 'No news available yet.' : 'Chưa có tin tức nào.'}
-        </p>
-      </div>
-    );
-  }
-  return (
-    <div>
-      <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
-        {posts.map((post) => (
-          <Link
-            key={post._id}
-            to={`/${lang}/news/${post.slug}`}
-            onClick={onClose}
-            className="group flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            {post.thumbnail ? (
-              <img
-                src={post.thumbnail}
-                alt={post.title}
-                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
-              />
-            ) : (
-              <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                <FiFile size={22} className="text-gray-300" />
-              </div>
-            )}
-            <div className="flex-1 min-w-0">
-              <h4 className="text-xs font-medium text-gray-900 group-hover:text-primary line-clamp-2">
-                {post.title}
-              </h4>
-              {post.excerpt && (
-                <p className="text-[10px] text-gray-500 mt-1 line-clamp-1">{post.excerpt}</p>
-              )}
-            </div>
-          </Link>
-        ))}
-      </div>
-      <div className="mt-5 pt-4 border-t border-gray-100 text-center">
-        <Link
-          to={`/${lang}/news`}
-          onClick={onClose}
-          className="text-xs font-semibold text-primary hover:underline inline-flex items-center gap-1"
-        >
-          {lang === 'en' ? 'View all news' : 'Xem tất cả tin tức'}
-          <FiArrowRight size={12} />
-        </Link>
-      </div>
-    </div>
   );
 };
 
@@ -457,45 +193,12 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mainTrees, setMainTrees] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [markets, setMarkets] = useState([]);
-  const [marketsLoading, setMarketsLoading] = useState(false);
-  const [posts, setPosts] = useState([]);
-  const [postsLoading, setPostsLoading] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
 
-  // Mega menu state
-  const [megaOpen, setMegaOpen] = useState(false);
-  const [activeKey, setActiveKey] = useState('about');
+  // Products dropdown state
+  const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
   const closeTimer = useRef(null);
-  const navContainerRef = useRef(null);
-  const headerRef = useRef(null);
-  const [navRect, setNavRect] = useState(null);
-
-  // Update nav container rect when mega menu opens or on resize
-  useEffect(() => {
-    const updateRect = () => {
-      if (navContainerRef.current && headerRef.current) {
-        const navDomRect = navContainerRef.current.getBoundingClientRect();
-        const headerDomRect = headerRef.current.getBoundingClientRect();
-        setNavRect({
-          left: navDomRect.left - headerDomRect.left,
-          width: navDomRect.width,
-          top: navDomRect.top - headerDomRect.top,
-          height: navDomRect.height,
-        });
-      }
-    };
-
-    if (megaOpen) {
-      updateRect();
-    }
-
-    window.addEventListener('resize', updateRect);
-    window.addEventListener('scroll', updateRect, { passive: true });
-    return () => {
-      window.removeEventListener('resize', updateRect);
-      window.removeEventListener('scroll', updateRect);
-    };
-  }, [megaOpen]);
 
   const cancelClose = () => {
     if (closeTimer.current) {
@@ -507,18 +210,13 @@ const Header = () => {
   const scheduleClose = () => {
     cancelClose();
     closeTimer.current = setTimeout(() => {
-      setMegaOpen(false);
+      setProductsDropdownOpen(false);
     }, 150);
   };
 
-  const handleSectionEnter = (key) => {
-    setMegaOpen(true);
-    setActiveKey(key);
-  };
-
-  const handleMegaClose = () => {
+  const closeDropdown = () => {
     cancelClose();
-    setMegaOpen(false);
+    setProductsDropdownOpen(false);
   };
 
   // Cmd+K / Ctrl+K to open search modal
@@ -535,13 +233,13 @@ const Header = () => {
           e.preventDefault();
           setSearchModalOpen(true);
         }
-      } else if (e.key === 'Escape' && megaOpen) {
-        setMegaOpen(false);
+      } else if (e.key === 'Escape' && productsDropdownOpen) {
+        setProductsDropdownOpen(false);
       }
     };
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
-  }, [searchModalOpen, megaOpen]);
+  }, [searchModalOpen, productsDropdownOpen]);
 
   // Load main trees + categories
   useEffect(() => {
@@ -565,25 +263,25 @@ const Header = () => {
     };
   }, [currentLang]);
 
-  // Lazy-load markets + posts when mega menu opens
+  // Load featured products when dropdown opens
+  const productsFetchedRef = useRef(false);
   useEffect(() => {
-    if (!megaOpen) return;
-    if (markets.length === 0 && !marketsLoading) {
-      setMarketsLoading(true);
-      publicApi.getFeaturedMarkets({ lang: currentLang, limit: 8 }).then((res) => {
-        setMarkets(res?.data?.data || []);
-        setMarketsLoading(false);
-      }).catch(() => setMarketsLoading(false));
-    }
-    if (posts.length === 0 && !postsLoading) {
-      setPostsLoading(true);
-      publicApi.getPosts({ lang: currentLang, limit: 6 }).then((res) => {
+    if (!productsDropdownOpen) return;
+    if (productsFetchedRef.current) return;
+    productsFetchedRef.current = true;
+    setProductsLoading(true);
+    publicApi
+      .getFeaturedProducts({ lang: currentLang, limit: 20 })
+      .then((res) => {
         const data = res?.data?.data;
-        setPosts(Array.isArray(data) ? data : data?.items || []);
-        setPostsLoading(false);
-      }).catch(() => setPostsLoading(false));
-    }
-  }, [megaOpen, currentLang, markets.length, posts.length, marketsLoading, postsLoading]);
+        setProducts(Array.isArray(data) ? data : data?.items || []);
+        setProductsLoading(false);
+      })
+      .catch(() => {
+        productsFetchedRef.current = false;
+        setProductsLoading(false);
+      });
+  }, [productsDropdownOpen, currentLang]);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
@@ -604,7 +302,7 @@ const Header = () => {
   };
 
   const isHome = location.pathname === `/${currentLang}` || location.pathname === `/${currentLang}/`;
-  const transparent = isHome && !scrolled && !menuOpen && !searchModalOpen && !megaOpen;
+  const transparent = isHome && !scrolled && !menuOpen && !searchModalOpen && !productsDropdownOpen;
 
   const headerBase = 'sticky top-0 z-50 transition-all duration-300';
   const headerTheme = transparent
@@ -644,34 +342,24 @@ const Header = () => {
     ? 'py-2 px-1 text-sm text-white/90 hover:text-white hover:bg-white/10'
     : 'py-2 px-1 text-sm text-gray-700 hover:text-primary hover:bg-gray-50';
 
-  const aboutItems = currentLang === 'en'
-    ? [
-        { icon: FiInfo, label: 'About Us', desc: 'History, mission and vision', to: '/about' },
-        { icon: FiMapPin, label: 'Locations', desc: 'Offices and branches', to: '/about/locations' },
-      ]
-    : [
-        { icon: FiInfo, label: 'Về chúng tôi', desc: 'Lịch sử, sứ mệnh và tầm nhìn', to: '/about' },
-        { icon: FiMapPin, label: 'Địa điểm', desc: 'Văn phòng và chi nhánh', to: '/about/locations' },
-      ];
+  const navLinkClass = transparent
+    ? 'text-sm font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap transition-colors text-white/85 hover:text-white'
+    : 'text-sm font-medium flex items-center gap-0.5 cursor-pointer whitespace-nowrap transition-colors text-gray-700 hover:text-primary';
 
-  // onClose object for MegaMenuPanel
-  const megaCloseHandlers = {
+  const dropdownCloseHandlers = {
     cancel: cancelClose,
     schedule: scheduleClose,
-    immediate: handleMegaClose,
+    immediate: closeDropdown,
   };
 
   return (
     <motion.header
-      ref={headerRef}
       initial={{ y: -20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
       className={`${headerBase} ${headerTheme} relative`}
     >
-      <div className="max-w-7xl mx-auto px-4">
-        <div
-          className="grid grid-cols-12 items-center gap-3 h-16"
-        >
+      <div className="max-w-7xl mx-auto px-4 relative">
+        <div className="grid grid-cols-12 items-center gap-3 h-16">
           {/* Logo */}
           <div className="col-span-4 md:col-span-3 flex items-center">
             <Link to={`/${currentLang}`} className="flex items-center gap-2 min-w-0">
@@ -679,7 +367,7 @@ const Header = () => {
                 <img
                   src={logoUrl}
                   alt="Tungviet"
-                  className="h-10 w-auto max-w-[140px] object-contain"
+                  className="h-16 w-auto w-full object-contain"
                 />
               ) : (
                 <>
@@ -690,14 +378,40 @@ const Header = () => {
             </Link>
           </div>
 
-          {/* Nav Triggers */}
-          <MegaMenuTriggers
-            activeKey={activeKey}
-            onSectionEnter={handleSectionEnter}
-            transparent={transparent}
-            lang={currentLang}
-            containerRef={navContainerRef}
-          />
+          {/* Nav Links */}
+          <div className="hidden md:flex col-span-5 items-center justify-center gap-5 lg:gap-6">
+            {/* Giới thiệu */}
+            <Link to={`/${currentLang}/about`} className={navLinkClass}>
+              {currentLang === 'en' ? 'About' : 'Giới thiệu'}
+            </Link>
+
+            {/* Sản phẩm (dropdown trigger) */}
+            <div
+              onMouseEnter={() => {
+                cancelClose();
+                setProductsDropdownOpen(true);
+              }}
+              onMouseLeave={scheduleClose}
+            >
+              <button type="button" className={navLinkClass}>
+                {currentLang === 'en' ? 'Products' : 'Sản phẩm'}
+                <FiChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${productsDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+            </div>
+
+            {/* Thị trường */}
+            <Link to={`/${currentLang}/markets`} className={navLinkClass}>
+              {currentLang === 'en' ? 'Markets' : 'Thị trường'}
+            </Link>
+
+            {/* Tin tức */}
+            <Link to={`/${currentLang}/news`} className={navLinkClass}>
+              {currentLang === 'en' ? 'News' : 'Tin tức'}
+            </Link>
+          </div>
 
           {/* Right controls */}
           <div className="col-span-8 md:col-span-4 flex items-center justify-end gap-1">
@@ -798,22 +512,23 @@ const Header = () => {
           </div>
         </div>
 
-        {/* ─── Mega Menu Dropdown (positioned relative to header) ─── */}
-        <MegaMenuPanel
-          open={megaOpen}
-          activeKey={activeKey}
-          onClose={megaCloseHandlers}
-          onSectionEnter={handleSectionEnter}
-          lang={currentLang}
-          aboutItems={aboutItems}
-          mainTrees={mainTrees}
-          categories={categories}
-          markets={markets}
-          marketsLoading={marketsLoading}
-          posts={posts}
-          postsLoading={postsLoading}
-          containerRect={navRect}
-        />
+        {/* Products Dropdown - centered on header */}
+        <div
+          className="absolute left-0 right-0 flex justify-center"
+          style={{ pointerEvents: productsDropdownOpen ? 'auto' : 'none' }}
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
+        >
+          <ProductsDropdown
+            open={productsDropdownOpen}
+            onClose={dropdownCloseHandlers}
+            lang={currentLang}
+            mainTrees={mainTrees}
+            categories={categories}
+            products={products}
+            productsLoading={productsLoading}
+          />
+        </div>
 
         {/* SearchModal */}
         <SearchModal

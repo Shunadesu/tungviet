@@ -21,7 +21,10 @@ export const convertToWebP = async (file) => {
   if (!file.mimetype || !file.mimetype.startsWith('image/')) return { converted: false };
 
   const ext = path.extname(file.filename || '').toLowerCase();
+  // Skip formats we never re-encode
   if (ext === '.svg' || ext === '.ico' || ext === '.gif') return { converted: false };
+  // WebP from browser-image-compression — no need to re-encode on the server
+  if (ext === '.webp') return { converted: false, format: 'webp' };
 
   const inputPath = file.path;
   let metadata;

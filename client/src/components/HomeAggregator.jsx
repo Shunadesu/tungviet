@@ -45,12 +45,7 @@ const HomeAggregator = () => {
   return (
     <div className="bg-white">
       <HeroSlider />
-      <QuoteCTA quote={{ 
-        title: lang === 'en' ? 'Get a Quote Today' : 'Nhận Báo Giá Ngay Hôm Nay',
-        subtitle: lang === 'en' 
-          ? 'Contact us for the best prices and dedicated service'
-          : 'Liên hệ ngay để nhận báo giá tốt nhất và dịch vụ tận tâm'
-      }} />
+      
     </div>
   );
 };
