@@ -20,6 +20,7 @@ import MarketTreeList from './pages/marketTrees/MarketTreeList';
 import MarketTreeForm from './pages/marketTrees/MarketTreeForm';
 import MarketTechEditor from './pages/marketTrees/MarketTechEditor';
 import MarketAppEditor from './pages/marketTrees/MarketAppEditor';
+import TechnologyForm from './pages/marketTrees/TechnologyForm';
 import MemberList from './pages/members/MemberList';
 import MemberForm from './pages/members/MemberForm';
 import LocationList from './pages/locations/LocationList';
@@ -146,6 +147,11 @@ function App() {
               <Route path="/market-trees/:id/edit" element={
                 <ProtectedRoute>
                   <MarketTreeForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/market-trees/:id/technologies/:techId" element={
+                <ProtectedRoute>
+                  <TechnologyForm />
                 </ProtectedRoute>
               } />
               <Route path="/market-trees/:id/technologies" element={

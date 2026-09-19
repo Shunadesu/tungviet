@@ -31,9 +31,6 @@ const localizeProductEntries = (entries = [], locale) =>
       if (!entry || !entry.productId) return null;
       return {
         productId: localizeProductPreview(entry.productId, locale),
-        applicationIndex: Number.isFinite(entry.applicationIndex)
-          ? entry.applicationIndex
-          : -1,
       };
     })
     .filter(Boolean);
@@ -43,7 +40,6 @@ const localizeSubDoc = (doc, locale) => {
   const out = localizeFields(doc, locale, LOCALIZABLE_FIELDS);
   out.productEntries = localizeProductEntries(doc.productEntries, locale);
   out.linkToMainTree = doc.linkToMainTree || null;
-  out.linkCustomUrl = doc.linkCustomUrl || '';
   return out;
 };
 

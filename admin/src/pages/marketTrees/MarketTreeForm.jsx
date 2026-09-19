@@ -30,7 +30,6 @@ const emptyApplication = {
   order: 0,
   isActive: true,
   linkToMainTree: null,
-  linkCustomUrl: '',
   productEntries: [],
 };
 
@@ -43,7 +42,6 @@ const emptySubDoc = {
   order: 0,
   isActive: true,
   linkToMainTree: null,
-  linkCustomUrl: '',
 };
 
 const emptyForm = {
@@ -53,7 +51,7 @@ const emptyForm = {
   descriptionEn: '',
   introductions: { vi: '', en: '' },
   imageUrl: '',
-  industry: null,
+  industry: [],
   order: 0,
   isActive: true,
   isFeatured: false,
@@ -137,7 +135,13 @@ const MarketTreeForm = () => {
             en: node.introductions?.en || '',
           },
           imageUrl: node.imageUrl || '',
-          industry: node.industry?._id || node.industry || null,
+          industry: Array.isArray(node.industry)
+            ? node.industry.map((ind) =>
+                typeof ind === 'object' ? (ind._id || ind) : ind
+              )
+            : node.industry
+            ? [node.industry._id || node.industry]
+            : [],
           order: node.order ?? 0,
           isActive: node.isActive !== false,
           isFeatured: node.isFeatured === true,
@@ -157,11 +161,6 @@ const MarketTreeForm = () => {
                         ? a.productEntries.map((entry) => ({
                             productId:
                               entry.productId?._id || entry.productId || null,
-                            applicationIndex: Number.isFinite(
-                              entry.applicationIndex
-                            )
-                              ? entry.applicationIndex
-                              : -1,
                           }))
                         : [],
                     }))
@@ -222,7 +221,7 @@ const MarketTreeForm = () => {
 
   const buildSavePayload = () => ({
     ...formData,
-    industry: formData.industry || null,
+    industry: formData.industry || [],
     introductions: {
       vi: formData.introductions?.vi || '',
       en: formData.introductions?.en || '',
@@ -234,10 +233,7 @@ const MarketTreeForm = () => {
         ? t.applications.map((a) => ({
             ...a,
             productEntries: (a.productEntries || []).filter(
-              (entry) =>
-                entry.productId &&
-                Number.isFinite(entry.applicationIndex) &&
-                entry.applicationIndex >= 0
+              (entry) => entry.productId
             ),
           }))
         : [],
@@ -547,26 +543,65 @@ const MarketTreeForm = () => {
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
-                  Thuộc ngành (MainTree)
+                  Thuộc ngành (MainTree) — chọn nhiều
                 </label>
-                <select
-                  value={formData.industry || ''}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      industry: e.target.value || null,
-                    })
-                  }
-                  className="input-field w-48"
-                >
-                  <option value="">-- Không chọn --</option>
-                  {availableMainTrees.map((mt) => (
-                    <option key={mt._id} value={mt._id}>
-                      {mt.name}
-                      {mt.nameEn ? ` / ${mt.nameEn}` : ''}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex flex-wrap gap-1.5 max-w-md">
+                  {availableMainTrees.length === 0 && (
+                    <span className="text-[10px] text-gray-400 italic">
+                      Chưa có ngành nào trong hệ thống.
+                    </span>
+                  )}
+                  {availableMainTrees.map((mt) => {
+                    const isSelected = (formData.industry || []).some(
+                      (id) => String(id) === String(mt._id)
+                    );
+                    return (
+                      <label
+                        key={mt._id}
+                        className={`flex items-center gap-1 px-2 py-1 border rounded cursor-pointer text-[11px] select-none transition-colors ${
+                          isSelected
+                            ? 'bg-blue-50 border-blue-300 text-blue-700'
+                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={(e) => {
+                            const id = mt._id;
+                            setFormData((prev) => ({
+                              ...prev,
+                              industry: e.target.checked
+                                ? [...(prev.industry || []), id]
+                                : (prev.industry || []).filter(
+                                    (i) => String(i) !== String(id)
+                                  ),
+                            }));
+                          }}
+                          className="sr-only"
+                        />
+                        {mt.name}
+                        {mt.nameEn ? (
+                          <span className="text-[10px] text-gray-400">
+                            {' / '}
+                            {mt.nameEn}
+                          </span>
+                        ) : null}
+                      </label>
+                    );
+                  })}
+                </div>
+                {(formData.industry || []).length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormData((prev) => ({ ...prev, industry: [] }))
+                    }
+                    className="mt-1 text-[10px] text-red-500 hover:underline"
+                  >
+                    Bỏ tất cả
+                  </button>
+                )}
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none mt-5">
                 <input

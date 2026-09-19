@@ -23,12 +23,9 @@ import SubDocEditorCard, { emptyApplication } from '../../components/SubDocEdito
 
 const ProductEntryRow = ({
   productId,
-  applicationIndex,
   product,
-  onChange,
   onRemove,
 }) => {
-  const applications = Array.isArray(product?.applications) ? product.applications : [];
   return (
     <div className="flex items-start gap-2 p-2 border border-gray-100 rounded bg-white">
       {product?.imageUrl ? (
@@ -45,31 +42,10 @@ const ProductEntryRow = ({
           <FiPackage size={14} />
         </div>
       )}
-      <div className="min-w-0 flex-1 grid grid-cols-1 md:grid-cols-2 gap-2">
-        <div>
-          <div className="text-[10px] text-gray-500 mb-0.5">Sản phẩm</div>
-          <div className="text-xs font-medium truncate">
-            {product?.name || `Sản phẩm #${productId}`}
-          </div>
-        </div>
-        <div>
-          <div className="text-[10px] text-gray-500 mb-0.5">Ứng dụng (index)</div>
-          <select
-            value={applicationIndex}
-            onChange={(e) => onChange(Number(e.target.value))}
-            className="input-field text-xs w-full"
-          >
-            {applications.length === 0 && (
-              <option value={applicationIndex}>
-                # {applicationIndex + 1} (chưa có ứng dụng)
-              </option>
-            )}
-            {applications.map((app, idx) => (
-              <option key={app._id || idx} value={idx}>
-                # {idx + 1} {app.title || app.titleEn || ''}
-              </option>
-            ))}
-          </select>
+      <div className="min-w-0 flex-1">
+        <div className="text-[10px] text-gray-500 mb-0.5">Sản phẩm</div>
+        <div className="text-xs font-medium truncate">
+          {product?.name || `Sản phẩm #${productId}`}
         </div>
       </div>
       <button
@@ -128,9 +104,6 @@ const MarketAppEditor = () => {
             productEntries: Array.isArray(a.productEntries)
               ? a.productEntries.map((entry) => ({
                   productId: entry.productId?._id || entry.productId || null,
-                  applicationIndex: Number.isFinite(entry.applicationIndex)
-                    ? entry.applicationIndex
-                    : -1,
                 }))
               : [],
           }))
@@ -203,21 +176,8 @@ const MarketAppEditor = () => {
       if (current.some((entry) => String(entry.productId) === String(productId))) {
         return prev;
       }
-      const product = productMap.get(String(productId));
-      const firstIdx =
-        product && Array.isArray(product.applications) && product.applications.length > 0
-          ? 0
-          : -1;
-      current.push({ productId, applicationIndex: firstIdx });
+      current.push({ productId });
       list[appIndex] = { ...list[appIndex], productEntries: current };
-      return list;
-    });
-  };
-
-  const updateAppProductEntries = (appIndex, entries) => {
-    setItems((prev) => {
-      const list = [...prev];
-      list[appIndex] = { ...list[appIndex], productEntries: entries };
       return list;
     });
   };
@@ -242,10 +202,7 @@ const MarketAppEditor = () => {
           description: a.description || undefined,
           descriptionEn: a.descriptionEn || undefined,
           productEntries: (a.productEntries || []).filter(
-            (entry) =>
-              entry.productId &&
-              Number.isFinite(entry.applicationIndex) &&
-              entry.applicationIndex >= 0
+            (entry) => entry.productId
           ),
         })),
       };
@@ -344,7 +301,7 @@ const MarketAppEditor = () => {
                     const key = rowKey(item, appIndex);
                     const isOpen = expandedIds.has(key);
                     const productCount = (item.productEntries || []).length;
-                    const hasLink = !!(item.linkToMainTree || item.linkCustomUrl);
+                    const hasLink = !!(item.linkToMainTree);
                     return (
                       <>
                         <tr
@@ -542,13 +499,7 @@ const MarketAppEditor = () => {
                                             <ProductEntryRow
                                               key={`entry-${appIndex}-${eIdx}`}
                                               productId={entry.productId}
-                                              applicationIndex={entry.applicationIndex}
                                               product={product}
-                                              onChange={(newIdx) => {
-                                                const list = [...(item.productEntries || [])];
-                                                list[eIdx] = { ...list[eIdx], applicationIndex: newIdx };
-                                                updateAppProductEntries(appIndex, list);
-                                              }}
                                               onRemove={() =>
                                                 removeAppProduct(appIndex, entry.productId)
                                               }

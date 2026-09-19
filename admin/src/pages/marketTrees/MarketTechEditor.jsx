@@ -14,7 +14,6 @@ import {
   FiImage,
   FiUpload,
   FiLink,
-  FiExternalLink,
   FiCheck,
   FiX,
 } from 'react-icons/fi';
@@ -33,8 +32,8 @@ const emptyApplication = {
   imageUrl: '',
   order: 0,
   isActive: true,
-  linkToMainTree: null,
-  linkCustomUrl: '',
+  linkToMainTree: [],
+  productLineEntries: [],
   productEntries: [],
 };
 
@@ -47,7 +46,6 @@ const emptySubDoc = {
   order: 0,
   isActive: true,
   linkToMainTree: null,
-  linkCustomUrl: '',
 };
 
 const ApplicationRow = ({
@@ -55,15 +53,17 @@ const ApplicationRow = ({
   appIndex,
   availableMainTrees,
   availableProducts,
+  availableProductLines,
   productMap,
-  currentApplications,
+  productLineMap,
   onUpdate,
   onRemove,
   onUploadImage,
   uploadingImage,
   onAddProduct,
-  onUpdateProductEntry,
   onRemoveProduct,
+  onAddProductLine,
+  onRemoveProductLine,
 }) => {
   const [expanded, setExpanded] = useState(false);
   const productEntries = Array.isArray(application.productEntries) ? application.productEntries : [];
@@ -222,57 +222,233 @@ const ApplicationRow = ({
           </div>
 
           <div className="border-t border-gray-100 pt-2 mt-2">
-            <div className="flex items-center gap-1 mb-1.5">
+            <div className="flex items-center gap-1 mb-2">
               <FiLink size={11} className="text-gray-500" />
               <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
-                Link tiếp tục đến cây ngành sản phẩm
+                Link đến cây ngành sản phẩm ({application.linkToMainTree?.length || 0})
               </span>
             </div>
-            <div className="grid md:grid-cols-2 gap-2">
-              <div>
-                <label className="block text-[10px] font-medium mb-0.5 text-gray-600">
-                  Chọn cây ngành sản phẩm
-                </label>
-                <select
-                  value={application.linkToMainTree || ''}
-                  onChange={(e) =>
-                    onUpdate({ ...application, linkToMainTree: e.target.value || null })
-                  }
-                  className="input-field text-[10px]"
-                >
-                  <option value="">-- Không chọn --</option>
-                  {(availableMainTrees || []).map((mt) => (
-                    <option key={mt._id} value={mt._id}>
-                      {mt.name}
-                      {mt.nameEn ? ` / ${mt.nameEn}` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] font-medium mb-0.5 text-gray-600 flex items-center gap-1">
-                  <FiExternalLink size={10} />
-                  URL tuỳ chỉnh
-                </label>
-                <input
-                  type="text"
-                  value={application.linkCustomUrl || ''}
-                  onChange={(e) =>
-                    onUpdate({ ...application, linkCustomUrl: e.target.value })
-                  }
-                  className="input-field text-[10px]"
-                  placeholder="https://... hoặc /duong-dan"
-                />
-              </div>
-            </div>
+            {(() => {
+              const selected = Array.isArray(application.linkToMainTree)
+                ? application.linkToMainTree
+                : [];
+              const candidates = (availableMainTrees || []).filter(
+                (mt) => !selected.includes(String(mt._id))
+              );
+              return (
+                <>
+                  {candidates.length > 0 && (
+                    <div className="mb-2">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          e.target.value = '';
+                          if (val) onUpdate({ ...application, linkToMainTree: [...selected, val] });
+                        }}
+                        className="input-field text-[10px] w-full"
+                      >
+                        <option value="">-- Thêm cây ngành --</option>
+                        {candidates.map((mt) => (
+                          <option key={mt._id} value={mt._id}>
+                            {mt.name}
+                            {mt.nameEn ? ` / ${mt.nameEn}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-[10px]">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600 w-12">Ảnh</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên tiếng Việt</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên tiếng Anh</th>
+                          <th className="px-2 py-1.5 text-center font-semibold text-gray-600 w-10">Xóa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selected.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="px-3 py-3 text-center text-gray-400 italic">
+                              Chưa chọn cây ngành nào.
+                            </td>
+                          </tr>
+                        ) : (
+                          selected.map((mtId) => {
+                            const mt = availableMainTrees.find((m) => String(m._id) === String(mtId));
+                            return (
+                              <tr key={mtId} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
+                                <td className="px-2 py-1.5">
+                                  {mt?.imageUrl ? (
+                                    <img
+                                      src={mt.imageUrl}
+                                      alt=""
+                                      className="w-8 h-8 rounded object-cover border"
+                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                                      <FiImage size={10} />
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1.5 font-medium text-gray-800">
+                                  {mt?.name || <span className="text-gray-400 italic">#{mtId}</span>}
+                                </td>
+                                <td className="px-2 py-1.5 text-gray-500">
+                                  {mt?.nameEn || '—'}
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      onUpdate({
+                                        ...application,
+                                        linkToMainTree: selected.filter((id) => String(id) !== String(mtId)),
+                                      })
+                                    }
+                                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 mx-auto"
+                                    title="Bỏ cây ngành"
+                                  >
+                                    <FiTrash2 size={10} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
           </div>
 
-          {/* Product entries inside this application */}
+          {/* Product line entries - table view */}
           <div className="border-t border-gray-100 pt-2 mt-2">
-            <label className="block text-[10px] font-medium mb-1 text-gray-700 flex items-center gap-1">
-              <FiPackage size={11} />
-              Sản phẩm sử dụng ({productEntries.length} đã chọn)
-            </label>
+            <div className="flex items-center gap-1 mb-2">
+              <FiPackage size={11} className="text-gray-500" />
+              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                Danh mục sản phẩm ({application.productLineEntries?.length || 0})
+              </span>
+            </div>
+            {(() => {
+              const selected = Array.isArray(application.productLineEntries)
+                ? application.productLineEntries
+                : [];
+              const usedIds = new Set(
+                selected.map((entry) => String(entry.productLineId))
+              );
+              const candidates = (availableProductLines || []).filter(
+                (pl) => !usedIds.has(String(pl._id))
+              );
+              if (candidates.length === 0 && usedIds.size === 0) {
+                return (
+                  <p className="text-[10px] text-gray-400 italic">
+                    {(availableProductLines || []).length === 0
+                      ? 'Chưa có danh mục nào trong hệ thống.'
+                      : 'Đã thêm tất cả danh mục.'}
+                  </p>
+                );
+              }
+              return (
+                <>
+                  {candidates.length > 0 && (
+                    <div className="mb-2">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          e.target.value = '';
+                          if (val) onAddProductLine(val);
+                        }}
+                        className="input-field text-[10px] w-full"
+                      >
+                        <option value="">-- Chọn danh mục để thêm --</option>
+                        {candidates.map((pl) => (
+                          <option key={pl._id} value={pl._id}>
+                            {pl.name}
+                            {pl.nameEn ? ` / ${pl.nameEn}` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-[10px]">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600 w-12">Ảnh</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên tiếng Việt</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên tiếng Anh</th>
+                          <th className="px-2 py-1.5 text-center font-semibold text-gray-600 w-10">Xóa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selected.length === 0 ? (
+                          <tr>
+                            <td colSpan={4} className="px-3 py-3 text-center text-gray-400 italic">
+                              Chưa chọn danh mục nào.
+                            </td>
+                          </tr>
+                        ) : (
+                          selected.map((entry, eIdx) => {
+                            const pl = productLineMap.get(String(entry.productLineId));
+                            return (
+                              <tr key={`entry-pl-${appIndex}-${eIdx}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
+                                <td className="px-2 py-1.5">
+                                  {pl?.imageUrl ? (
+                                    <img
+                                      src={pl.imageUrl}
+                                      alt=""
+                                      className="w-8 h-8 rounded object-cover border"
+                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                                      <FiPackage size={10} />
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1.5 font-medium text-gray-800">
+                                  {pl?.name || <span className="text-gray-400 italic">#{entry.productLineId}</span>}
+                                </td>
+                                <td className="px-2 py-1.5 text-gray-500">
+                                  {pl?.nameEn || '—'}
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => onRemoveProductLine(entry.productLineId)}
+                                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 mx-auto"
+                                    title="Bỏ danh mục"
+                                  >
+                                    <FiTrash2 size={10} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+
+          {/* Product entries - table view */}
+          <div className="border-t border-gray-100 pt-2 mt-2">
+            <div className="flex items-center gap-1 mb-2">
+              <FiPackage size={11} className="text-gray-500" />
+              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
+                Sản phẩm sử dụng ({productEntries.length})
+              </span>
+            </div>
             {(() => {
               const usedIds = new Set(
                 productEntries.map((entry) => String(entry.productId))
@@ -280,102 +456,95 @@ const ApplicationRow = ({
               const candidates = (availableProducts || []).filter(
                 (p) => !usedIds.has(String(p._id))
               );
-              if (candidates.length === 0) {
-                return (
-                  <p className="text-[10px] text-gray-400 italic">
-                    {(availableProducts || []).length === 0
-                      ? 'Chưa có sản phẩm nào trong hệ thống.'
-                      : 'Đã thêm tất cả sản phẩm.'}
-                  </p>
-                );
-              }
               return (
-                <select
-                  value=""
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    e.target.value = '';
-                    if (value) onAddProduct(value);
-                  }}
-                  className="input-field text-xs w-full"
-                >
-                  <option value="">-- Chọn sản phẩm để thêm --</option>
-                  {candidates.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.name}
-                      {p.productCode ? ` (${p.productCode})` : ''}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  {candidates.length > 0 && (
+                    <div className="mb-2">
+                      <select
+                        value=""
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          e.target.value = '';
+                          if (value) onAddProduct(value);
+                        }}
+                        className="input-field text-[10px] w-full"
+                      >
+                        <option value="">-- Chọn sản phẩm để thêm --</option>
+                        {candidates.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.name}
+                            {p.productCode ? ` (${p.productCode})` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div className="border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-[10px]">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-100">
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600 w-12">Ảnh</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên sản phẩm</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Mã SP</th>
+                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên EN</th>
+                          <th className="px-2 py-1.5 text-center font-semibold text-gray-600 w-10">Xóa</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {productEntries.length === 0 ? (
+                          <tr>
+                            <td colSpan={5} className="px-3 py-3 text-center text-gray-400 italic">
+                              Chưa chọn sản phẩm nào.
+                            </td>
+                          </tr>
+                        ) : (
+                          productEntries.map((entry, eIdx) => {
+                            const product = productMap.get(String(entry.productId));
+                            return (
+                              <tr key={`entry-${appIndex}-${eIdx}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
+                                <td className="px-2 py-1.5">
+                                  {product?.imageUrl ? (
+                                    <img
+                                      src={product.imageUrl}
+                                      alt=""
+                                      className="w-8 h-8 rounded object-cover border"
+                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                                      <FiPackage size={10} />
+                                    </div>
+                                  )}
+                                </td>
+                                <td className="px-2 py-1.5 font-medium text-gray-800">
+                                  {product?.name || <span className="text-gray-400 italic">#{entry.productId}</span>}
+                                </td>
+                                <td className="px-2 py-1.5 text-gray-500">
+                                  {product?.productCode || '—'}
+                                </td>
+                                <td className="px-2 py-1.5 text-gray-500">
+                                  {product?.nameEn || '—'}
+                                </td>
+                                <td className="px-2 py-1.5 text-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => onRemoveProduct(entry.productId)}
+                                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 mx-auto"
+                                    title="Bỏ sản phẩm"
+                                  >
+                                    <FiTrash2 size={10} />
+                                  </button>
+                                </td>
+                              </tr>
+                            );
+                          })
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </>
               );
             })()}
-            <div className="space-y-1 mt-2">
-              {productEntries.map((entry, eIdx) => {
-                const product = productMap.get(String(entry.productId));
-                return (
-                  <div
-                    key={`entry-${appIndex}-${eIdx}`}
-                    className="flex items-start gap-2 p-2 border border-gray-100 rounded bg-white"
-                  >
-                    {product?.imageUrl ? (
-                      <img
-                        src={product.imageUrl}
-                        alt=""
-                        className="w-10 h-10 rounded object-cover border flex-shrink-0"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <div className="w-10 h-10 rounded bg-gray-100 text-gray-400 flex items-center justify-center flex-shrink-0">
-                        <FiPackage size={14} />
-                      </div>
-                    )}
-                    <div className="min-w-0 flex-1 grid md:grid-cols-2 gap-2">
-                      <div className="min-w-0">
-                        <div className="text-[10px] text-gray-500 mb-0.5">Sản phẩm</div>
-                        <div className="text-xs font-medium truncate">
-                          {product?.name || `Sản phẩm #${entry.productId}`}
-                        </div>
-                      </div>
-                      <div>
-                        <div className="text-[10px] text-gray-500 mb-0.5">Ứng dụng (index)</div>
-                        <select
-                          value={entry.applicationIndex ?? -1}
-                          onChange={(e) =>
-                            onUpdateProductEntry(eIdx, {
-                              productId: entry.productId,
-                              applicationIndex: Number(e.target.value),
-                            })
-                          }
-                          className="input-field text-[10px]"
-                        >
-                          <option value={-1}>-- Chưa chọn --</option>
-                          {(currentApplications || []).map((app, idx) => (
-                            <option key={app._id || idx} value={idx}>
-                              #{idx + 1} {app.title || app.titleEn || '(không tên)'}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => onRemoveProduct(entry.productId)}
-                      className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 flex-shrink-0"
-                      title="Bỏ sản phẩm"
-                    >
-                      <FiTrash2 size={12} />
-                    </button>
-                  </div>
-                );
-              })}
-              {productEntries.length === 0 && (
-                <p className="text-[10px] text-gray-400 italic">
-                  Chưa chọn sản phẩm nào cho ứng dụng này.
-                </p>
-              )}
-            </div>
           </div>
         </div>
       )}
@@ -395,6 +564,7 @@ const MarketTechEditor = () => {
   const [parentName, setParentName] = useState('');
   const [availableMainTrees, setAvailableMainTrees] = useState([]);
   const [availableProducts, setAvailableProducts] = useState([]);
+  const [availableProductLines, setAvailableProductLines] = useState([]);
   const [items, setItems] = useState([]);
   const [expandedTechIds, setExpandedTechIds] = useState(() => new Set());
 
@@ -404,13 +574,20 @@ const MarketTechEditor = () => {
     return map;
   }, [availableProducts]);
 
+  const productLineMap = useMemo(() => {
+    const map = new Map();
+    for (const pl of availableProductLines) if (pl && pl._id) map.set(String(pl._id), pl);
+    return map;
+  }, [availableProductLines]);
+
   useEffect(() => {
     const loadAll = async () => {
       try {
-        const [treeRes, mtRes, prodRes] = await Promise.all([
+        const [treeRes, mtRes, prodRes, catRes] = await Promise.all([
           adminApi.getMarketTree(id),
           adminApi.getMainTrees({ isActive: true }),
           adminApi.getProducts({ limit: 200 }),
+          adminApi.getCategories({ limit: 200 }),
         ]);
         const tree = treeRes.data?.data;
         if (!tree) {
@@ -424,19 +601,29 @@ const MarketTechEditor = () => {
           techs.map((t) => ({
             ...emptySubDoc,
             ...t,
-            linkToMainTree: t.linkToMainTree?._id || t.linkToMainTree || null,
+            linkToMainTree: Array.isArray(t.linkToMainTree)
+              ? t.linkToMainTree.map((v) => String(v?._id || v))
+              : t.linkToMainTree
+                ? [String(t.linkToMainTree?._id || t.linkToMainTree)]
+                : [],
             applications: Array.isArray(t.applications)
               ? t.applications.map((a) => ({
                   ...emptyApplication,
                   ...a,
-                  linkToMainTree: a.linkToMainTree?._id || a.linkToMainTree || null,
+                  linkToMainTree: Array.isArray(a.linkToMainTree)
+                    ? a.linkToMainTree.map((v) => String(v?._id || v))
+                    : a.linkToMainTree
+                      ? [String(a.linkToMainTree?._id || a.linkToMainTree)]
+                      : [],
+                  productLineEntries: Array.isArray(a.productLineEntries)
+                    ? a.productLineEntries.map((entry) => ({
+                        productLineId: entry.productLineId?._id || entry.productLineId || null,
+                      }))
+                    : [],
                   productEntries: Array.isArray(a.productEntries)
                     ? a.productEntries.map((entry) => ({
                         productId:
                           entry.productId?._id || entry.productId || null,
-                        applicationIndex: Number.isFinite(entry.applicationIndex)
-                          ? entry.applicationIndex
-                          : -1,
                       }))
                     : [],
                 }))
@@ -447,6 +634,9 @@ const MarketTechEditor = () => {
         setAvailableMainTrees(list.filter((mt) => mt._id !== id));
         setAvailableProducts(
           Array.isArray(prodRes.data?.data) ? prodRes.data.data : []
+        );
+        setAvailableProductLines(
+          Array.isArray(catRes.data?.data) ? catRes.data.data : []
         );
       } catch (err) {
         addNotification(err.response?.data?.message || 'Không thể tải dữ liệu', 'error');
@@ -570,24 +760,8 @@ const MarketTechEditor = () => {
       if (current.some((entry) => String(entry.productId) === String(productId))) {
         return prev;
       }
-      const product = productMap.get(String(productId));
-      const firstIdx =
-        product && Array.isArray(product.applications) && product.applications.length > 0
-          ? 0
-          : -1;
-      current.push({ productId, applicationIndex: firstIdx });
+      current.push({ productId });
       apps[appIndex] = { ...apps[appIndex], productEntries: current };
-      list[techIndex] = { ...tech, applications: apps };
-      return list;
-    });
-  };
-
-  const updateAppProductEntries = (techIndex, appIndex, entries) => {
-    setItems((prev) => {
-      const list = [...prev];
-      const tech = list[techIndex];
-      const apps = [...(tech.applications || [])];
-      apps[appIndex] = { ...apps[appIndex], productEntries: entries };
       list[techIndex] = { ...tech, applications: apps };
       return list;
     });
@@ -607,6 +781,36 @@ const MarketTechEditor = () => {
     });
   };
 
+  const addProductLineToApp = (techIndex, appIndex, productLineId) => {
+    setItems((prev) => {
+      const list = [...prev];
+      const tech = list[techIndex];
+      const apps = [...(tech.applications || [])];
+      const current = Array.isArray(apps[appIndex].productLineEntries)
+        ? [...apps[appIndex].productLineEntries]
+        : [];
+      if (current.some((entry) => String(entry.productLineId) === String(productLineId))) return prev;
+      current.push({ productLineId });
+      apps[appIndex] = { ...apps[appIndex], productLineEntries: current };
+      list[techIndex] = { ...tech, applications: apps };
+      return list;
+    });
+  };
+
+  const removeAppProductLine = (techIndex, appIndex, productLineId) => {
+    setItems((prev) => {
+      const list = [...prev];
+      const tech = list[techIndex];
+      const apps = [...(tech.applications || [])];
+      const current = (apps[appIndex].productLineEntries || []).filter(
+        (entry) => String(entry.productLineId) !== String(productLineId)
+      );
+      apps[appIndex] = { ...apps[appIndex], productLineEntries: current };
+      list[techIndex] = { ...tech, applications: apps };
+      return list;
+    });
+  };
+
   const handleSubmit = async () => {
     setSaving(true);
     try {
@@ -615,15 +819,17 @@ const MarketTechEditor = () => {
           ...t,
           description: t.description || undefined,
           descriptionEn: t.descriptionEn || undefined,
+          linkToMainTree: Array.isArray(t.linkToMainTree) ? t.linkToMainTree : [],
           applications: (t.applications || []).map((a) => ({
             ...a,
             description: a.description || undefined,
             descriptionEn: a.descriptionEn || undefined,
+            linkToMainTree: Array.isArray(a.linkToMainTree) ? a.linkToMainTree : [],
+            productLineEntries: (a.productLineEntries || []).filter(
+              (entry) => entry.productLineId
+            ),
             productEntries: (a.productEntries || []).filter(
-              (entry) =>
-                entry.productId &&
-                Number.isFinite(entry.applicationIndex) &&
-                entry.applicationIndex >= 0
+              (entry) => entry.productId
             ),
           })),
         })),
@@ -695,7 +901,7 @@ const MarketTechEditor = () => {
             </div>
             <button
               type="button"
-              onClick={addItem}
+              onClick={() => navigate(`/market-trees/${id}/technologies/new`)}
               disabled={loading}
               className="btn-primary flex items-center gap-1 text-xs disabled:opacity-50"
             >
@@ -731,7 +937,7 @@ const MarketTechEditor = () => {
                     const key = rowKey(item, techIndex);
                     const isOpen = expandedTechIds.has(key);
                     const appCount = (item.applications || []).length;
-                    const hasLink = !!(item.linkToMainTree || item.linkCustomUrl);
+                    const hasLink = !!(item.linkToMainTree);
                     return (
                       <>
                         <tr
@@ -838,11 +1044,12 @@ const MarketTechEditor = () => {
                             <div className="flex items-center justify-end gap-1">
                               <button
                                 type="button"
-                                onClick={() => toggleExpandTech(key)}
-                                className="p-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100"
+                                onClick={() => navigate(`/market-trees/${id}/technologies/${item._id || `new-${techIndex}`}`)}
+                                className="p-1.5 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 font-medium text-[11px] flex items-center gap-1"
                                 title="Sửa"
                               >
-                                <FiEdit2 size={12} />
+                                <FiEdit2 size={11} />
+                                Sửa
                               </button>
                               <button
                                 type="button"
@@ -998,24 +1205,6 @@ const MarketTechEditor = () => {
                                               ))}
                                             </select>
                                           </div>
-                                          <div>
-                                            <label className="block text-[10px] font-medium mb-0.5 text-gray-600 flex items-center gap-1">
-                                              <FiExternalLink size={10} />
-                                              URL tuỳ chỉnh
-                                            </label>
-                                            <input
-                                              type="text"
-                                              value={item.linkCustomUrl || ''}
-                                              onChange={(e) =>
-                                                updateItem(techIndex, {
-                                                  ...item,
-                                                  linkCustomUrl: e.target.value,
-                                                })
-                                              }
-                                              className="input-field text-[10px]"
-                                              placeholder="https://... hoặc /duong-dan"
-                                            />
-                                          </div>
                                         </div>
                                       </div>
                                     </div>
@@ -1050,8 +1239,9 @@ const MarketTechEditor = () => {
                                                 appIndex={appIndex}
                                                 availableMainTrees={availableMainTrees}
                                                 availableProducts={availableProducts}
+                                                availableProductLines={availableProductLines}
                                                 productMap={productMap}
-                                                currentApplications={item.applications || []}
+                                                productLineMap={productLineMap}
                                                 onUpdate={(next) =>
                                                   updateApplication(techIndex, appIndex, next)
                                                 }
@@ -1063,13 +1253,14 @@ const MarketTechEditor = () => {
                                                 onAddProduct={(productId) =>
                                                   addProductToApp(techIndex, appIndex, productId)
                                                 }
-                                                onUpdateProductEntry={(eIdx, next) => {
-                                                  const list = [...(application.productEntries || [])];
-                                                  list[eIdx] = next;
-                                                  updateAppProductEntries(techIndex, appIndex, list);
-                                                }}
                                                 onRemoveProduct={(productId) =>
                                                   removeAppProduct(techIndex, appIndex, productId)
+                                                }
+                                                onAddProductLine={(productLineId) =>
+                                                  addProductLineToApp(techIndex, appIndex, productLineId)
+                                                }
+                                                onRemoveProductLine={(productLineId) =>
+                                                  removeAppProductLine(techIndex, appIndex, productLineId)
                                                 }
                                               />
                                             );

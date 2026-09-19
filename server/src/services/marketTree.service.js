@@ -33,11 +33,8 @@ const sanitizeProductEntries = (entries = []) =>
         entry && (entry.productId?._id || entry.productId)
           ? String(entry.productId?._id || entry.productId)
           : null;
-      const applicationIndex = Number.isFinite(Number(entry?.applicationIndex))
-        ? Number(entry.applicationIndex)
-        : -1;
-      if (!productId || applicationIndex < 0) return null;
-      return { productId, applicationIndex };
+      if (!productId) return null;
+      return { productId };
     })
     .filter(Boolean);
 
@@ -64,7 +61,6 @@ const sanitizeSubDocs = (list = [], kind = 'application') =>
         order: Number.isFinite(s.order) ? s.order : 0,
         isActive: s.isActive !== false,
         linkToMainTree,
-        linkCustomUrl: typeof s.linkCustomUrl === 'string' ? s.linkCustomUrl.trim() : '',
         productEntries: sanitizeProductEntries(s.productEntries),
       };
       // Preserve nested applications when sanitising a technology node.
@@ -234,24 +230,40 @@ export const marketTreeService = {
       .lean();
 
     // Group by industry id; null industry => "Other"
+    // industry can be an array (multiple MainTrees)
     const groups = new Map();
     for (const node of all) {
-      const industry = node.industry
-        ? {
-            _id: String(node.industry._id || node.industry),
-            name: node.industry.name || '',
-            nameEn: node.industry.nameEn || '',
-            slug: node.industry.slug || '',
+      // Resolve industry: may be an array of ObjectIds or array of populated objects
+      const industryIds = Array.isArray(node.industry) ? node.industry : [];
+      if (industryIds.length === 0) {
+        // No industries → "Other"
+        const key = '__ungrouped__';
+        if (!groups.has(key)) {
+          groups.set(key, {
+            industry: null,
+            markets: [],
+          });
+        }
+        groups.get(key).markets.push(node);
+      } else {
+        // One or more industries → add to each group
+        for (const indRaw of industryIds) {
+          const industry = {
+            _id: String(indRaw._id || indRaw),
+            name: indRaw.name || '',
+            nameEn: indRaw.nameEn || '',
+            slug: indRaw.slug || '',
+          };
+          const key = String(industry._id);
+          if (!groups.has(key)) {
+            groups.set(key, {
+              industry,
+              markets: [],
+            });
           }
-        : null;
-      const key = industry ? String(industry._id) : '__ungrouped__';
-      if (!groups.has(key)) {
-        groups.set(key, {
-          industry,
-          markets: [],
-        });
+          groups.get(key).markets.push(node);
+        }
       }
-      groups.get(key).markets.push(node);
     }
 
     return Array.from(groups.values());
@@ -271,7 +283,7 @@ export const marketTreeService = {
         en: data?.introductions?.en || '',
       },
       imageUrl: data.imageUrl || '',
-      industry: data.industry || null,
+      industry: Array.isArray(data.industry) ? data.industry : [],
       order,
       isActive: data.isActive !== false,
       isFeatured: data.isFeatured === true,
@@ -307,7 +319,7 @@ export const marketTreeService = {
       updatePayload.isFeatured = data.isFeatured === true;
     }
     if (data.industry !== undefined) {
-      updatePayload.industry = data.industry || null;
+      updatePayload.industry = Array.isArray(data.industry) ? data.industry : [];
     }
 
     const doc = await MarketTree.findByIdAndUpdate(id, updatePayload, {

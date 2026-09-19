@@ -6,18 +6,12 @@ import { htmlToText } from '../utils/html';
 import { resolveSubDocLink } from '../utils/subDocLink';
 
 const MarketAppCard = ({ app, index = 0, lang }) => {
-  const entries = Array.isArray(app.productEntries)
+  const previewProducts = Array.isArray(app.productEntries)
     ? app.productEntries
-        .map((entry) => ({
-          product: entry.productId,
-            application: Array.isArray(entry.productId?.applications)
-              ? entry.productId.applications[entry.applicationIndex] || null
-              : null,
-        }))
-        .filter((e) => e.product)
+        .map((entry) => entry.productId)
+        .filter(Boolean)
+        .slice(0, 3)
     : [];
-  const products = entries.map((e) => e.product).filter(Boolean);
-  const previewProducts = products.slice(0, 3);
 
   return (
     <motion.article

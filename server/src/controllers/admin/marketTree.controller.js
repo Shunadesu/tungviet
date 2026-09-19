@@ -7,11 +7,8 @@ const sanitizeApplicationProductEntries = (entries = []) =>
       const productId = entry?.productId?._id || entry?.productId
         ? String(entry.productId?._id || entry.productId)
         : null;
-      const applicationIndex = Number.isFinite(Number(entry?.applicationIndex))
-        ? Number(entry.applicationIndex)
-        : -1;
-      if (!productId || applicationIndex < 0) return null;
-      return { productId, applicationIndex };
+      if (!productId) return null;
+      return { productId };
     })
     .filter(Boolean);
 
@@ -25,11 +22,20 @@ const sanitizeProductLineEntries = (entries = []) =>
     })
     .filter(Boolean);
 
-const sanitizeLinkField = (val) => {
-  if (!val) return null;
+const sanitizeLinkFieldArray = (val) => {
+  if (!val) return [];
+  if (Array.isArray(val)) {
+    return val
+      .map((v) => {
+        const raw = v?._id || v;
+        try { return String(raw) || null; }
+        catch (_) { return null; }
+      })
+      .filter(Boolean);
+  }
   const raw = val?._id || val;
-  try { return String(raw) || null; }
-  catch (_) { return null; }
+  try { return String(raw) ? [String(raw)] : []; }
+  catch (_) { return []; }
 };
 
 const sanitizeSpecifications = (list) =>
@@ -57,8 +63,8 @@ const sanitizeSubDocPayload = (list) =>
         imageUrl: s.imageUrl || '',
         order: Number.isFinite(Number(s.order)) ? Number(s.order) : 0,
         isActive: s.isActive !== false,
-        linkToMainTree: sanitizeLinkField(s.linkToMainTree),
-        linkCustomUrl: typeof s.linkCustomUrl === 'string' ? s.linkCustomUrl.trim() : '',
+        linkToMainTree: sanitizeLinkFieldArray(s.linkToMainTree),
+        productLineEntries: sanitizeProductLineEntries(s.productLineEntries),
         productEntries: sanitizeApplicationProductEntries(s.productEntries),
       };
       if (Array.isArray(s.specifications) || s.specifications !== undefined) {

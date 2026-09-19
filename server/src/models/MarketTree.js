@@ -10,8 +10,19 @@ const applicationSubSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
-    linkToMainTree: { type: mongoose.Schema.Types.ObjectId, ref: 'MainTree', default: null },
-    linkCustomUrl: { type: String, default: '' },
+    linkToMainTree: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MainTree' }],
+      default: [],
+    },
+    productLineEntries: [
+      {
+        productLineId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'Category',
+          required: true,
+        },
+      },
+    ],
     productEntries: [
       {
         productId: {
@@ -19,7 +30,6 @@ const applicationSubSchema = new mongoose.Schema(
           ref: 'Product',
           required: true,
         },
-        applicationIndex: { type: Number, required: true },
       },
     ],
   },
@@ -47,7 +57,6 @@ const technologySubSchema = new mongoose.Schema(
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
     linkToMainTree: { type: mongoose.Schema.Types.ObjectId, ref: 'MainTree', default: null },
-    linkCustomUrl: { type: String, default: '' },
     specifications: { type: [specificationSubSchema], default: [] },
     applications: { type: [applicationSubSchema], default: [] },
   },
@@ -74,9 +83,11 @@ const marketTreeSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     industry: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'MainTree',
-      default: null,
+      type: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'MainTree',
+      }],
+      default: [],
       index: true,
     },
     isActive: { type: Boolean, default: true },

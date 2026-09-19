@@ -89,15 +89,6 @@ const SubDocRow = ({ index, item, kind }) => {
 };
 
 const ProductEntryItem = ({ entry, index, product }) => {
-  const appIdx = entry.applicationIndex;
-  const appLabel =
-    Number.isFinite(appIdx) && appIdx >= 0
-      ? `Ứng dụng #${appIdx + 1}${
-          product?.applications?.[appIdx]?.title
-            ? ` — ${product.applications[appIdx].title}`
-            : ''
-        }`
-      : '— chưa gán ứng dụng —';
   return (
     <div className="flex items-center gap-2 p-1.5 bg-white border border-gray-100 rounded">
       {product?.imageUrl ? (
@@ -118,13 +109,11 @@ const ProductEntryItem = ({ entry, index, product }) => {
         <div className="text-[11px] font-medium text-gray-800 truncate">
           {product?.name || `Sản phẩm #${index + 1}`}
         </div>
-        <div className="flex items-center gap-1.5 text-[10px] text-gray-400">
-          {product?.productCode && (
-            <span className="font-mono">{product.productCode}</span>
-          )}
-          <span className="text-gray-300">•</span>
-          <span className="truncate">{appLabel}</span>
-        </div>
+        {product?.productCode && (
+          <div className="text-[10px] text-gray-400 font-mono truncate">
+            {product.productCode}
+          </div>
+        )}
       </div>
     </div>
   );
