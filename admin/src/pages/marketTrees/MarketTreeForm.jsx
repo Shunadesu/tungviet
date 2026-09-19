@@ -34,6 +34,18 @@ const emptyApplication = {
   productEntries: [],
 };
 
+const emptySubDoc = {
+  title: '',
+  titleEn: '',
+  description: '',
+  descriptionEn: '',
+  imageUrl: '',
+  order: 0,
+  isActive: true,
+  linkToMainTree: null,
+  linkCustomUrl: '',
+};
+
 const emptyForm = {
   title: '',
   titleEn: '',
