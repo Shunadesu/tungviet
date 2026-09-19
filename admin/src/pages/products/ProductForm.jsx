@@ -1404,28 +1404,57 @@ const ProductForm = () => {
                 </button>
               </div>
               {columns.length > 0 ? (
-                <div className="grid md:grid-cols-3 gap-4">
-                  {columns.map((column) => (
-                    <div key={column._id || column.key}>
-                      <label className="block text-xs font-medium mb-1 text-gray-700">
-                        {column.name}
-                        {column.nameEn && <span className="text-[10px] text-gray-400 ml-1">({column.nameEn})</span>}
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
-                        onChange={(event) =>
-                          setFormData((previous) => ({
-                            ...previous,
-                            attributes: { ...previous.attributes, [column.key]: event.target.value },
-                            ...(column.key in previous ? { [column.key]: event.target.value } : {}),
-                          }))
-                        }
-                        className="input-field"
-                        placeholder="Nhập thông số"
-                      />
-                    </div>
-                  ))}
+                <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 w-8">STT</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Tên thông số</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600 w-24">Đơn vị</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Giá trị</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {columns
+                        .slice()
+                        .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+                        .map((column, index) => (
+                          <tr key={column._id || column.key} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
+                            <td className="px-3 py-2 text-gray-400 text-[10px]">{index + 1}</td>
+                            <td className="px-3 py-2">
+                              <span className="font-medium text-gray-700">{column.name}</span>
+                              {column.nameEn && (
+                                <span className="block text-[10px] text-gray-400">{column.nameEn}</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              {column.unit ? (
+                                <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
+                                  {column.unit}
+                                </span>
+                              ) : (
+                                <span className="text-[10px] text-gray-300">—</span>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              <input
+                                type="text"
+                                value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
+                                onChange={(event) =>
+                                  setFormData((previous) => ({
+                                    ...previous,
+                                    attributes: { ...previous.attributes, [column.key]: event.target.value },
+                                    ...(column.key in previous ? { [column.key]: event.target.value } : {}),
+                                  }))
+                                }
+                                className="input-field text-xs"
+                                placeholder="Nhập thông số"
+                              />
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
+                  </table>
                 </div>
               ) : (
                 <div className="rounded-lg border border-dashed border-gray-300 px-4 py-5 text-xs text-gray-500">

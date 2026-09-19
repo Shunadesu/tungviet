@@ -13,6 +13,7 @@ import {
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
+import Skeleton from '../../components/Skeleton';
 
 const emptyForm = {
   name: '',
@@ -237,8 +238,43 @@ const ProductColumnsSettings = () => {
 
         <div className="card overflow-hidden">
           {loading ? (
-            <div className="flex justify-center py-10">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            <div className="overflow-x-auto">
+              <table className="w-full min-w-[760px]">
+                <thead>
+                  <tr className="table-header">
+                    <th className="px-3 py-2 text-center text-xs w-14">STT</th>
+                    <th className="px-3 py-2 text-left text-xs">Tên (VI)</th>
+                    <th className="px-3 py-2 text-left text-xs">Tên (EN)</th>
+                    <th className="px-3 py-2 text-left text-xs">Đơn vị</th>
+                    <th className="px-3 py-2 text-left text-xs">Key</th>
+                    <th className="px-3 py-2 text-center text-xs">Thứ tự</th>
+                    <th className="px-3 py-2 text-center text-xs">Trạng thái</th>
+                    <th className="px-3 py-2 text-right text-xs">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 5 }).map((_, rowIdx) => (
+                    <tr key={rowIdx} className="table-row">
+                      <td className="px-3 py-3 text-center"><Skeleton variant="rect" height={10} width={16} /></td>
+                      <td className="px-3 py-3"><Skeleton variant="rect" height={12} width={`${60 + (rowIdx % 3) * 10}%`} /></td>
+                      <td className="px-3 py-3"><Skeleton variant="rect" height={10} width={`${40 + (rowIdx % 4) * 12}%`} /></td>
+                      <td className="px-3 py-3"><Skeleton variant="rect" height={10} width={40} /></td>
+                      <td className="px-3 py-3"><Skeleton variant="rect" height={12} width={80} /></td>
+                      <td className="px-3 py-3 text-center"><Skeleton variant="rect" height={10} width={24} /></td>
+                      <td className="px-3 py-3 text-center"><Skeleton variant="rect" height={18} width={60} rounded /></td>
+                      <td className="px-3 py-3">
+                        <div className="flex justify-end items-center gap-1">
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : visibleColumns.length === 0 ? (
             <div className="text-center py-10 text-xs text-gray-500">Chưa có cột thuộc tính nào.</div>

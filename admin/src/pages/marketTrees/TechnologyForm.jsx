@@ -422,10 +422,6 @@ const ApplicationCard = ({
               );
             })()}
           </div>
-                </>
-              );
-            })()}
-          </div>
 
           {/* Product entries - table view */}
           <div className="border-t border-gray-100 pt-2">
