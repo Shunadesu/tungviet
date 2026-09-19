@@ -17,6 +17,7 @@ import {
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
+import Skeleton from '../../components/Skeleton';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 import useFormDraft from '../../hooks/useFormDraft';
@@ -310,9 +311,164 @@ const MarketTreeForm = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <>
+        <div className="h-11 bg-gray-100 border-b" />
+        <div className="p-4">
+          <div className="card max-w-5xl mx-auto p-4 space-y-4">
+            {/* Thông tin cơ bản */}
+            <div className="space-y-3">
+              <Skeleton variant="rect" height={14} width={140} />
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Skeleton variant="rect" height={11} width="25%" />
+                  <Skeleton variant="rect" height={36} width="100%" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton variant="rect" height={11} width="30%" />
+                  <Skeleton variant="rect" height={36} width="100%" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={11} width="15%" />
+                <Skeleton variant="rect" height={140} width="100%" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={11} width="20%" />
+                <Skeleton variant="rect" height={140} width="100%" />
+              </div>
+              <div className="grid md:grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Skeleton variant="rect" height={11} width="40%" />
+                  <Skeleton variant="rect" height={160} width="100%" />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton variant="rect" height={11} width="35%" />
+                  <Skeleton variant="rect" height={160} width="100%" />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={11} width="30%" />
+                <div className="flex items-center gap-2">
+                  <Skeleton variant="rect" height={48} width={48} />
+                  <Skeleton variant="rect" height={32} width={80} />
+                </div>
+                <Skeleton variant="rect" height={32} width="60%" />
+              </div>
+              <div className="flex items-center gap-6">
+                <div className="space-y-1.5">
+                  <Skeleton variant="rect" height={11} width={50} />
+                  <Skeleton variant="rect" height={32} width={80} />
+                </div>
+                <div className="space-y-1.5">
+                  <Skeleton variant="rect" height={11} width={120} />
+                  <div className="flex gap-2">
+                    <Skeleton variant="rect" height={28} width={80} />
+                    <Skeleton variant="rect" height={28} width={80} />
+                    <Skeleton variant="rect" height={28} width={80} />
+                  </div>
+                </div>
+                <Skeleton variant="rect" height={20} width={120} />
+                <Skeleton variant="rect" height={20} width={150} />
+              </div>
+            </div>
+
+            {/* Danh mục sản phẩm */}
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <Skeleton variant="rect" height={14} width={200} />
+                <Skeleton variant="rect" height={11} width={60} />
+              </div>
+              <Skeleton variant="rect" height={11} width="60%" />
+              <Skeleton variant="rect" height={32} width="40%" />
+              <div className="border border-gray-200 rounded-lg overflow-hidden">
+                <table className="w-full text-[10px]">
+                  <thead>
+                    <tr className="bg-gray-50 border-b border-gray-100">
+                      {['w-12','flex-1','flex-1','w-10'].map((w, i) => (
+                        <th key={i} className="px-2 py-1.5">
+                          <Skeleton variant="rect" height={10} width="60%" />
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {[1,2,3].map(row => (
+                      <tr key={row} className="border-b border-gray-100 last:border-0">
+                        {['w-12','flex-1','flex-1','w-10'].map((w, i) => (
+                          <td key={i} className="px-2 py-2">
+                            {i === 0 ? (
+                              <Skeleton variant="rect" height={28} width={28} />
+                            ) : (
+                              <Skeleton variant="rect" height={10} width={`${50 + (row+i)%3 * 20}%`} />
+                            )}
+                          </td>
+                        ))}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Technologies */}
+            <div className="space-y-2 border-t pt-4">
+              <div className="flex items-center justify-between">
+                <Skeleton variant="rect" height={14} width={160} />
+                <Skeleton variant="rect" height={30} width={130} />
+              </div>
+              {[1,2].map(row => (
+                <div key={row} className="border border-gray-200 rounded-lg p-3 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Skeleton variant="rect" height={12} width={120} />
+                    <Skeleton variant="rect" height={20} width={60} />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-2">
+                    <Skeleton variant="rect" height={32} width="100%" />
+                    <Skeleton variant="rect" height={32} width="100%" />
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-2 border-t pt-2">
+                    <Skeleton variant="rect" height={80} width="100%" />
+                    <Skeleton variant="rect" height={80} width="100%" />
+                  </div>
+                  {/* Product entries */}
+                  <div className="border-t pt-2">
+                    <Skeleton variant="rect" height={11} width={100} />
+                    <Skeleton variant="rect" height={32} width="40%" className="mt-1.5" />
+                    <div className="border border-gray-200 rounded-lg overflow-hidden mt-1.5">
+                      <table className="w-full text-[10px]">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-100">
+                            {[1,2,3,4,5].map(i => (
+                              <th key={i} className="px-2 py-1.5">
+                                <Skeleton variant="rect" height={10} width="60%" />
+                              </th>
+                            ))}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr className="border-b border-gray-100">
+                            <td className="px-2 py-1.5"><Skeleton variant="rect" height={28} width={28} /></td>
+                            <td className="px-2 py-1.5"><Skeleton variant="rect" height={10} width="70%" /></td>
+                            <td className="px-2 py-1.5"><Skeleton variant="rect" height={10} width="50%" /></td>
+                            <td className="px-2 py-1.5"><Skeleton variant="rect" height={10} width="60%" /></td>
+                            <td className="px-2 py-1.5"><Skeleton variant="rect" height={20} width={20} /></td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Actions */}
+            <div className="border-t pt-4 flex gap-2 justify-end">
+              <Skeleton variant="rect" height={36} width={90} />
+              <Skeleton variant="rect" height={36} width={110} />
+            </div>
+          </div>
+        </div>
+      </>
     );
   }
 
