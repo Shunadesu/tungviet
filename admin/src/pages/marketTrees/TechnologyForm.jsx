@@ -30,7 +30,6 @@ const emptyApplication = {
   imageUrl: '',
   order: 0,
   isActive: true,
-  linkToMainTree: [],
   productLineEntries: [],
   productEntries: [],
 };
@@ -200,113 +199,6 @@ const ApplicationCard = ({
                 placeholder="Hoặc URL"
               />
             </div>
-          </div>
-
-          {/* Link to main tree - table view */}
-          <div className="border-t border-gray-100 pt-2">
-            <div className="flex items-center gap-1 mb-2">
-              <FiLink size={11} className="text-gray-500" />
-              <span className="text-[10px] font-semibold text-gray-600 uppercase tracking-wide">
-                Link đến cây ngành sản phẩm ({application.linkToMainTree?.length || 0})
-              </span>
-            </div>
-            {(() => {
-              const selected = Array.isArray(application.linkToMainTree)
-                ? application.linkToMainTree
-                : [];
-              const candidates = (availableMainTrees || []).filter(
-                (mt) => !selected.includes(String(mt._id))
-              );
-              return (
-                <>
-                  {candidates.length > 0 && (
-                    <div className="mb-2">
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          e.target.value = '';
-                          if (val) onUpdate({ ...application, linkToMainTree: [...selected, val] });
-                        }}
-                        className="input-field text-[10px] w-full"
-                      >
-                        <option value="">-- Thêm cây ngành --</option>
-                        {candidates.map((mt) => (
-                          <option key={mt._id} value={mt._id}>
-                            {mt.name}
-                            {mt.nameEn ? ` / ${mt.nameEn}` : ''}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                  <div className="border border-gray-200 rounded-lg overflow-hidden">
-                    <table className="w-full text-[10px]">
-                      <thead>
-                        <tr className="bg-gray-50 border-b border-gray-100">
-                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600 w-12">Ảnh</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên tiếng Việt</th>
-                          <th className="px-2 py-1.5 text-left font-semibold text-gray-600">Tên tiếng Anh</th>
-                          <th className="px-2 py-1.5 text-center font-semibold text-gray-600 w-10">Xóa</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {selected.length === 0 ? (
-                          <tr>
-                            <td colSpan={4} className="px-3 py-3 text-center text-gray-400 italic">
-                              Chưa chọn cây ngành nào.
-                            </td>
-                          </tr>
-                        ) : (
-                          selected.map((mtId) => {
-                            const mt = availableMainTrees.find((m) => String(m._id) === String(mtId));
-                            return (
-                              <tr key={mtId} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
-                                <td className="px-2 py-1.5">
-                                  {mt?.imageUrl ? (
-                                    <img
-                                      src={mt.imageUrl}
-                                      alt=""
-                                      className="w-8 h-8 rounded object-cover border"
-                                      onError={(e) => { e.currentTarget.style.display = 'none'; }}
-                                    />
-                                  ) : (
-                                    <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                                      <FiImage size={10} />
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="px-2 py-1.5 font-medium text-gray-800">
-                                  {mt?.name || <span className="text-gray-400 italic">#{mtId}</span>}
-                                </td>
-                                <td className="px-2 py-1.5 text-gray-500">
-                                  {mt?.nameEn || '—'}
-                                </td>
-                                <td className="px-2 py-1.5 text-center">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      onUpdate({
-                                        ...application,
-                                        linkToMainTree: selected.filter((id) => String(id) !== String(mtId)),
-                                      })
-                                    }
-                                    className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 mx-auto"
-                                    title="Bỏ cây ngành"
-                                  >
-                                    <FiTrash2 size={10} />
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          })
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-                </>
-              );
-            })()}
           </div>
 
           {/* Product line entries - table view */}
@@ -624,11 +516,6 @@ const TechnologyForm = () => {
               ? found.applications.map((a) => ({
                   ...emptyApplication,
                   ...a,
-                  linkToMainTree: Array.isArray(a.linkToMainTree)
-                    ? a.linkToMainTree.map((v) => String(v?._id || v))
-                    : a.linkToMainTree
-                      ? [String(a.linkToMainTree?._id || a.linkToMainTree)]
-                      : [],
                   productLineEntries: Array.isArray(a.productLineEntries)
                     ? a.productLineEntries.map((entry) => ({
                         productLineId: entry.productLineId?._id || entry.productLineId || null,
@@ -797,11 +684,6 @@ const TechnologyForm = () => {
             applications: Array.isArray(t.applications)
               ? t.applications.map((a) => ({
                   ...a,
-                  linkToMainTree: Array.isArray(a.linkToMainTree)
-                    ? a.linkToMainTree.map((v) => String(v?._id || v))
-                    : a.linkToMainTree
-                      ? [String(a.linkToMainTree?._id || a.linkToMainTree)]
-                      : [],
                   productLineEntries: Array.isArray(a.productLineEntries)
                     ? a.productLineEntries.map((entry) => ({
                         productLineId: entry.productLineId?._id || entry.productLineId || null,
@@ -827,7 +709,6 @@ const TechnologyForm = () => {
           ...a,
           description: a.description || '',
           descriptionEn: a.descriptionEn || '',
-          linkToMainTree: Array.isArray(a.linkToMainTree) ? a.linkToMainTree : [],
           productLineEntries: (a.productLineEntries || []).filter(
             (entry) => entry.productLineId
           ),
@@ -1021,29 +902,97 @@ const TechnologyForm = () => {
               <div className="flex items-center gap-1 mb-2">
                 <FiLink size={12} className="text-gray-500" />
                 <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
-                  Link đến cây ngành sản phẩm
+                  Link đến cây ngành sản phẩm ({(tech.linkToMainTree || []).length})
                 </span>
               </div>
-              <div className="grid md:grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Chọn cây ngành sản phẩm</label>
-                  <select
-                    value={tech.linkToMainTree || ''}
-                    onChange={(e) =>
-                      setTech((prev) => prev ? { ...prev, linkToMainTree: e.target.value || null } : prev)
-                    }
-                    className="input-field"
-                  >
-                    <option value="">-- Không chọn --</option>
-                    {(availableMainTrees || []).map((mt) => (
-                      <option key={mt._id} value={mt._id}>
-                        {mt.name}
-                        {mt.nameEn ? ` / ${mt.nameEn}` : ''}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+              {(() => {
+                const selected = Array.isArray(tech.linkToMainTree) ? tech.linkToMainTree : [];
+                const candidates = (availableMainTrees || []).filter(
+                  (mt) => !selected.includes(String(mt._id))
+                );
+                return (
+                  <>
+                    {candidates.length > 0 && (
+                      <div className="mb-2">
+                        <select
+                          value=""
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            e.target.value = '';
+                            if (val) {
+                              setTech((prev) => prev ? { ...prev, linkToMainTree: [...selected, val] } : prev);
+                            }
+                          }}
+                          className="input-field text-xs w-full"
+                        >
+                          <option value="">-- Thêm cây ngành --</option>
+                          {candidates.map((mt) => (
+                            <option key={mt._id} value={mt._id}>
+                              {mt.name}
+                              {mt.nameEn ? ` / ${mt.nameEn}` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-gray-50 border-b border-gray-100">
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600 w-12">Ảnh</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600">Tên tiếng Việt</th>
+                            <th className="px-3 py-2 text-left font-semibold text-gray-600">Tên tiếng Anh</th>
+                            <th className="px-3 py-2 text-center font-semibold text-gray-600 w-10">Xóa</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {selected.length === 0 ? (
+                            <tr>
+                              <td colSpan={4} className="px-3 py-4 text-center text-gray-400 italic">
+                                Chưa chọn cây ngành nào.
+                              </td>
+                            </tr>
+                          ) : (
+                            selected.map((mtId) => {
+                              const mt = availableMainTrees.find((m) => String(m._id) === String(mtId));
+                              return (
+                                <tr key={mtId} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/60">
+                                  <td className="px-3 py-2">
+                                    {mt?.imageUrl ? (
+                                      <img src={mt.imageUrl} alt="" className="w-8 h-8 rounded object-cover border"
+                                        onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                                        <FiImage size={10} />
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 font-medium text-gray-800">
+                                    {mt?.name || <span className="text-gray-400 italic">#{mtId}</span>}
+                                  </td>
+                                  <td className="px-3 py-2 text-gray-500">{mt?.nameEn || '—'}</td>
+                                  <td className="px-3 py-2 text-center">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setTech((prev) => prev ? { ...prev, linkToMainTree: selected.filter((id) => String(id) !== String(mtId)) } : prev)
+                                      }
+                                      className="p-1 bg-red-50 text-red-600 rounded hover:bg-red-100 mx-auto"
+                                      title="Bỏ cây ngành"
+                                    >
+                                      <FiTrash2 size={11} />
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
+                );
+              })()}
             </div>
           </div>
 
@@ -1082,7 +1031,6 @@ const TechnologyForm = () => {
                     availableProductLines={availableProductLines}
                     productMap={productMap}
                     productLineMap={productLineMap}
-                    currentApplications={tech.applications || []}
                     onUpdate={(next) => updateApplication(appIndex, next)}
                     onRemove={() => removeApplication(appIndex)}
                     onUploadImage={(file) => handleAppImageUpload(appIndex, file)}

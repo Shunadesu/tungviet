@@ -42,15 +42,6 @@ const sanitizeSubDocs = (list = [], kind = 'application') =>
   (Array.isArray(list) ? list : [])
     .filter((s) => s && s.title)
     .map((s) => {
-      let linkToMainTree = null;
-      if (s.linkToMainTree) {
-        const raw = s.linkToMainTree?._id || s.linkToMainTree;
-        try {
-          linkToMainTree = raw ? String(raw) : null;
-        } catch (_) {
-          linkToMainTree = null;
-        }
-      }
       const base = {
         _id: s._id,
         title: s.title || '',
@@ -60,9 +51,18 @@ const sanitizeSubDocs = (list = [], kind = 'application') =>
         imageUrl: s.imageUrl || '',
         order: Number.isFinite(s.order) ? s.order : 0,
         isActive: s.isActive !== false,
-        linkToMainTree,
         productEntries: sanitizeProductEntries(s.productEntries),
       };
+      // Only technology-level subdocs have linkToMainTree (array of ObjectIds)
+      if (kind === 'technology') {
+        base.linkToMainTree = (Array.isArray(s.linkToMainTree) ? s.linkToMainTree : [])
+          .map((v) => {
+            const raw = v?._id || v;
+            try { return String(raw) || null; }
+            catch (_) { return null; }
+          })
+          .filter(Boolean);
+      }
       // Preserve nested applications when sanitising a technology node.
       if (kind === 'technology') {
         base.applications = sanitizeSubDocs(s.applications, 'application');
@@ -113,11 +113,6 @@ export const marketTreeService = {
         strictPopulate: false,
       })
       .populate({
-        path: 'applications.linkToMainTree',
-        select: '_id name nameEn slug',
-        strictPopulate: false,
-      })
-      .populate({
         path: 'technologies.linkToMainTree',
         select: '_id name nameEn slug',
         strictPopulate: false,
@@ -125,11 +120,6 @@ export const marketTreeService = {
       .populate({
         path: 'technologies.applications.productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
-        strictPopulate: false,
-      })
-      .populate({
-        path: 'technologies.applications.linkToMainTree',
-        select: '_id name nameEn slug',
         strictPopulate: false,
       })
       .lean();
@@ -187,11 +177,6 @@ export const marketTreeService = {
         strictPopulate: false,
       })
       .populate({
-        path: 'applications.linkToMainTree',
-        select: '_id name nameEn slug',
-        strictPopulate: false,
-      })
-      .populate({
         path: 'technologies.linkToMainTree',
         select: '_id name nameEn slug',
         strictPopulate: false,
@@ -199,11 +184,6 @@ export const marketTreeService = {
       .populate({
         path: 'technologies.applications.productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
-        strictPopulate: false,
-      })
-      .populate({
-        path: 'technologies.applications.linkToMainTree',
-        select: '_id name nameEn slug',
         strictPopulate: false,
       })
       .lean();

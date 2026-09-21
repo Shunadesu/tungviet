@@ -39,7 +39,9 @@ const localizeSubDoc = (doc, locale) => {
   if (!doc) return doc;
   const out = localizeFields(doc, locale, LOCALIZABLE_FIELDS);
   out.productEntries = localizeProductEntries(doc.productEntries, locale);
-  out.linkToMainTree = doc.linkToMainTree || null;
+  out.linkToMainTree = Array.isArray(doc.linkToMainTree)
+    ? doc.linkToMainTree
+    : doc.linkToMainTree ? [doc.linkToMainTree] : [];
   return out;
 };
 

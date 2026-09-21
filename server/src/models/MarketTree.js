@@ -10,10 +10,6 @@ const applicationSubSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
-    linkToMainTree: {
-      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MainTree' }],
-      default: [],
-    },
     productLineEntries: [
       {
         productLineId: {
@@ -56,7 +52,10 @@ const technologySubSchema = new mongoose.Schema(
     imageUrl: { type: String, default: '' },
     order: { type: Number, default: 0 },
     isActive: { type: Boolean, default: true },
-    linkToMainTree: { type: mongoose.Schema.Types.ObjectId, ref: 'MainTree', default: null },
+    linkToMainTree: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'MainTree' }],
+      default: [],
+    },
     specifications: { type: [specificationSubSchema], default: [] },
     applications: { type: [applicationSubSchema], default: [] },
   },

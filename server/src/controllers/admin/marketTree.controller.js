@@ -63,10 +63,13 @@ const sanitizeSubDocPayload = (list) =>
         imageUrl: s.imageUrl || '',
         order: Number.isFinite(Number(s.order)) ? Number(s.order) : 0,
         isActive: s.isActive !== false,
-        linkToMainTree: sanitizeLinkFieldArray(s.linkToMainTree),
         productLineEntries: sanitizeProductLineEntries(s.productLineEntries),
         productEntries: sanitizeApplicationProductEntries(s.productEntries),
       };
+      // Only technology-level subdocs accept linkToMainTree
+      if (s.linkToMainTree !== undefined) {
+        base.linkToMainTree = sanitizeLinkFieldArray(s.linkToMainTree);
+      }
       if (Array.isArray(s.specifications) || s.specifications !== undefined) {
         base.specifications = sanitizeSpecifications(s.specifications);
       }

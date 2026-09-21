@@ -699,64 +699,97 @@ const MarketTreeForm = () => {
               </div>
               <div>
                 <label className="block text-xs font-medium mb-1">
-                  Thuộc ngành (MainTree) — chọn nhiều
+                  Thuộc ngành (MainTree)
                 </label>
-                <div className="flex flex-wrap gap-1.5 max-w-md">
-                  {availableMainTrees.length === 0 && (
-                    <span className="text-[10px] text-gray-400 italic">
-                      Chưa có ngành nào trong hệ thống.
-                    </span>
-                  )}
-                  {availableMainTrees.map((mt) => {
-                    const isSelected = (formData.industry || []).some(
-                      (id) => String(id) === String(mt._id)
-                    );
-                    return (
-                      <label
-                        key={mt._id}
-                        className={`flex items-center gap-1 px-2 py-1 border rounded cursor-pointer text-[11px] select-none transition-colors ${
-                          isSelected
-                            ? 'bg-blue-50 border-blue-300 text-blue-700'
-                            : 'bg-white border-gray-200 text-gray-600 hover:border-gray-300'
-                        }`}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isSelected}
-                          onChange={(e) => {
-                            const id = mt._id;
-                            setFormData((prev) => ({
-                              ...prev,
-                              industry: e.target.checked
-                                ? [...(prev.industry || []), id]
-                                : (prev.industry || []).filter(
-                                    (i) => String(i) !== String(id)
-                                  ),
-                            }));
-                          }}
-                          className="sr-only"
-                        />
-                        {mt.name}
-                        {mt.nameEn ? (
-                          <span className="text-[10px] text-gray-400">
-                            {' / '}
-                            {mt.nameEn}
-                          </span>
-                        ) : null}
-                      </label>
-                    );
-                  })}
-                </div>
-                {(formData.industry || []).length > 0 && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormData((prev) => ({ ...prev, industry: [] }))
-                    }
-                    className="mt-1 text-[10px] text-red-500 hover:underline"
+                <div className="flex items-center gap-2">
+                  <select
+                    className="input-field text-xs flex-1"
+                    value=""
+                    onChange={(e) => {
+                      const mt = availableMainTrees.find(
+                        (x) => String(x._id) === e.target.value
+                      );
+                      if (!mt) return;
+                      const already = (formData.industry || []).some(
+                        (id) => String(id) === String(mt._id)
+                      );
+                      if (!already) {
+                        setFormData((prev) => ({
+                          ...prev,
+                          industry: [...(prev.industry || []), mt._id],
+                        }));
+                      }
+                      e.target.value = '';
+                    }}
                   >
-                    Bỏ tất cả
-                  </button>
+                    <option value="">— Chọn ngành —</option>
+                    {(formData.industry || []).length < availableMainTrees.length &&
+                      availableMainTrees
+                        .filter(
+                          (mt) =>
+                            !(formData.industry || []).some(
+                              (id) => String(id) === String(mt._id)
+                            )
+                        )
+                        .map((mt) => (
+                          <option key={mt._id} value={mt._id}>
+                            {mt.name}
+                            {mt.nameEn ? ` / ${mt.nameEn}` : ''}
+                          </option>
+                        ))}
+                  </select>
+                </div>
+
+                {(formData.industry || []).length > 0 ? (
+                  <div className="mt-2 border border-gray-200 rounded-lg overflow-hidden">
+                    <table className="w-full text-xs">
+                      <thead>
+                        <tr className="bg-gray-50 border-b border-gray-200">
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600 w-8">STT</th>
+                          <th className="px-3 py-2 text-left font-semibold text-gray-600">Ngành</th>
+                          <th className="px-3 py-2 text-right font-medium w-20">Thao tác</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(formData.industry || [])
+                          .map((id) => availableMainTrees.find((mt) => String(mt._id) === String(id)))
+                          .filter(Boolean)
+                          .map((mt, index) => (
+                            <tr
+                              key={mt._id}
+                              className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50"
+                            >
+                              <td className="px-3 py-2 text-gray-400 text-[10px]">{index + 1}</td>
+                              <td className="px-3 py-2">
+                                <span className="font-medium text-gray-700">{mt.name}</span>
+                                {mt.nameEn && (
+                                  <span className="block text-[10px] text-gray-400">{mt.nameEn}</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2 text-right">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setFormData((prev) => ({
+                                      ...prev,
+                                      industry: (prev.industry || []).filter(
+                                        (id) => String(id) !== String(mt._id)
+                                      ),
+                                    }))
+                                  }
+                                  className="text-red-500 hover:bg-red-50 p-1 rounded"
+                                  title="Xóa khỏi danh sách"
+                                >
+                                  <FiTrash2 size={13} />
+                                </button>
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <p className="mt-1 text-[10px] text-gray-400 italic">Chưa chọn ngành nào.</p>
                 )}
               </div>
               <label className="flex items-center gap-2 cursor-pointer select-none mt-5">

@@ -9,7 +9,9 @@ const SUBDOC_LOCALIZABLE_FIELDS = ['title', 'description'];
 const localizeSubDoc = (doc, locale) => {
   if (!doc) return doc;
   const out = localizeFields(doc, locale, SUBDOC_LOCALIZABLE_FIELDS);
-  out.linkToMainTree = doc.linkToMainTree || null;
+  out.linkToMainTree = Array.isArray(doc.linkToMainTree)
+    ? doc.linkToMainTree
+    : doc.linkToMainTree ? [doc.linkToMainTree] : [];
   out.linkCustomUrl = doc.linkCustomUrl || '';
   return out;
 };
