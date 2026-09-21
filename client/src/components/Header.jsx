@@ -12,6 +12,7 @@ import {
   FiBox,
   FiArrowRight,
   FiChevronDown,
+  FiTrendingUp,
 } from 'react-icons/fi';
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -175,6 +176,90 @@ const ProductsDropdown = ({
   );
 };
 
+// ─── Markets Dropdown ─────────────────────────────────────────────────────────
+const MarketsDropdown = ({ open, onClose, lang, markets, marketsLoading }) => {
+  const visibleMarkets = (markets || []).slice(0, 6);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={{ duration: 0.15 }}
+          onMouseEnter={onClose.cancel}
+          onMouseLeave={onClose.schedule}
+          className="absolute left-0 right-0 mx-auto top-full mt-2 w-[640px] max-w-[calc(100vw-2rem)] bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden z-50"
+        >
+          <div className="p-5">
+            {marketsLoading ? (
+              <div className="flex items-center justify-center py-10">
+                <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary mx-auto" />
+              </div>
+            ) : visibleMarkets.length === 0 ? (
+              <div className="text-center py-10">
+                <FiTrendingUp size={32} className="mx-auto text-gray-300 mb-2" />
+                <p className="text-sm text-gray-500">
+                  {lang === 'en' ? 'No markets available yet.' : 'Chưa có thị trường nào.'}
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3">
+                {visibleMarkets.map((market) => (
+                  <Link
+                    key={market._id}
+                    to={`/${lang}/markets/${market._id}`}
+                    onClick={onClose.immediate}
+                    className="group flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 hover:border-primary/20"
+                  >
+                    {market.imageUrl ? (
+                      <img
+                        src={market.imageUrl}
+                        alt={getLocalizedField(market, lang, 'title', 'titleEn')}
+                        className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                        <FiTrendingUp size={18} className="text-gray-300" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-xs font-semibold text-gray-800 group-hover:text-primary transition-colors leading-tight mb-0.5">
+                        {getLocalizedField(market, lang, 'title', 'titleEn')}
+                      </h3>
+                      {(market.description || market.descriptionEn) && (
+                        <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">
+                          {getLocalizedField(market, lang, 'description', 'descriptionEn')}
+                        </p>
+                      )}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div className="px-5 pb-4 flex items-center justify-between border-t border-gray-100 pt-3">
+            <Link
+              to={`/${lang}/markets`}
+              onClick={onClose.immediate}
+              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+            >
+              {lang === 'en' ? 'View all markets' : 'Xem tất cả thị trường'}
+              <FiArrowRight size={12} />
+            </Link>
+            <span className="text-[10px] text-gray-400">
+              {markets?.length || 0} {lang === 'en' ? 'markets' : 'thị trường'}
+            </span>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
 // ─── Main Header ──────────────────────────────────────────────────────────────
 const Header = () => {
   const { t, i18n } = useTranslation();
@@ -195,9 +280,12 @@ const Header = () => {
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [productsLoading, setProductsLoading] = useState(false);
+  const [markets, setMarkets] = useState([]);
+  const [marketsLoading, setMarketsLoading] = useState(false);
 
   // Products dropdown state
   const [productsDropdownOpen, setProductsDropdownOpen] = useState(false);
+  const [marketsDropdownOpen, setMarketsDropdownOpen] = useState(false);
   const closeTimer = useRef(null);
 
   const cancelClose = () => {
@@ -211,12 +299,14 @@ const Header = () => {
     cancelClose();
     closeTimer.current = setTimeout(() => {
       setProductsDropdownOpen(false);
+      setMarketsDropdownOpen(false);
     }, 150);
   };
 
   const closeDropdown = () => {
     cancelClose();
     setProductsDropdownOpen(false);
+    setMarketsDropdownOpen(false);
   };
 
   // Cmd+K / Ctrl+K to open search modal
@@ -233,8 +323,9 @@ const Header = () => {
           e.preventDefault();
           setSearchModalOpen(true);
         }
-      } else if (e.key === 'Escape' && productsDropdownOpen) {
+      } else if (e.key === 'Escape' && (productsDropdownOpen || marketsDropdownOpen)) {
         setProductsDropdownOpen(false);
+        setMarketsDropdownOpen(false);
       }
     };
     document.addEventListener('keydown', onKey);
@@ -283,6 +374,26 @@ const Header = () => {
       });
   }, [productsDropdownOpen, currentLang]);
 
+  // Load markets when dropdown opens
+  const marketsFetchedRef = useRef(false);
+  useEffect(() => {
+    if (!marketsDropdownOpen) return;
+    if (marketsFetchedRef.current) return;
+    marketsFetchedRef.current = true;
+    setMarketsLoading(true);
+    publicApi
+      .getMarketTrees({ lang: currentLang })
+      .then((res) => {
+        const data = res?.data?.data;
+        setMarkets(Array.isArray(data) ? data : []);
+        setMarketsLoading(false);
+      })
+      .catch(() => {
+        marketsFetchedRef.current = false;
+        setMarketsLoading(false);
+      });
+  }, [marketsDropdownOpen, currentLang]);
+
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
     onScroll();
@@ -302,7 +413,7 @@ const Header = () => {
   };
 
   const isHome = location.pathname === `/${currentLang}` || location.pathname === `/${currentLang}/`;
-  const transparent = isHome && !scrolled && !menuOpen && !searchModalOpen && !productsDropdownOpen;
+  const transparent = isHome && !scrolled && !menuOpen && !searchModalOpen && !productsDropdownOpen && !marketsDropdownOpen;
 
   const headerBase = 'sticky top-0 z-50 transition-all duration-300';
   const headerTheme = transparent
@@ -402,10 +513,22 @@ const Header = () => {
               </button>
             </div>
 
-            {/* Thị trường */}
-            <Link to={`/${currentLang}/markets`} className={navLinkClass}>
-              {currentLang === 'en' ? 'Markets' : 'Thị trường'}
-            </Link>
+            {/* Thị trường (dropdown trigger) */}
+            <div
+              onMouseEnter={() => {
+                cancelClose();
+                setMarketsDropdownOpen(true);
+              }}
+              onMouseLeave={scheduleClose}
+            >
+              <button type="button" className={navLinkClass}>
+                {currentLang === 'en' ? 'Markets' : 'Thị trường'}
+                <FiChevronDown
+                  size={14}
+                  className={`transition-transform duration-200 ${marketsDropdownOpen ? 'rotate-180' : ''}`}
+                />
+              </button>
+            </div>
 
             {/* Tin tức */}
             <Link to={`/${currentLang}/news`} className={navLinkClass}>
@@ -527,6 +650,22 @@ const Header = () => {
             categories={categories}
             products={products}
             productsLoading={productsLoading}
+          />
+        </div>
+
+        {/* Markets Dropdown - centered on header */}
+        <div
+          className="absolute left-0 right-0 flex justify-center"
+          style={{ pointerEvents: marketsDropdownOpen ? 'auto' : 'none' }}
+          onMouseEnter={cancelClose}
+          onMouseLeave={scheduleClose}
+        >
+          <MarketsDropdown
+            open={marketsDropdownOpen}
+            onClose={dropdownCloseHandlers}
+            lang={currentLang}
+            markets={markets}
+            marketsLoading={marketsLoading}
           />
         </div>
 

@@ -56,7 +56,7 @@ const CERTIFICATES = [
 
 const CertificateBadge = ({ cert, isEN }) => (
   <div className="flex-shrink-0 mx-3 my-1">
-    <div className="group bg-white rounded-2xl px-5 py-4 shadow-md hover:shadow-2xl border border-slate-100 transition-all duration-300 flex items-center gap-4 min-w-[280px] hover:-translate-y-0.5">
+    <div className="group bg-white rounded-2xl px-5 py-4 border border-slate-100 transition-all duration-300 flex items-center gap-4 min-w-[280px] hover:-translate-y-0.5">
       <div className={`relative w-14 h-14 flex-shrink-0 rounded-xl bg-gradient-to-br ${cert.accent} text-white flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105 group-hover:rotate-[4deg]`}>
         <FiShield size={26} />
         <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow">

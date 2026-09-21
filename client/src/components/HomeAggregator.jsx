@@ -2,6 +2,10 @@ import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { FiArrowRight } from 'react-icons/fi';
 import HeroSlider from './HeroSlider';
+import MarketShowcaseSection from './MarketShowcaseSection';
+import EcovadisAwardSection from './EcovadisAwardSection';
+import ProductShowcaseSection from './ProductShowcaseSection';
+import CertificatesSection from './CertificatesSection';
 import { SUPPORTED_LOCALES } from '../i18n';
 
 let lang = 'vi';
@@ -45,7 +49,10 @@ const HomeAggregator = () => {
   return (
     <div className="bg-white">
       <HeroSlider />
-      
+      <MarketShowcaseSection />
+      <EcovadisAwardSection lang={lang} />
+      <ProductShowcaseSection lang={lang} />
+      <CertificatesSection />
     </div>
   );
 };

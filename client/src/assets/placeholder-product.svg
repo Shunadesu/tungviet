@@ -1,18 +1,48 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" preserveAspectRatio="xMidYMid slice">
   <defs>
+    <!-- Pastel gradient background -->
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#F1F5F9"/>
-      <stop offset="100%" stop-color="#E2E8F0"/>
+      <stop offset="0%"   stop-color="#F0F4FF"/>
+      <stop offset="50%"  stop-color="#FDF2F8"/>
+      <stop offset="100%" stop-color="#F0FDF4"/>
     </linearGradient>
+    <!-- Blob gradient -->
+    <radialGradient id="blob" cx="50%" cy="50%" r="50%">
+      <stop offset="0%"   stop-color="#C7D2FE" stop-opacity="0.7"/>
+      <stop offset="100%" stop-color="#A5B4FC" stop-opacity="0.4"/>
+    </radialGradient>
+    <!-- Drop accent -->
     <linearGradient id="drop" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="#E07A1F"/>
-      <stop offset="100%" stop-color="#B45309"/>
+      <stop offset="0%"   stop-color="#FCD34D"/>
+      <stop offset="100%" stop-color="#F59E0B"/>
     </linearGradient>
   </defs>
+
+  <!-- Background -->
   <rect width="400" height="300" fill="url(#bg)"/>
-  <g transform="translate(200 150)">
-    <path d="M 0 -60 C 35 -45 45 0 0 50 C -45 0 -35 -45 0 -60 Z" fill="url(#drop)" opacity="0.85"/>
-    <ellipse cx="-10" cy="-30" rx="6" ry="14" fill="#FED7AA" opacity="0.6"/>
+
+  <!-- Soft decorative blobs -->
+  <ellipse cx="80"  cy="60"  rx="70"  ry="50"  fill="url(#blob)" opacity="0.5"/>
+  <ellipse cx="330" cy="250" rx="80"  ry="55"  fill="url(#blob)" opacity="0.4"/>
+  <ellipse cx="200" cy="150" rx="110" ry="80"  fill="url(#blob)" opacity="0.35"/>
+
+  <!-- Product / box icon (simplified isometric cube) -->
+  <g transform="translate(200 140)" opacity="0.9">
+    <!-- Shadow -->
+    <ellipse cx="0" cy="44" rx="32" ry="8" fill="#A5B4FC" opacity="0.25"/>
+    <!-- Top face -->
+    <polygon points="0,-28 36,0 0,28 -36,0" fill="#E0E7FF"/>
+    <!-- Left face -->
+    <polygon points="-36,0 0,28 0,70 -36,42" fill="#C7D2FE"/>
+    <!-- Right face -->
+    <polygon points="0,28 36,0 36,42 0,70"  fill="#818CF8"/>
+    <!-- Highlight on top -->
+    <polygon points="0,-28 36,0 0,12 -36,12" fill="#EEF2FF" opacity="0.6"/>
   </g>
-  <text x="200" y="240" text-anchor="middle" font-family="system-ui, sans-serif" font-size="13" fill="#64748B">No image</text>
+
+  <!-- Label -->
+  <text x="200" y="232" text-anchor="middle"
+        font-family="system-ui, -apple-system, sans-serif"
+        font-size="12" font-weight="500"
+        fill="#94A3B8" letter-spacing="0.05em">No image</text>
 </svg>
