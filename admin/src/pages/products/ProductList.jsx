@@ -403,7 +403,14 @@ const ProductList = () => {
                               key={column._id || column.key}
                               className="px-2 py-2 text-xs whitespace-nowrap"
                             >
-                              {value || '—'}
+                              {value ? (
+                                <span
+                                  className="line-clamp-2 max-w-xs"
+                                  dangerouslySetInnerHTML={{ __html: value }}
+                                />
+                              ) : (
+                                '—'
+                              )}
                             </td>
                           );
                         })}

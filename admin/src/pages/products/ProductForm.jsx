@@ -1050,7 +1050,9 @@ const ProductForm = () => {
     try {
       const data = {
         ...formData,
-        attributes: { ...formData.attributes },
+        attributes: Object.fromEntries(
+          Object.entries({ ...formData.attributes }).filter(([, v]) => v !== '' && v != null)
+        ),
         applications: (formData.applications || []).filter(
           (a) => a && (a.title || a.titleEn)
         ),
@@ -1397,7 +1399,7 @@ const ProductForm = () => {
                 <h3 className="text-xs font-semibold text-gray-700">Thông số kỹ thuật</h3>
                 <button
                   type="button"
-                  onClick={() => navigate('/products/columns')}
+                  onClick={() => navigate(-1)}
                   className="text-[10px] text-primary hover:underline"
                 >
                   Quản lý cột
@@ -1412,47 +1414,108 @@ const ProductForm = () => {
                         <th className="px-3 py-2 text-left font-semibold text-gray-600">Tên thông số</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-600 w-24">Đơn vị</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-600">Giá trị</th>
+                        <th className="px-3 py-2 text-left font-semibold text-gray-600">Giá trị (EN)</th>
                       </tr>
                     </thead>
                     <tbody>
                       {columns
                         .slice()
                         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
-                        .map((column, index) => (
-                          <tr key={column._id || column.key} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
-                            <td className="px-3 py-2 text-gray-400 text-[10px]">{index + 1}</td>
-                            <td className="px-3 py-2">
-                              <span className="font-medium text-gray-700">{column.name}</span>
-                              {column.nameEn && (
-                                <span className="block text-[10px] text-gray-400">{column.nameEn}</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2">
-                              {column.unit ? (
-                                <span className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]">
-                                  {column.unit}
-                                </span>
-                              ) : (
-                                <span className="text-[10px] text-gray-300">—</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-2">
-                              <input
-                                type="text"
-                                value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
-                                onChange={(event) =>
-                                  setFormData((previous) => ({
-                                    ...previous,
-                                    attributes: { ...previous.attributes, [column.key]: event.target.value },
-                                    ...(column.key in previous ? { [column.key]: event.target.value } : {}),
-                                  }))
-                                }
-                                className="input-field text-xs"
-                                placeholder="Nhập thông số"
-                              />
-                            </td>
-                          </tr>
-                        ))}
+                        .map((column, index) => {
+                          const isActive = Boolean(
+                            formData.attributes?.[column.key] ?? formData[column.key] ?? ''
+                          );
+                          return (
+                            <tr key={column._id || column.key} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
+                              <td className="px-3 py-2 text-gray-400 text-[10px]">{index + 1}</td>
+                              <td className="px-3 py-2">
+                                <label className="flex items-center gap-2 cursor-pointer select-none">
+                                  <input
+                                    type="checkbox"
+                                    checked={isActive}
+                                    onChange={(e) => {
+                                      setFormData((prev) => {
+                                        const updated = {
+                                          ...prev,
+                                          attributes: { ...prev.attributes },
+                                        };
+                                        if (e.target.checked) {
+                                          // keep existing value or empty string
+                                          updated.attributes[column.key] =
+                                            prev.attributes?.[column.key] ?? prev[column.key] ?? '';
+                                        } else {
+                                          // remove the key
+                                          const { [column.key]: _removed, ...restAttrs } = updated.attributes;
+                                          updated.attributes = restAttrs;
+                                        }
+                                        return updated;
+                                      });
+                                    }}
+                                    className="rounded border-gray-300 text-primary focus:ring-primary"
+                                  />
+                                  <div>
+                                    <span className="font-medium text-gray-700">{column.name}</span>
+                                    {column.nameEn && (
+                                      <span className="block text-[10px] text-gray-400">{column.nameEn}</span>
+                                    )}
+                                  </div>
+                                </label>
+                              </td>
+                              <td className="px-3 py-2">
+                                {column.unit ? (
+                                  <span
+                                    className="inline-block px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded text-[10px]"
+                                    dangerouslySetInnerHTML={{ __html: column.unit }}
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-gray-300">—</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2">
+                                {isActive ? (
+                                  <input
+                                    type="text"
+                                    value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
+                                    onChange={(event) =>
+                                      setFormData((previous) => ({
+                                        ...previous,
+                                        attributes: {
+                                          ...previous.attributes,
+                                          [column.key]: event.target.value,
+                                        },
+                                      }))
+                                    }
+                                    className="input-field text-xs"
+                                    placeholder="VI"
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-gray-300 italic">—</span>
+                                )}
+                              </td>
+                              <td className="px-3 py-2">
+                                {isActive ? (
+                                  <input
+                                    type="text"
+                                    value={formData.attributes?.[`${column.key}En`] ?? ''}
+                                    onChange={(event) =>
+                                      setFormData((previous) => ({
+                                        ...previous,
+                                        attributes: {
+                                          ...previous.attributes,
+                                          [`${column.key}En`]: event.target.value,
+                                        },
+                                      }))
+                                    }
+                                    className="input-field text-xs"
+                                    placeholder="EN"
+                                  />
+                                ) : (
+                                  <span className="text-[10px] text-gray-300 italic">—</span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
                     </tbody>
                   </table>
                 </div>

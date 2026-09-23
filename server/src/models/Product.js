@@ -159,7 +159,7 @@ productSchema.plugin(mongooseDelete, { deletedAt: true, overrideMethods: 'all' }
 productSchema.index({ name: 'text', description: 'text' });
 productSchema.index({ isActive: 1 });
 productSchema.index({ createdAt: -1 });
-productSchema.index({ productCode: 1 }, { unique: true, partialFilterExpression: { productCode: { $type: 'string', $gt: '' } } });
+productSchema.index({ productCode: 1 }, { unique: true, partialFilterExpression: { productCode: { $type: 'string', $gt: '' }, isDeleted: false } });
 productSchema.index({ webStatus: 1, isActive: 1 });
 productSchema.index({ marketIds: 1 });
 productSchema.index({ isFeatured: 1, isActive: 1, webStatus: 1, displayOrder: 1 });
