@@ -1051,7 +1051,7 @@ const ProductForm = () => {
       const data = {
         ...formData,
         attributes: Object.fromEntries(
-          Object.entries({ ...formData.attributes }).filter(([, v]) => v !== '' && v != null)
+          Object.entries({ ...formData.attributes }).filter(([, v]) => v != null)
         ),
         applications: (formData.applications || []).filter(
           (a) => a && (a.title || a.titleEn)
@@ -1444,8 +1444,9 @@ const ProductForm = () => {
                                           updated.attributes[column.key] =
                                             prev.attributes?.[column.key] ?? prev[column.key] ?? '';
                                         } else {
-                                          // remove the key
-                                          const { [column.key]: _removed, ...restAttrs } = updated.attributes;
+                                          // remove both VI and EN keys
+                                          const enKey = `${column.key}En`;
+                                          const { [column.key]: _removed, [enKey]: _removedEn, ...restAttrs } = updated.attributes;
                                           updated.attributes = restAttrs;
                                         }
                                         return updated;

@@ -1,4 +1,10 @@
 const DataTable = ({ columns, data, actions, selectable, selected, onSelectChange }) => {
+  // Strip Quill-generated empty HTML tags so cells show blank instead of <p></p>
+  const stripEmptyHtml = (val) => {
+    if (typeof val !== 'string') return val;
+    return val.replace(/<p>(\s*|<br\s*\/?>)*<\/p>/gi, '').trim() || val;
+  };
+
   const toggleAll = () => {
     if (selected?.length === data.length) {
       onSelectChange?.([]);
@@ -58,11 +64,17 @@ const DataTable = ({ columns, data, actions, selectable, selected, onSelectChang
                   />
                 </td>
               )}
-              {columns.map((col, colIndex) => (
-                <td key={colIndex} className="px-3 py-2 text-xs">
-                  {col.render ? col.render(row[col.accessor], row, rowIndex) : row[col.accessor]}
-                </td>
-              ))}
+              {columns.map((col, colIndex) => {
+                const raw = col.render ? col.render(row[col.accessor], row, rowIndex) : row[col.accessor];
+                const display = typeof raw === 'string' && /<[a-z]/i.test(raw)
+                  ? <span dangerouslySetInnerHTML={{ __html: stripEmptyHtml(raw) }} />
+                  : stripEmptyHtml(raw);
+                return (
+                  <td key={colIndex} className="px-3 py-2 text-xs">
+                    {display}
+                  </td>
+                );
+              })}
               {actions && (
                 <td className="px-3 py-2 text-right">
                   <div className="flex justify-end gap-1">
