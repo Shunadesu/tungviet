@@ -13,6 +13,7 @@ import { FiFile } from 'react-icons/fi';
  *  - minHeight: px (default 160)
  *  - maxLength: optional char counter
  *  - onUploadPDF: optional handler nhận file -> upload -> trả về URL
+ *  - toolbar: optional array config thay thế toolbar mặc định (VD: [['bold', 'italic']])
  *
  * NOTE: ReactQuill gọi onChange liên tục (selection change, focus, etc.).
  * Ta wrap onChange để chỉ bubble ra ngoài khi value thay đổi thực sự -> tránh
@@ -25,6 +26,7 @@ const RichEditor = ({
   minHeight = 160,
   maxLength,
   onUploadPDF,
+  toolbar,
 }) => {
   const quillRef = useRef(null);
   const lastValueRef = useRef(value || '');
@@ -32,7 +34,7 @@ const RichEditor = ({
   const modules = useMemo(
     () => ({
       toolbar: {
-        container: [
+        container: toolbar || [
           ['bold', 'italic', 'underline', 'strike'],
           [{ list: 'ordered' }, { list: 'bullet' }],
           [{ header: [1, 2, 3, false] }],
@@ -52,12 +54,22 @@ const RichEditor = ({
         },
       },
     }),
-    []
+    [toolbar]
   );
 
   const formats = useMemo(
-    () => ['bold', 'italic', 'underline', 'strike', 'list', 'header', 'link'],
-    []
+    () => {
+      if (toolbar) {
+        // Flatten toolbar array to collect all used format keys
+        const keys = new Set();
+        toolbar.forEach((group) => {
+          if (Array.isArray(group)) group.forEach((item) => keys.add(item));
+        });
+        return Array.from(keys);
+      }
+      return ['bold', 'italic', 'underline', 'strike', 'list', 'header', 'link'];
+    },
+    [toolbar]
   );
 
   const handleChange = useCallback(

@@ -644,13 +644,13 @@ const MarketTreeForm = () => {
                   <img
                     src={formData.imageUrl}
                     alt=""
-                    className="w-12 h-12 rounded object-cover border"
+                    className="w-32 h-32 rounded object-cover border"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                  <div className="w-32 h-32 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                     <FiImage size={16} />
                   </div>
                 )}

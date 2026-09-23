@@ -13,6 +13,7 @@ import Dashboard from './pages/Dashboard';
 import ProductList from './pages/products/ProductList';
 import ProductForm from './pages/products/ProductForm';
 import ProductColumnsSettings from './pages/products/ProductColumnsSettings';
+import ProductColumnForm from './pages/products/ProductColumnForm';
 import MainTreeList from './pages/mainTrees/MainTreeList';
 import MainTreeForm from './pages/mainTrees/MainTreeForm';
 import MainTreeTechEditor from './pages/mainTrees/MainTreeTechEditor';
@@ -112,6 +113,16 @@ function App() {
               <Route path="/products/columns" element={
                 <ProtectedRoute>
                   <ProductColumnsSettings />
+                </ProtectedRoute>
+              } />
+              <Route path="/products/columns/new" element={
+                <ProtectedRoute>
+                  <ProductColumnForm />
+                </ProtectedRoute>
+              } />
+              <Route path="/products/columns/:id/edit" element={
+                <ProtectedRoute>
+                  <ProductColumnForm />
                 </ProtectedRoute>
               } />
               <Route path="/main-trees" element={

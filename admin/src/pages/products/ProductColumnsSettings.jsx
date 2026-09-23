@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   FiArrowDown,
   FiArrowUp,
@@ -8,47 +9,19 @@ import {
   FiPlus,
   FiRefreshCw,
   FiTrash2,
-  FiX,
 } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 import Skeleton from '../../components/Skeleton';
 
-const emptyForm = {
-  name: '',
-  nameEn: '',
-  unit: '',
-  key: '',
-  order: 0,
-  isActive: true,
-};
-
-const slugify = (value) => value
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .toLowerCase()
-  .replace(/[^a-z0-9]+/g, '_')
-  .replace(/^_+|_+$/g, '')
-  .slice(0, 30);
-
-const LEGACY_KEYS = new Set(['softeningPoint', 'acidValue', 'color']);
-
-const normalizeKey = (value) => {
-  if (!value) return '';
-  const key = String(value).trim();
-  return LEGACY_KEYS.has(key) ? key : key.toLowerCase();
-};
-
 const isDeleted = (column) => Boolean(column.deleted || column.deletedAt);
 
 const ProductColumnsSettings = () => {
+  const navigate = useNavigate();
   const { addNotification } = useNotification();
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState(emptyForm);
-  const [saving, setSaving] = useState(false);
   const [showInactive, setShowInactive] = useState(true);
 
   const visibleColumns = useMemo(
@@ -77,94 +50,6 @@ const ProductColumnsSettings = () => {
     loadColumns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const openCreate = () => {
-    setForm({
-      name: '',
-      nameEn: '',
-      unit: '',
-      key: '',
-      order: columns.length + 1,
-      isActive: true,
-    });
-    setEditing('new');
-  };
-
-  const openEdit = (column) => {
-    setForm({
-      name: column.name || '',
-      nameEn: column.nameEn || '',
-      unit: column.unit || '',
-      key: column.key || '',
-      order: column.order ?? 0,
-      isActive: column.isActive !== false,
-    });
-    setEditing(column);
-  };
-
-  const closeForm = () => {
-    setEditing(null);
-    setForm(emptyForm);
-  };
-
-  const handleNameChange = (value) => {
-    setForm((previous) => {
-      // Nếu đang tạo mới, auto-generate key từ tên EN nếu có, nếu không thì từ tên VI
-      const shouldAutoKey = editing === 'new';
-      const sourceForKey = previous.nameEn || value;
-      return {
-        ...previous,
-        name: value,
-        ...(shouldAutoKey ? { key: slugify(sourceForKey) } : {}),
-      };
-    });
-  };
-
-  const handleNameEnChange = (value) => {
-    setForm((previous) => {
-      // Nếu đang tạo mới, auto-generate key từ tên EN
-      const shouldAutoKey = editing === 'new';
-      const newKey = shouldAutoKey && value ? slugify(value) : previous.key;
-      
-      console.log('✏️ Name EN changed:', value);
-      console.log('🔄 Auto-generating key:', newKey);
-      
-      return {
-        ...previous,
-        nameEn: value,
-        ...(shouldAutoKey && value ? { key: newKey } : {}),
-      };
-    });
-  };
-
-  const handleSubmit = async (event) => {
-    event.preventDefault();
-    setSaving(true);
-    try {
-      const payload = {
-        ...form,
-        key: normalizeKey(form.key),
-        order: Number(form.order) || 0,
-      };
-      
-      console.log('📝 Submitting payload:', payload);
-      console.log('🔑 Normalized key:', payload.key);
-      
-      if (editing === 'new') {
-        await adminApi.createProductColumn(payload);
-        addNotification('Tạo cột thuộc tính thành công');
-      } else {
-        await adminApi.updateProductColumn(editing._id, payload);
-        addNotification('Cập nhật cột thuộc tính thành công');
-      }
-      closeForm();
-      await loadColumns();
-    } catch (error) {
-      addNotification(error.response?.data?.message || 'Lưu cột thuộc tính thất bại', 'error');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   const toggleActive = async (column) => {
     try {
@@ -230,7 +115,7 @@ const ProductColumnsSettings = () => {
               />
               Hiện cột đã ẩn
             </label>
-            <button type="button" onClick={openCreate} className="btn-primary flex items-center gap-1 text-xs">
+            <button type="button" onClick={() => navigate('/products/columns/new')} className="btn-primary flex items-center gap-1 text-xs">
               <FiPlus size={14} /> Thêm cột
             </button>
           </div>
@@ -301,7 +186,11 @@ const ProductColumnsSettings = () => {
                         <td className="px-3 py-2 text-center text-xs text-gray-500">{index + 1}</td>
                         <td className="px-3 py-2 text-xs font-medium">{column.name}</td>
                         <td className="px-3 py-2 text-xs text-gray-600">{column.nameEn || '—'}</td>
-                        <td className="px-3 py-2 text-xs text-gray-600">{column.unit || '—'}</td>
+                        <td className="px-3 py-2 text-xs text-gray-600">
+                          {column.unit ? (
+                            <span dangerouslySetInnerHTML={{ __html: column.unit }} />
+                          ) : '—'}
+                        </td>
                         <td className="px-3 py-2"><code className="text-[11px] bg-gray-100 rounded px-1.5 py-0.5">{column.key}</code></td>
                         <td className="px-3 py-2 text-center text-xs text-gray-600">{column.order ?? 0}</td>
                         <td className="px-3 py-2 text-center">
@@ -318,7 +207,7 @@ const ProductColumnsSettings = () => {
                                 <button type="button" onClick={() => toggleActive(column)} className="p-1.5 text-gray-500 hover:text-primary" title={column.isActive ? 'Ẩn cột' : 'Hiện cột'}>
                                   {column.isActive ? <FiEyeOff size={14} /> : <FiEye size={14} />}
                                 </button>
-                                <button type="button" onClick={() => openEdit(column)} className="p-1.5 text-gray-500 hover:text-primary" title="Sửa"><FiEdit2 size={14} /></button>
+                                <button type="button" onClick={() => navigate(`/products/columns/${column._id || column.id}/edit`)} className="p-1.5 text-gray-500 hover:text-primary" title="Sửa"><FiEdit2 size={14} /></button>
                                 <button type="button" onClick={() => handleDelete(column)} className="p-1.5 text-red-500 hover:bg-red-50 rounded" title="Xóa"><FiTrash2 size={14} /></button>
                               </>
                             )}
@@ -337,53 +226,6 @@ const ProductColumnsSettings = () => {
         </div>
       </div>
 
-      {editing && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center p-4 overflow-y-auto" onClick={(event) => { if (event.target === event.currentTarget) closeForm(); }}>
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-lg my-8">
-            <div className="flex items-center justify-between px-4 py-3 border-b">
-              <h2 className="text-sm font-semibold">{editing === 'new' ? 'Thêm cột thuộc tính' : 'Sửa cột thuộc tính'}</h2>
-              <button type="button" onClick={closeForm} className="p-1 text-gray-400 hover:text-gray-600"><FiX size={18} /></button>
-            </div>
-            <form onSubmit={handleSubmit} className="p-4 space-y-4">
-              <div className="grid md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Tên cột (VI) <span className="text-red-500">*</span></label>
-                  <input type="text" required value={form.name} onChange={(event) => handleNameChange(event.target.value)} className="input-field" placeholder="Ví dụ: Độ nhớt" maxLength={100} />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Tên cột (EN)</label>
-                  <input type="text" value={form.nameEn} onChange={(event) => handleNameEnChange(event.target.value)} className="input-field" placeholder="Viscosity" maxLength={100} />
-                  <p className="text-[10px] text-gray-400 mt-1">Key sẽ tự động tạo từ tên EN.</p>
-                </div>
-              </div>
-              <div className="grid md:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium mb-1">Đơn vị</label>
-                  <input type="text" value={form.unit} onChange={(event) => setForm({ ...form, unit: event.target.value })} className="input-field" placeholder="Ví dụ: °C, mg KOH/g, Gardner" maxLength={50} />
-                  <p className="text-[10px] text-gray-400 mt-1">Đơn vị đo của thuộc tính này.</p>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium mb-1">Key <span className="text-red-500">*</span></label>
-                  <input type="text" required value={form.key} onChange={(event) => setForm({ ...form, key: event.target.value.toLowerCase().replace(/\s+/g, '_') })} className="input-field font-mono text-xs" placeholder="viscosity" pattern="^[a-zA-Z][a-zA-Z0-9_]{1,29}$" />
-                  <p className="text-[10px] text-gray-400 mt-1">Chữ thường, số, gạch dưới; dài 2–30 ký tự.</p>
-                </div>
-              </div>
-              <div>
-                <label className="block text-xs font-medium mb-1">Thứ tự</label>
-                <input type="number" min="0" value={form.order} onChange={(event) => setForm({ ...form, order: event.target.value })} className="input-field w-32" />
-              </div>
-              <label className="flex items-center gap-2 text-xs text-gray-700 cursor-pointer select-none">
-                <input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} className="rounded border-gray-300 text-primary focus:ring-primary" />
-                Hiển thị cột này trong sản phẩm
-              </label>
-              <div className="flex justify-end gap-2 pt-3 border-t">
-                <button type="button" onClick={closeForm} className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded">Hủy</button>
-                <button type="submit" disabled={saving} className="btn-primary text-xs disabled:opacity-60">{saving ? 'Đang lưu...' : editing === 'new' ? 'Tạo cột' : 'Lưu thay đổi'}</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </>
   );
 };
