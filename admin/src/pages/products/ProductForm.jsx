@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiPackage, FiCheck, FiCpu } from 'react-icons/fi';
+import { FiArrowLeft, FiSave, FiUpload, FiX, FiFile, FiImage, FiList, FiChevronDown, FiChevronUp, FiPlus, FiTrash2, FiPackage, FiCheck, FiCpu, FiExternalLink } from 'react-icons/fi';
 import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import RichEditor from '../../components/RichEditor';
+import Skeleton from '../../components/Skeleton';
 import Modal from '../../components/Modal';
 import SEO from '../../components/SEO';
 import adminApi from '../../api/adminApi';
@@ -721,6 +722,16 @@ const MultiSelectDropdown = ({
 
 // ── Per-Market Techs & Apps Table ───────────────────────────────────────────
 const MarketAppsTechsPanel = ({ markets, entries, onChange }) => {
+  const selectedSet = new Set((entries || []).map((e) => String(e.marketId)));
+
+  const toggleMarket = (marketId) => {
+    if (selectedSet.has(String(marketId))) {
+      onChange((entries || []).filter((e) => String(e.marketId) !== String(marketId)));
+    } else {
+      onChange([...(entries || []), { marketId, technologyIds: [], applicationIds: [] }]);
+    }
+  };
+
   const updateEntry = (marketId, patch) => {
     const next = (entries || []).map((e) =>
       String(e.marketId) === String(marketId) ? { ...e, ...patch } : e
@@ -728,29 +739,49 @@ const MarketAppsTechsPanel = ({ markets, entries, onChange }) => {
     onChange(next);
   };
 
-  if (!entries || entries.length === 0) {
-    return (
-      <div className="mt-3 p-4 bg-gray-50 border border-dashed border-gray-300 rounded-lg">
-        <p className="text-xs text-gray-500 text-center italic">
-          Chọn thị trường ở trên trước để cấu hình công nghệ &amp; ứng dụng tương ứng.
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="mt-3 border border-gray-300 rounded-lg overflow-visible">
+    <div className="mt-3 border border-gray-300 rounded-lg overflow-hidden">
       <table className="w-full text-xs">
         <thead className="bg-slate-700 text-white">
           <tr>
-            <th className="px-3 py-2.5 text-left font-semibold w-1/3">Thị trường</th>
-            <th className="px-3 py-2.5 text-left font-semibold w-1/3">
+            <th className="px-3 py-2.5 text-center font-semibold w-10">
+              <input
+                type="checkbox"
+                className="rounded w-4 h-4"
+                checked={
+                  markets.length > 0 &&
+                  markets.every((m) => selectedSet.has(String(m._id)))
+                }
+                ref={(el) => {
+                  if (el)
+                    el.indeterminate =
+                      markets.length > 0 &&
+                      !markets.every((m) => selectedSet.has(String(m._id))) &&
+                      markets.some((m) => selectedSet.has(String(m._id)));
+                }}
+                onChange={() => {
+                  if (selectedSet.size === markets.length) {
+                    onChange([]);
+                  } else {
+                    onChange(
+                      markets.map((m) => ({
+                        marketId: m._id,
+                        technologyIds: [],
+                        applicationIds: [],
+                      }))
+                    );
+                  }
+                }}
+              />
+            </th>
+            <th className="px-3 py-2.5 text-left font-semibold">Thị trường</th>
+            <th className="px-3 py-2.5 text-left font-semibold w-1/4">
               <div className="flex items-center gap-1.5">
                 <FiCpu size={13} />
                 Công nghệ
               </div>
             </th>
-            <th className="px-3 py-2.5 text-left font-semibold w-1/3">
+            <th className="px-3 py-2.5 text-left font-semibold w-1/4">
               <div className="flex items-center gap-1.5">
                 <FiPackage size={13} />
                 Ứng dụng
@@ -759,48 +790,68 @@ const MarketAppsTechsPanel = ({ markets, entries, onChange }) => {
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-200 bg-white">
-          {entries.map((entry) => {
-            const market = (markets || []).find((m) => String(m._id) === String(entry.marketId));
-            if (!market) return null;
-            
-            const techs = Array.isArray(market.technologies) ? market.technologies : [];
-            const apps = Array.isArray(market.applications) ? market.applications : [];
+          {markets.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="px-3 py-6 text-center text-gray-400 italic">
+                Chưa có thị trường nào.
+              </td>
+            </tr>
+          ) : (
+            markets.map((market) => {
+              const entry = (entries || []).find(
+                (e) => String(e.marketId) === String(market._id)
+              );
+              const isActive = Boolean(entry);
+              const techs = Array.isArray(market.technologies) ? market.technologies : [];
+              const apps = Array.isArray(market.applications) ? market.applications : [];
 
-            return (
-              <tr key={String(entry.marketId)} className="hover:bg-gray-50/50">
-                <td className="px-3 py-3 align-top">
-                  <div className="font-semibold text-gray-800">
-                    {market.title || market.titleEn}
-                  </div>
-                  {market.titleEn && market.title && (
-                    <div className="text-[10px] text-gray-500 mt-0.5">
-                      {market.titleEn}
+              return (
+                <tr
+                  key={String(market._id)}
+                  className={`transition-colors ${
+                    isActive ? 'bg-amber-50/40 hover:bg-amber-50/60' : 'hover:bg-gray-50/50'
+                  }`}
+                >
+                  <td className="px-3 py-3 text-center">
+                    <input
+                      type="checkbox"
+                      className="rounded w-4 h-4"
+                      checked={isActive}
+                      onChange={() => toggleMarket(market._id)}
+                    />
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    <div className="font-semibold text-gray-800">
+                      {market.title || market.titleEn || '—'}
                     </div>
-                  )}
-                </td>
-                <td className="px-3 py-3 align-top">
-                  <MultiSelectDropdown
-                    items={techs}
-                    selected={entry.technologyIds || []}
-                    onChange={(ids) => updateEntry(entry.marketId, { technologyIds: ids })}
-                    placeholder="— Chọn công nghệ —"
-                    disabled={techs.length === 0}
-                    emptyMessage="Thị trường này chưa có công nghệ"
-                  />
-                </td>
-                <td className="px-3 py-3 align-top">
-                  <MultiSelectDropdown
-                    items={apps}
-                    selected={entry.applicationIds || []}
-                    onChange={(ids) => updateEntry(entry.marketId, { applicationIds: ids })}
-                    placeholder="— Chọn ứng dụng —"
-                    disabled={apps.length === 0}
-                    emptyMessage="Thị trường này chưa có ứng dụng"
-                  />
-                </td>
-              </tr>
-            );
-          })}
+                    {market.titleEn && (
+                      <div className="text-[10px] text-gray-500 mt-0.5">{market.titleEn}</div>
+                    )}
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    <MultiSelectDropdown
+                      items={techs}
+                      selected={(entry || {}).technologyIds || []}
+                      onChange={(ids) => updateEntry(market._id, { technologyIds: ids })}
+                      placeholder="—"
+                      disabled={!isActive || techs.length === 0}
+                      emptyMessage="Chưa có công nghệ"
+                    />
+                  </td>
+                  <td className="px-3 py-3 align-top">
+                    <MultiSelectDropdown
+                      items={apps}
+                      selected={(entry || {}).applicationIds || []}
+                      onChange={(ids) => updateEntry(market._id, { applicationIds: ids })}
+                      placeholder="—"
+                      disabled={!isActive || apps.length === 0}
+                      emptyMessage="Chưa có ứng dụng"
+                    />
+                  </td>
+                </tr>
+              );
+            })
+          )}
         </tbody>
       </table>
     </div>
@@ -985,10 +1036,16 @@ const ProductForm = () => {
         priceVisible: product.priceVisible !== false,
         webStatus: product.webStatus || 'draft',
         targetAudience: product.targetAudience || '',
-        softeningPoint: product.softeningPoint || '',
-        acidValue: product.acidValue || '',
-        color: product.color || '',
-        attributes: product.attributes && typeof product.attributes === 'object' ? product.attributes : {},
+        softeningPoint: product.softeningPoint || product.attributes?.softeningPoint || '',
+        acidValue: product.acidValue || product.attributes?.acidValue || '',
+        color: product.color || product.attributes?.color || '',
+        attributes: {
+          ...(product.attributes && typeof product.attributes === 'object' ? product.attributes : {}),
+          // Also include legacy top-level fields in attributes so isActive/inputs work
+          ...(product.softeningPoint ? { softeningPoint: product.softeningPoint } : {}),
+          ...(product.acidValue ? { acidValue: product.acidValue } : {}),
+          ...(product.color ? { color: product.color } : {}),
+        },
         applications: Array.isArray(product.applications)
           ? product.applications.map((a) => ({
               ...emptyApplication,
@@ -1017,29 +1074,6 @@ const ProductForm = () => {
   };
 
   // Keep `marketEntries` aligned with the list of chosen markets.
-  // - Entries whose marketId is no longer in marketIds are dropped.
-  // - Markets present in marketIds but missing from marketEntries get an empty entry.
-  const handleMarketIdsChange = (nextIds) => {
-    setFormData((prev) => {
-      const nextSet = new Set((nextIds || []).map(String));
-      const keptEntries = (prev.marketEntries || []).filter((e) =>
-        nextSet.has(String(e.marketId))
-      );
-      const newEntries = (nextIds || [])
-        .filter((id) => !keptEntries.some((e) => String(e.marketId) === String(id)))
-        .map((id) => ({
-          marketId: id,
-          technologyIds: [],
-          applicationIds: [],
-        }));
-      return {
-        ...prev,
-        marketIds: nextIds || [],
-        marketEntries: [...keptEntries, ...newEntries],
-      };
-    });
-  };
-
   const handleMarketEntriesChange = (nextEntries) => {
     setFormData((prev) => ({ ...prev, marketEntries: nextEntries }));
   };
@@ -1102,6 +1136,27 @@ const ProductForm = () => {
     }
   };
 
+  const handleGalleryUpload = async (file) => {
+    setUploadingImage(true);
+    try {
+      const res = await adminApi.uploadImage(file);
+      const url = res?.data?.data?.url;
+      if (url) {
+        setFormData((prev) => ({
+          ...prev,
+          gallery: [...(prev.gallery || []), url],
+        }));
+        addNotification('Upload ảnh thành công');
+      } else {
+        addNotification(res?.data?.message || 'Upload ảnh thất bại', 'error');
+      }
+    } catch (error) {
+      addNotification(error?.response?.data?.message || error?.message || 'Upload ảnh thất bại', 'error');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const handleTDSUpload = async (file) => {
     setUploadingTDS(true);
     try {
@@ -1152,8 +1207,91 @@ const ProductForm = () => {
           backTo="/products"
           backLabel="Danh sách sản phẩm"
         />
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+        <div className="p-4">
+          <div className="card p-4 space-y-5">
+            {/* Row: SKU + Tên */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="20%" className="mb-1" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="30%" className="mb-1" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+            </div>
+
+            {/* Tên EN */}
+            <div className="space-y-1.5">
+              <Skeleton variant="rect" height={10} width="25%" className="mb-1" />
+              <Skeleton variant="rect" height={36} width="100%" />
+            </div>
+
+            {/* Ngành hàng + Danh mục */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="30%" className="mb-1" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="25%" className="mb-1" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+            </div>
+
+            {/* Product line */}
+            <div className="space-y-1.5">
+              <Skeleton variant="rect" height={10} width="25%" className="mb-1" />
+              <Skeleton variant="rect" height={36} width="100%" />
+            </div>
+
+            {/* Ảnh sản phẩm */}
+            <div className="space-y-2">
+              <Skeleton variant="rect" height={10} width="20%" className="mb-1" />
+              <div className="flex flex-wrap gap-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Skeleton key={i} variant="rect" height={144} width={144} rounded="xl" />
+                ))}
+                <Skeleton variant="rect" height={144} width={144} rounded="xl" className="border-dashed" />
+              </div>
+            </div>
+
+            {/* Thông số kỹ thuật */}
+            <div className="space-y-2">
+              <Skeleton variant="rect" height={10} width="30%" className="mb-2" />
+              <Skeleton.Table rows={4} columns={5} />
+            </div>
+
+            {/* Mô tả 2 cột */}
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="35%" className="mb-1" />
+                <Skeleton variant="rect" height={120} width="100%" rounded />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="40%" className="mb-1" />
+                <Skeleton variant="rect" height={120} width="100%" rounded />
+              </div>
+            </div>
+
+            {/* Ứng dụng sản phẩm */}
+            <div className="space-y-2">
+              <Skeleton variant="rect" height={12} width="40%" className="mb-2" />
+              <Skeleton.Editor rows={2} />
+            </div>
+
+            {/* TDS File */}
+            <div className="space-y-2">
+              <Skeleton variant="rect" height={10} width="25%" className="mb-2" />
+              <Skeleton variant="card" height={80} width="100%" />
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3 pt-2 border-t">
+              <Skeleton variant="rect" height={36} width={100} rounded />
+              <Skeleton variant="rect" height={36} width={120} rounded />
+            </div>
+          </div>
         </div>
       </>
     );
@@ -1273,20 +1411,14 @@ const ProductForm = () => {
               </div>
             </div>
 
-            {/* Markets (multi-select, không phụ thuộc ngành) */}
+            {/* Markets table */}
             <div>
               <label className="block text-xs font-semibold mb-1 text-gray-800">
                 Thị trường ứng dụng
               </label>
-              <MultiMarketSelect
-                items={marketTrees}
-                selected={formData.marketIds || []}
-                onChange={handleMarketIdsChange}
-              />
-              <p className="text-[10px] text-gray-500 mt-1.5 mb-2">
-                Chọn các thị trường mà sản phẩm này được sử dụng, sau đó chọn công nghệ và ứng dụng tương ứng trong bảng bên dưới.
+              <p className="text-[10px] text-gray-500 mb-2">
+                Tick checkbox để kích hoạt thị trường, sau đó chọn công nghệ &amp; ứng dụng ở cột bên phải.
               </p>
-              {/* Per-market techs & apps table */}
               <MarketAppsTechsPanel
                 markets={marketTrees}
                 entries={formData.marketEntries || []}
@@ -1393,13 +1525,93 @@ const ProductForm = () => {
               </div>
             </div>
 
+            {/* Ảnh sản phẩm — nhiều ảnh */}
+            <div>
+              <label className="block text-xs font-medium mb-2 text-gray-700">Ảnh sản phẩm</label>
+              <div className="flex flex-wrap gap-3">
+                {/* Preview ảnh chính + xóa */}
+                {formData.imageUrl && (
+                  <div className="relative group w-36 h-36 flex-shrink-0">
+                    <img
+                      src={formData.imageUrl}
+                      alt="Ảnh chính"
+                      className="w-full h-full rounded-xl object-cover border"
+                      onError={(e) => {
+                        e.target.src = '';
+                        e.target.classList.add('hidden');
+                      }}
+                    />
+                    <div className="absolute top-1 left-1 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded font-medium">Chính</div>
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                    >
+                      <FiX size={10} />
+                    </button>
+                  </div>
+                )}
+                {/* Thumbnails từ gallery */}
+                {(formData.gallery || []).map((url, idx) => (
+                  <div key={idx} className="relative group w-36 h-36 flex-shrink-0">
+                    <img
+                      src={url}
+                      alt={`Ảnh ${idx + 2}`}
+                      className="w-full h-full rounded-xl object-cover border"
+                      onError={(e) => {
+                        e.target.src = '';
+                        e.target.classList.add('hidden');
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          gallery: (prev.gallery || []).filter((_, i) => i !== idx),
+                        }))
+                      }
+                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                    >
+                      <FiX size={10} />
+                    </button>
+                  </div>
+                ))}
+                {/* Nút upload */}
+                <label className="w-36 h-36 rounded-xl border-2 border-dashed border-gray-300 hover:border-primary cursor-pointer flex flex-col items-center justify-center gap-1 text-gray-400 hover:text-primary transition-colors flex-shrink-0">
+                  <FiUpload size={22} />
+                  <span className="text-[10px] font-medium text-center px-1">Upload ảnh</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleGalleryUpload(file);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+              {/* URL ảnh chính */}
+              <div className="mt-2">
+                <input
+                  type="url"
+                  value={formData.imageUrl}
+                  onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                  className="input-field text-xs"
+                  placeholder="URL ảnh chính (hoặc dán link ảnh vào đây)"
+                />
+              </div>
+            </div>
+
             {/* Thông số kỹ thuật */}
             <div>
               <div className="flex items-center justify-between mb-2">
                 <h3 className="text-xs font-semibold text-gray-700">Thông số kỹ thuật</h3>
                 <button
                   type="button"
-                  onClick={() => navigate(-1)}
+                  onClick={() => navigate('/products/columns')}
                   className="text-[10px] text-primary hover:underline"
                 >
                   Quản lý cột
@@ -1422,7 +1634,7 @@ const ProductForm = () => {
                         .slice()
                         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                         .map((column, index) => {
-                          const isActive = Boolean(
+                          const hasValue = Boolean(
                             formData.attributes?.[column.key] ?? formData[column.key] ?? ''
                           );
                           return (
@@ -1432,7 +1644,7 @@ const ProductForm = () => {
                                 <label className="flex items-center gap-2 cursor-pointer select-none">
                                   <input
                                     type="checkbox"
-                                    checked={isActive}
+                                    checked={hasValue}
                                     onChange={(e) => {
                                       setFormData((prev) => {
                                         const updated = {
@@ -1440,11 +1652,9 @@ const ProductForm = () => {
                                           attributes: { ...prev.attributes },
                                         };
                                         if (e.target.checked) {
-                                          // keep existing value or empty string
                                           updated.attributes[column.key] =
                                             prev.attributes?.[column.key] ?? prev[column.key] ?? '';
                                         } else {
-                                          // remove both VI and EN keys
                                           const enKey = `${column.key}En`;
                                           const { [column.key]: _removed, [enKey]: _removedEn, ...restAttrs } = updated.attributes;
                                           updated.attributes = restAttrs;
@@ -1473,46 +1683,43 @@ const ProductForm = () => {
                                 )}
                               </td>
                               <td className="px-3 py-2">
-                                {isActive ? (
-                                  <input
-                                    type="text"
-                                    value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
-                                    onChange={(event) =>
-                                      setFormData((previous) => ({
+                                <input
+                                  type="text"
+                                  value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
+                                  onChange={(event) =>
+                                    setFormData((previous) => {
+                                      const val = event.target.value;
+                                      const isLegacy = ['softeningPoint', 'acidValue', 'color'].includes(column.key);
+                                      return {
                                         ...previous,
+                                        ...(isLegacy ? { [column.key]: val } : {}),
                                         attributes: {
                                           ...previous.attributes,
-                                          [column.key]: event.target.value,
+                                          [column.key]: val,
                                         },
-                                      }))
-                                    }
-                                    className="input-field text-xs"
-                                    placeholder="VI"
-                                  />
-                                ) : (
-                                  <span className="text-[10px] text-gray-300 italic">—</span>
-                                )}
+                                      };
+                                    })
+                                  }
+                                  className="input-field text-xs"
+                                  placeholder="Giá trị"
+                                />
                               </td>
                               <td className="px-3 py-2">
-                                {isActive ? (
-                                  <input
-                                    type="text"
-                                    value={formData.attributes?.[`${column.key}En`] ?? ''}
-                                    onChange={(event) =>
-                                      setFormData((previous) => ({
-                                        ...previous,
-                                        attributes: {
-                                          ...previous.attributes,
-                                          [`${column.key}En`]: event.target.value,
-                                        },
-                                      }))
-                                    }
-                                    className="input-field text-xs"
-                                    placeholder="EN"
-                                  />
-                                ) : (
-                                  <span className="text-[10px] text-gray-300 italic">—</span>
-                                )}
+                                <input
+                                  type="text"
+                                  value={formData.attributes?.[`${column.key}En`] ?? ''}
+                                  onChange={(event) =>
+                                    setFormData((previous) => ({
+                                      ...previous,
+                                      attributes: {
+                                        ...previous.attributes,
+                                        [`${column.key}En`]: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  className="input-field text-xs"
+                                  placeholder="Value"
+                                />
                               </td>
                             </tr>
                           );
@@ -1528,77 +1735,25 @@ const ProductForm = () => {
               
             </div>
 
-            {/* Ảnh sản phẩm */}
-            <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">Ảnh sản phẩm</label>
-              <div className="flex items-center gap-3">
-                {formData.imageUrl ? (
-                  <div className="relative group">
-                    <img
-                      src={formData.imageUrl}
-                      alt="Preview"
-                      className="w-20 h-20 rounded-lg object-cover border"
-                      onError={(e) => {
-                        e.target.src = '';
-                        e.target.classList.add('hidden');
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                      className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <FiX size={10} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="w-20 h-20 rounded-lg border border-dashed border-gray-300 flex items-center justify-center text-gray-400">
-                    <FiImage size={20} />
-                  </div>
-                )}
-                <div className="flex flex-col gap-2">
-                  <label className="btn-secondary flex items-center gap-1 text-xs cursor-pointer">
-                    <FiUpload size={14} />
-                    {uploadingImage ? 'Đang upload...' : 'Upload ảnh'}
-                    <input
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) handleImageUpload(file);
-                        e.target.value = '';
-                      }}
-                    />
-                  </label>
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
-                    className="input-field text-xs"
-                    placeholder="Hoặc nhập URL"
-                  />
-                </div>
+            {/* Mô tả — 2 cột trái/phải */}
+            <div className="flex gap-4">
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-medium mb-1 text-gray-700">Mô tả (tiếng Việt)</label>
+                <RichEditor
+                  value={formData.description}
+                  onChange={(value) => setFormData({ ...formData, description: value })}
+                  placeholder="Nhập mô tả sản phẩm (tiếng Việt)..."
+                />
               </div>
-            </div>
-
-            {/* Mô tả */}
-            <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">Mô tả (tiếng Việt)</label>
-              <RichEditor
-                value={formData.description}
-                onChange={(value) => setFormData({ ...formData, description: value })}
-                placeholder="Nhập mô tả sản phẩm (tiếng Việt)..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">Mô tả (tiếng Anh)</label>
-              <RichEditor
-                value={formData.descriptionEn}
-                onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
-                placeholder="English description (optional)"
-              />
+              <div className="border-l border-gray-200" />
+              <div className="flex-1 min-w-0">
+                <label className="block text-xs font-medium mb-1 text-gray-700">Mô tả (tiếng Anh)</label>
+                <RichEditor
+                  value={formData.descriptionEn}
+                  onChange={(value) => setFormData({ ...formData, descriptionEn: value })}
+                  placeholder="English description (optional)"
+                />
+              </div>
             </div>
 
             {/* Applications — list of structured entries */}
@@ -1609,37 +1764,84 @@ const ProductForm = () => {
               uploading={applicationUploading}
             />
 
-            {/* TDS File */}
+            {/* TDS File — thiết kế lớn hơn */}
             <div>
-              <label className="block text-xs font-medium mb-1 text-gray-700">File TDS (PDF)</label>
-              <div className="flex items-center gap-2">
-                {formData.tdsUrl ? (
-                  <a
-                    href={formData.tdsUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 px-3 py-2 bg-blue-50 rounded-lg"
-                  >
-                    <FiFile size={14} />
-                    Xem file hiện tại
-                  </a>
-                ) : (
-                  <span className="text-xs text-gray-400 px-3 py-2">Chưa có file</span>
-                )}
-                <label className="btn-secondary flex items-center gap-1 text-xs cursor-pointer">
-                  <FiUpload size={14} />
-                  {uploadingTDS ? 'Đang upload...' : 'Upload PDF'}
+              <label className="block text-xs font-medium mb-2 text-gray-700">File TDS (PDF)</label>
+              <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                <div className="flex items-start gap-4">
+                  {/* Icon / preview trạng thái */}
+                  <div className={`flex-shrink-0 w-14 h-14 rounded-xl flex flex-col items-center justify-center ${formData.tdsUrl ? 'bg-blue-50' : 'bg-gray-100'}`}>
+                    <FiFile size={24} className={formData.tdsUrl ? 'text-blue-500' : 'text-gray-400'} />
+                    {formData.tdsUrl && <span className="text-[9px] text-blue-500 font-medium mt-0.5">PDF</span>}
+                  </div>
+
+                  {/* Thông tin file */}
+                  <div className="flex-1 min-w-0">
+                    {formData.tdsUrl ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <a
+                            href={formData.tdsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-800 font-medium truncate max-w-xs"
+                          >
+                            {formData.tdsUrl.split('/').pop()}
+                          </a>
+                          <button
+                            type="button"
+                            onClick={() => setFormData((prev) => ({ ...prev, tdsUrl: '' }))}
+                            className="text-red-400 hover:text-red-600 transition-colors"
+                            title="Xóa file"
+                          >
+                            <FiTrash2 size={14} />
+                          </button>
+                        </div>
+                        <a
+                          href={formData.tdsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-secondary flex items-center gap-1 text-xs w-fit"
+                        >
+                          <FiExternalLink size={12} />
+                          Xem / Tải file
+                        </a>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <p className="text-xs text-gray-400">Chưa có file TDS</p>
+                        <p className="text-[10px] text-gray-300">Hỗ trợ định dạng PDF</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Nút upload */}
+                  <label className="btn-secondary flex items-center gap-1.5 text-xs cursor-pointer flex-shrink-0">
+                    <FiUpload size={14} />
+                    {uploadingTDS ? 'Đang upload...' : 'Upload PDF'}
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleTDSUpload(file);
+                        e.target.value = '';
+                      }}
+                    />
+                  </label>
+                </div>
+
+                {/* URL input */}
+                <div className="mt-3">
                   <input
-                    type="file"
-                    accept=".pdf"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleTDSUpload(file);
-                      e.target.value = '';
-                    }}
+                    type="url"
+                    value={formData.tdsUrl}
+                    onChange={(e) => setFormData((prev) => ({ ...prev, tdsUrl: e.target.value }))}
+                    className="input-field text-xs"
+                    placeholder="Hoặc dán link PDF vào đây"
                   />
-                </label>
+                </div>
               </div>
             </div>
 

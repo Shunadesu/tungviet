@@ -188,25 +188,26 @@ const MainTreeList = () => {
         header: 'STT',
         accessor: '_id',
         render: (_, row, idx) => (
-          <span className="text-gray-400 font-mono text-xs">{idx + 1}</span>
+          <span className="text-gray-400 font-mono text-xs block w-5 text-center">{idx + 1}</span>
         ),
+        className: 'w-8',
       },
       {
-        header: 'Icon',
-        accessor: 'iconUrl',
+        header: 'Hình ảnh',
+        accessor: 'imageUrl',
         render: (val) => (
           <div className="flex items-center justify-center">
             {val ? (
               <img
                 src={val}
                 alt=""
-                className="w-9 h-9 rounded object-cover border border-gray-200"
+                className="w-10 h-10 rounded object-cover border border-gray-200"
                 onError={(e) => {
                   e.currentTarget.style.display = 'none';
                 }}
               />
             ) : (
-              <div className="w-9 h-9 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+              <div className="w-10 h-10 rounded bg-gray-100 flex items-center justify-center text-gray-400">
                 🌳
               </div>
             )}

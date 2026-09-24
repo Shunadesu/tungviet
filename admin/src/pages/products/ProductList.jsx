@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FiPlus, FiEdit2, FiTrash2, FiFile, FiUpload, FiSearch, FiX } from 'react-icons/fi';
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
+import Skeleton from '../../components/Skeleton';
 import {
   useAdminStore,
   useAdminStoreEntity,
@@ -16,12 +17,6 @@ const LEGACY_COLUMNS = [
   { key: 'acidValue', name: 'Chỉ số axit', nameEn: 'Acid Value', order: 2 },
   { key: 'color', name: 'Màu sắc', nameEn: 'Color', order: 3 },
 ];
-
-const WEB_STATUS_LABELS = {
-  draft: { label: 'Nháp', className: 'bg-amber-50 text-amber-700' },
-  published: { label: 'Đã xuất bản', className: 'bg-green-50 text-green-700' },
-  archived: { label: 'Lưu trữ', className: 'bg-gray-100 text-gray-600' },
-};
 
 const formatPrice = (price) => {
   if (typeof price !== 'number' || price <= 0) return '—';
@@ -264,8 +259,54 @@ const ProductList = () => {
           </div>
 
           {products.loading ? (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary" />
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="table-header">
+                    <th className="px-2 py-2 w-10"><Skeleton variant="rect" height={12} width={12} rounded /></th>
+                    <th className="px-2 py-2 text-left text-xs">Ảnh</th>
+                    <th className="px-2 py-2 text-left text-xs">Mã SKU</th>
+                    <th className="px-2 py-2 text-left text-xs min-w-[200px]">Tên sản phẩm</th>
+                    <th className="px-2 py-2 text-left text-xs">Ngành hàng / Product line</th>
+                    <th className="px-2 py-2 text-center text-xs w-14">App</th>
+                    <th className="px-2 py-2 text-right text-xs w-28">Giá</th>
+                    {columns.slice(0, 2).map((column) => (
+                      <th key={column._id || column.key} className="px-2 py-2 text-left text-xs w-28 whitespace-nowrap">
+                        {column.name}
+                      </th>
+                    ))}
+                    <th className="px-2 py-2 text-right text-xs">Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Array.from({ length: 8 }).map((_, rowIdx) => (
+                    <tr key={rowIdx} className="border-b border-gray-100 last:border-0">
+                      <td className="px-2 py-3"><Skeleton variant="rect" height={12} width={12} rounded /></td>
+                      <td className="px-2 py-3"><Skeleton variant="rect" height={36} width={36} rounded /></td>
+                      <td className="px-2 py-3"><Skeleton variant="rect" height={10} width="80%" /></td>
+                      <td className="px-2 py-3 space-y-1">
+                        <Skeleton variant="rect" height={11} width="85%" />
+                        <Skeleton variant="rect" height={9} width="55%" />
+                      </td>
+                      <td className="px-2 py-3 space-y-1">
+                        <Skeleton variant="rect" height={10} width="80%" />
+                        <Skeleton variant="rect" height={9} width="60%" />
+                      </td>
+                      <td className="px-2 py-3 text-center"><Skeleton variant="rect" height={10} width={16} className="mx-auto" /></td>
+                      <td className="px-2 py-3 text-right"><Skeleton variant="rect" height={10} width="80%" /></td>
+                      <td className="px-2 py-3"><Skeleton variant="rect" height={10} width="80%" /></td>
+                      <td className="px-2 py-3"><Skeleton variant="rect" height={10} width="70%" /></td>
+                      <td className="px-2 py-3">
+                        <div className="flex justify-end gap-1">
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                          <Skeleton variant="rect" height={22} width={22} rounded />
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -285,16 +326,14 @@ const ProductList = () => {
                     </th>
                     <th className="px-2 py-2 text-left text-xs">Ảnh</th>
                     <th className="px-2 py-2 text-left text-xs">Mã SKU</th>
-                    <th className="px-2 py-2 text-left text-xs">Tên</th>
-                    <th className="px-2 py-2 text-left text-xs">Ngành hàng</th>
-                    <th className="px-2 py-2 text-left text-xs">Product line</th>
-                    <th className="px-2 py-2 text-left text-xs">Ứng dụng</th>
-                    <th className="px-2 py-2 text-left text-xs">Giá</th>
-                    <th className="px-2 py-2 text-left text-xs">Web</th>
+                    <th className="px-2 py-2 text-left text-xs min-w-[200px]">Tên sản phẩm</th>
+                    <th className="px-2 py-2 text-left text-xs">Ngành hàng / Product line</th>
+                    <th className="px-2 py-2 text-center text-xs w-14">App</th>
+                    <th className="px-2 py-2 text-right text-xs w-28">Giá</th>
                     {columns.slice(0, 2).map((column) => (
                       <th
                         key={column._id || column.key}
-                        className="px-2 py-2 text-left text-xs whitespace-nowrap"
+                        className="px-2 py-2 text-left text-xs w-28 whitespace-nowrap"
                       >
                         {column.name}
                       </th>
@@ -363,18 +402,18 @@ const ProductList = () => {
                             </div>
                           )}
                         </td>
-                        <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap">
-                          {mtObj?.name || '—'}
+                        <td className="px-2 py-2 text-xs text-gray-500">
+                          <div className="whitespace-nowrap">{mtObj?.name || '—'}</div>
+                          {productLineNames && (
+                            <div className="text-[10px] text-gray-400 whitespace-nowrap">{productLineNames}</div>
+                          )}
                         </td>
-                        <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap">
-                          {productLineNames || '—'}
-                        </td>
-                        <td className="px-2 py-2 text-xs text-gray-500 whitespace-nowrap">
+                        <td className="px-2 py-2 text-center text-xs text-gray-500 w-14">
                           {Array.isArray(product.applications)
                             ? product.applications.length
                             : 0}
                         </td>
-                        <td className="px-2 py-2 text-xs whitespace-nowrap">
+                        <td className="px-2 py-2 text-right text-xs whitespace-nowrap w-28">
                           {product.priceVisible ? (
                             <span className="font-medium">
                               {formatPrice(product.price)}
@@ -383,29 +422,17 @@ const ProductList = () => {
                             <span className="text-gray-400 italic">Liên hệ</span>
                           )}
                         </td>
-                        <td className="px-2 py-2">
-                          <span
-                            className={`text-[10px] px-1.5 py-0.5 rounded ${
-                              WEB_STATUS_LABELS[product.webStatus]
-                                ?.className || 'bg-gray-100 text-gray-500'
-                            }`}
-                          >
-                            {WEB_STATUS_LABELS[product.webStatus]?.label ||
-                              product.webStatus ||
-                              '—'}
-                          </span>
-                        </td>
                         {columns.slice(0, 2).map((column) => {
                           const value =
                             product.attributes?.[column.key] ?? product[column.key];
                           return (
                             <td
                               key={column._id || column.key}
-                              className="px-2 py-2 text-xs whitespace-nowrap"
+                              className="px-2 py-2 text-xs text-gray-500 w-28"
                             >
                               {value ? (
                                 <span
-                                  className="line-clamp-2 max-w-xs"
+                                  className="line-clamp-2"
                                   dangerouslySetInnerHTML={{ __html: value }}
                                 />
                               ) : (

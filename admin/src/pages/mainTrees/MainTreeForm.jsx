@@ -40,7 +40,6 @@ const emptyForm = {
   description: '',
   descriptionEn: '',
   imageUrl: '',
-  iconUrl: '',
   order: 0,
   isActive: true,
   technologies: [],
@@ -303,7 +302,6 @@ const MainTreeForm = () => {
   const [loading, setLoading] = useState(isEditing);
   const [saving, setSaving] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [uploadingIcon, setUploadingIcon] = useState(false);
   const [uploadingSubDoc, setUploadingSubDoc] = useState(false);
   const [availableMainTrees, setAvailableMainTrees] = useState([]);
   const [formData, setFormData] = useState({ ...emptyForm });
@@ -341,7 +339,6 @@ const MainTreeForm = () => {
           description: tree.description || '',
           descriptionEn: tree.descriptionEn || '',
           imageUrl: tree.imageUrl || '',
-          iconUrl: tree.iconUrl || '',
           order: tree.order ?? 0,
           isActive: tree.isActive !== false,
           technologies: Array.isArray(tree.technologies)
@@ -365,20 +362,19 @@ const MainTreeForm = () => {
     fetchTree();
   }, [id, isEditing, navigate, addNotification]);
 
-  const handleImageUpload = async (file, field) => {
-    const setter = field === 'iconUrl' ? setUploadingIcon : setUploadingImage;
-    setter(true);
+  const handleImageUpload = async (file) => {
+    setUploadingImage(true);
     try {
       const res = await adminApi.uploadImage(file);
       const url = res?.data?.data?.url;
       if (url) {
-        setFormData((prev) => ({ ...prev, [field]: url }));
+        setFormData((prev) => ({ ...prev, imageUrl: url }));
         addNotification('Upload ảnh thành công');
       }
     } catch (err) {
       addNotification('Upload ảnh thất bại', 'error');
     } finally {
-      setter(false);
+      setUploadingImage(false);
     }
   };
 
@@ -577,117 +573,75 @@ const MainTreeForm = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium mb-1">Mô tả</label>
-            <RichEditor
-              value={formData.description}
-              onChange={(value) =>
-                setFormData({ ...formData, description: value })
-              }
-              placeholder="Mô tả ngắn..."
-              minHeight={140}
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium mb-1">
-              Mô tả tiếng Anh
-            </label>
-            <RichEditor
-              value={formData.descriptionEn}
-              onChange={(value) =>
-                setFormData({ ...formData, descriptionEn: value })
-              }
-              placeholder="English description"
-              minHeight={140}
-            />
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-medium mb-1">
-                Banner (imageUrl)
-              </label>
-              <div className="flex items-center gap-2">
+            <label className="block text-sm font-semibold text-gray-700 mb-2">Banner</label>
+            <div className="flex items-start gap-4 p-4 border border-gray-200 rounded-lg bg-gray-50">
+              <div className="flex-shrink-0">
                 {formData.imageUrl ? (
                   <img
                     src={formData.imageUrl}
                     alt=""
-                    className="w-12 h-12 rounded object-cover border"
+                    className="max-w-full max-h-40 rounded-lg object-contain border border-gray-200 shadow-sm"
                     onError={(e) => {
                       e.currentTarget.style.display = 'none';
                     }}
                   />
                 ) : (
-                  <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                    <FiImage size={16} />
+                  <div className="w-28 h-28 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 border-2 border-dashed border-gray-300">
+                    <FiImage size={32} />
                   </div>
                 )}
-                <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
-                  <FiUpload size={12} />
-                  {uploadingImage ? 'Đang upload...' : 'Upload'}
+              </div>
+              <div className="flex flex-col gap-3 pt-1">
+                <label className="btn-secondary text-sm flex items-center gap-2 cursor-pointer px-5 py-3 shadow-sm font-medium">
+                  <FiUpload size={16} />
+                  {uploadingImage ? 'Đang upload...' : 'Upload ảnh'}
                   <input
                     type="file"
                     accept="image/*"
                     className="hidden"
                     onChange={(e) => {
                       const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, 'imageUrl');
+                      if (file) handleImageUpload(file);
                       e.target.value = '';
                     }}
                   />
                 </label>
+                <input
+                  type="url"
+                  value={formData.imageUrl}
+                  onChange={(e) =>
+                    setFormData({ ...formData, imageUrl: e.target.value })
+                  }
+                  className="input-field text-xs"
+                  placeholder="Hoặc dán URL ảnh"
+                />
               </div>
-              <input
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) =>
-                  setFormData({ ...formData, imageUrl: e.target.value })
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4 items-start">
+            <div>
+              <label className="block text-xs font-medium mb-1">Mô tả</label>
+              <RichEditor
+                value={formData.description}
+                onChange={(value) =>
+                  setFormData({ ...formData, description: value })
                 }
-                className="input-field mt-2 text-xs"
-                placeholder="Hoặc nhập URL"
+                placeholder="Mô tả..."
+                minHeight={140}
               />
             </div>
-
             <div>
-              <label className="block text-xs font-medium mb-1">Icon</label>
-              <div className="flex items-center gap-2">
-                {formData.iconUrl ? (
-                  <img
-                    src={formData.iconUrl}
-                    alt=""
-                    className="w-12 h-12 rounded object-cover border"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : (
-                  <div className="w-12 h-12 rounded bg-gray-100 flex items-center justify-center text-gray-400">
-                    <FiImage size={16} />
-                  </div>
-                )}
-                <label className="btn-secondary text-xs flex items-center gap-1 cursor-pointer">
-                  <FiUpload size={12} />
-                  {uploadingIcon ? 'Đang upload...' : 'Upload'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) handleImageUpload(file, 'iconUrl');
-                      e.target.value = '';
-                    }}
-                  />
-                </label>
-              </div>
-              <input
-                type="url"
-                value={formData.iconUrl}
-                onChange={(e) =>
-                  setFormData({ ...formData, iconUrl: e.target.value })
+              <label className="block text-xs font-medium mb-1">
+                Mô tả tiếng Anh
+              </label>
+              <RichEditor
+                value={formData.descriptionEn}
+                onChange={(value) =>
+                  setFormData({ ...formData, descriptionEn: value })
                 }
-                className="input-field mt-2 text-xs"
-                placeholder="Hoặc nhập URL"
+                placeholder="English description"
+                minHeight={140}
               />
             </div>
           </div>

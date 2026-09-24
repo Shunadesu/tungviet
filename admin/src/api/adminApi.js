@@ -196,6 +196,10 @@ export const adminApi = {
   getAnalyticsDashboard: () => axiosClient.get('/admin/analytics/dashboard'),
   getAnalyticsChart: (range) =>
     axiosClient.get('/admin/analytics/chart', { params: { range } }),
+
+  // Dashboard
+  getDashboard: () => axiosClient.get('/admin/dashboard'),
+  getPublicStats: () => axiosClient.get('/public/stats'),
 };
 
 export default adminApi;

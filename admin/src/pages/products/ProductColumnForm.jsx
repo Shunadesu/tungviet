@@ -4,6 +4,7 @@ import HeaderWithBreadcrumb from '../settings/HeaderWithBreadcrumb';
 import adminApi from '../../api/adminApi';
 import { useNotification } from '../../context/NotificationContext';
 import RichEditor from '../../components/RichEditor';
+import Skeleton from '../../components/Skeleton';
 
 const emptyForm = {
   name: '',
@@ -136,8 +137,42 @@ const ProductColumnForm = () => {
           backTo="/products/columns"
           backLabel="Quay lại danh sách"
         />
-        <div className="p-4 pt-3 flex justify-center py-20">
-          <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="p-4 pt-3">
+          <div className="card p-5 space-y-5">
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="40%" className="mb-1.5" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="30%" className="mb-1.5" />
+                <Skeleton variant="rect" height={36} width="100%" />
+                <Skeleton variant="rect" height={9} width="70%" className="mt-1" />
+              </div>
+            </div>
+            <div className="grid md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="30%" className="mb-1.5" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="25%" className="mb-1.5" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+              <div className="space-y-1.5">
+                <Skeleton variant="rect" height={10} width="20%" className="mb-1.5" />
+                <Skeleton variant="rect" height={36} width="100%" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton variant="rect" height={14} width={14} rounded />
+              <Skeleton variant="rect" height={10} width="15%" />
+            </div>
+            <div className="flex gap-3 pt-3 border-t">
+              <Skeleton variant="rect" height={36} width={90} rounded />
+              <Skeleton variant="rect" height={36} width={110} rounded />
+            </div>
+          </div>
         </div>
       </>
     );
