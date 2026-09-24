@@ -13,6 +13,7 @@ import TrendChart from '../components/TrendChart';
 import StatusPieChart from '../components/StatusPieChart';
 import PublicStatsCard from '../components/PublicStatsCard';
 import adminApi from '../api/adminApi';
+import Skeleton from '../components/Skeleton';
 
 const formatPrice = (price) =>
   new Intl.NumberFormat('vi-VN').format(price || 0) + 'đ';
@@ -66,9 +67,15 @@ const Dashboard = () => {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-      </div>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+      >
+        <SEO title="Dashboard" description="Admin dashboard overview" url="/" />
+        <Header title="Dashboard" />
+        <Skeleton.Dashboard />
+      </motion.div>
     );
   }
 

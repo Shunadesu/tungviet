@@ -122,6 +122,68 @@ Skeleton.Editor = ({ rows = 3, className = '' }) => (
   </div>
 );
 
+Skeleton.Dashboard = ({ className = '' }) => (
+  <div className={`p-4 space-y-4 ${className}`}>
+    {/* Health badges */}
+    <div className="flex flex-wrap gap-2">
+      <Skeleton variant="rect" height={28} width={120} className="rounded-full" />
+      <Skeleton variant="rect" height={28} width={120} className="rounded-full" />
+    </div>
+
+    {/* Stats Grid */}
+    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+      {[0, 1, 2, 3].map((i) => (
+        <div key={i} className="card p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <Skeleton variant="circle" width={36} height={36} />
+            <Skeleton variant="rect" height={20} width={60} />
+          </div>
+          <Skeleton variant="rect" height={10} width="50%" />
+          <Skeleton variant="rect" height={18} width="70%" />
+        </div>
+      ))}
+    </div>
+
+    {/* Trend Chart */}
+    <div className="card p-4">
+      <div className="mb-3 space-y-1.5">
+        <Skeleton variant="rect" height={14} width="55%" />
+        <Skeleton variant="rect" height={10} width="30%" />
+      </div>
+      <Skeleton variant="rect" height={256} width="100%" className="rounded" />
+    </div>
+
+    {/* PieChart + PublicStats */}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="card p-4 space-y-3">
+        <Skeleton variant="rect" height={14} width="45%" />
+        <Skeleton variant="rect" height={256} width="100%" className="rounded" />
+      </div>
+      <div className="card p-4 space-y-3">
+        <Skeleton variant="rect" height={14} width="40%" />
+        <Skeleton variant="rect" height={256} width="100%" className="rounded" />
+      </div>
+    </div>
+
+    {/* Top Products */}
+    <div className="card p-4">
+      <div className="mb-3">
+        <Skeleton variant="rect" height={14} width="40%" />
+      </div>
+      <Skeleton.Table rows={5} columns={4} />
+    </div>
+
+    {/* Recent Orders */}
+    <div className="card p-4">
+      <div className="mb-3 flex items-center justify-between">
+        <Skeleton variant="rect" height={14} width="30%" />
+        <Skeleton variant="rect" height={10} width={80} />
+      </div>
+      <Skeleton.Table rows={5} columns={5} />
+    </div>
+  </div>
+);
+
 Skeleton.Form = ({ className = '' }) => (
   <div className={`card mx-auto space-y-3 p-4 ${className}`}>
     <div className="grid md:grid-cols-2 gap-3">
