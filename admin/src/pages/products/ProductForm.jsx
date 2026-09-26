@@ -1065,6 +1065,7 @@ const ProductForm = () => {
       navigate('/products');
     } finally {
       setLoading(false);
+      clearDraft(); // Clear stale draft so it cannot overwrite freshly fetched server data
     }
   };
 
@@ -1611,7 +1612,7 @@ const ProductForm = () => {
                 <h3 className="text-xs font-semibold text-gray-700">Thông số kỹ thuật</h3>
                 <button
                   type="button"
-                  onClick={() => navigate('/products/columns')}
+                  onClick={() => navigate('/products/columns', { state: { from: window.location.pathname + window.location.search } })}
                   className="text-[10px] text-primary hover:underline"
                 >
                   Quản lý cột
@@ -1622,6 +1623,7 @@ const ProductForm = () => {
                   <table className="w-full text-xs">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200">
+                        <th className="px-3 py-2 text-center font-semibold text-gray-600 w-8">Chọn</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-600 w-8">STT</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-600">Tên thông số</th>
                         <th className="px-3 py-2 text-left font-semibold text-gray-600 w-24">Đơn vị</th>
@@ -1634,43 +1636,43 @@ const ProductForm = () => {
                         .slice()
                         .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
                         .map((column, index) => {
-                          const hasValue = Boolean(
-                            formData.attributes?.[column.key] ?? formData[column.key] ?? ''
-                          );
+                          // Check if key exists as own property — not dependent on value truthiness
+                          const isEnabled = Object.hasOwn(formData.attributes, column.key);
+                          const attrVal = formData.attributes?.[column.key] ?? formData[column.key] ?? '';
+                          const attrValEn = formData.attributes?.[`${column.key}En`] ?? '';
                           return (
                             <tr key={column._id || column.key} className="border-b border-gray-100 last:border-0 hover:bg-gray-50/50">
-                              <td className="px-3 py-2 text-gray-400 text-[10px]">{index + 1}</td>
-                              <td className="px-3 py-2">
-                                <label className="flex items-center gap-2 cursor-pointer select-none">
-                                  <input
-                                    type="checkbox"
-                                    checked={hasValue}
-                                    onChange={(e) => {
-                                      setFormData((prev) => {
-                                        const updated = {
+                              <td className="px-3 py-2 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={isEnabled}
+                                  onChange={(e) => {
+                                    setFormData((prev) => {
+                                      if (!e.target.checked) {
+                                        // Uncheck: remove key from attributes entirely
+                                        const enKey = `${column.key}En`;
+                                        const { [column.key]: _removed, [enKey]: _removedEn, ...restAttrs } = prev.attributes;
+                                        return { ...prev, attributes: restAttrs };
+                                      } else {
+                                        // Check: add key with empty string, user must type
+                                        return {
                                           ...prev,
-                                          attributes: { ...prev.attributes },
+                                          attributes: {
+                                            ...prev.attributes,
+                                            [column.key]: '',
+                                          },
                                         };
-                                        if (e.target.checked) {
-                                          updated.attributes[column.key] =
-                                            prev.attributes?.[column.key] ?? prev[column.key] ?? '';
-                                        } else {
-                                          const enKey = `${column.key}En`;
-                                          const { [column.key]: _removed, [enKey]: _removedEn, ...restAttrs } = updated.attributes;
-                                          updated.attributes = restAttrs;
-                                        }
-                                        return updated;
-                                      });
-                                    }}
-                                    className="rounded border-gray-300 text-primary focus:ring-primary"
-                                  />
-                                  <div>
-                                    <span className="font-medium text-gray-700">{column.name}</span>
-                                    {column.nameEn && (
-                                      <span className="block text-[10px] text-gray-400">{column.nameEn}</span>
-                                    )}
-                                  </div>
-                                </label>
+                                      }
+                                    });
+                                  }}
+                                  className="rounded border-gray-300 text-primary focus:ring-primary"
+                                />
+                              </td>
+                              <td className="px-3 py-2 text-gray-400 text-[10px]">{index + 1}</td>
+                              <td className="px-3 py-2 font-medium text-gray-700">{column.name}
+                                {column.nameEn && (
+                                  <span className="block text-[10px] text-gray-400">{column.nameEn}</span>
+                                )}
                               </td>
                               <td className="px-3 py-2">
                                 {column.unit ? (
@@ -1685,7 +1687,8 @@ const ProductForm = () => {
                               <td className="px-3 py-2">
                                 <input
                                   type="text"
-                                  value={formData.attributes?.[column.key] ?? formData[column.key] ?? ''}
+                                  value={attrVal}
+                                  disabled={!isEnabled}
                                   onChange={(event) =>
                                     setFormData((previous) => {
                                       const val = event.target.value;
@@ -1700,14 +1703,15 @@ const ProductForm = () => {
                                       };
                                     })
                                   }
-                                  className="input-field text-xs"
+                                  className="input-field text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                                   placeholder="Giá trị"
                                 />
                               </td>
                               <td className="px-3 py-2">
                                 <input
                                   type="text"
-                                  value={formData.attributes?.[`${column.key}En`] ?? ''}
+                                  value={attrValEn}
+                                  disabled={!isEnabled}
                                   onChange={(event) =>
                                     setFormData((previous) => ({
                                       ...previous,
@@ -1717,7 +1721,7 @@ const ProductForm = () => {
                                       },
                                     }))
                                   }
-                                  className="input-field text-xs"
+                                  className="input-field text-xs disabled:opacity-50 disabled:cursor-not-allowed"
                                   placeholder="Value"
                                 />
                               </td>

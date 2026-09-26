@@ -29,7 +29,18 @@ const Login = () => {
       await login(formData.email, formData.password);
       navigate('/');
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Đăng nhập thất bại');
+      const serverMsg = err.response?.data?.message;
+      const serverCode = err.response?.data?.code;
+      const status = err.response?.status;
+
+      if (serverMsg) {
+        // Show the specific message from server
+        setError(serverMsg);
+      } else if (err.code === 'ERR_NETWORK' || err.message === 'Network Error') {
+        setError('Không thể kết nối đến máy chủ. Vui lòng kiểm tra mạng.');
+      } else {
+        setError(err.message || 'Đăng nhập thất bại');
+      }
     } finally {
       setLoading(false);
     }

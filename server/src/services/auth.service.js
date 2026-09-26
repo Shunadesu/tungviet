@@ -26,12 +26,22 @@ export const authService = {
 
   async login({ email, password }) {
     const user = await User.findOne({ email });
-    if (!user) throw AppError.unauthorized('Email hoặc mật khẩu không đúng');
+    if (!user) {
+      throw AppError.unauthorized('Email hoặc mật khẩu không đúng', 'INVALID_CREDENTIALS');
+    }
 
     const isMatch = await user.comparePassword(password);
-    if (!isMatch) throw AppError.unauthorized('Email hoặc mật khẩu không đúng');
+    if (!isMatch) {
+      throw AppError.unauthorized('Email hoặc mật khẩu không đúng', 'INVALID_CREDENTIALS');
+    }
 
-    if (!user.isActive) throw AppError.unauthorized('Tài khoản đã bị vô hiệu hóa');
+    if (!user.isActive) {
+      throw AppError.unauthorized('Tài khoản đã bị vô hiệu hóa', 'ACCOUNT_DISABLED');
+    }
+
+    if (user.role !== 'admin') {
+      throw AppError.forbidden('Bạn không có quyền truy cập Admin', 'NOT_ADMIN');
+    }
 
     const token = signToken(user._id);
     return { user: toPublicUser(user), token };

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   FiArrowDown,
   FiArrowUp,
@@ -19,6 +19,8 @@ const isDeleted = (column) => Boolean(column.deleted || column.deletedAt);
 
 const ProductColumnsSettings = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const backTo = location.state?.from || '/products';
   const { addNotification } = useNotification();
   const [columns, setColumns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -99,7 +101,7 @@ const ProductColumnsSettings = () => {
 
   return (
     <>
-      <HeaderWithBreadcrumb title="Cột thuộc tính sản phẩm" backTo="/products" backLabel="Danh sách sản phẩm" />
+      <HeaderWithBreadcrumb title="Cột thuộc tính sản phẩm" backTo={backTo} backLabel="Sản phẩm" />
       <div className="p-4 pt-3">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <p className="text-xs text-gray-500 max-w-2xl">

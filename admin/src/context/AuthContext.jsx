@@ -27,7 +27,11 @@ export const AuthProvider = ({ children }) => {
       setUser(res.data.data.user);
       return res.data;
     }
-    throw new Error('Bạn không có quyền truy cập Admin');
+    // Throw a structured error so Login.jsx can read err.response.data.message
+    const err = new Error(res.data.message || 'Bạn không có quyền truy cập Admin');
+    err.response = { data: res.data };
+    err.status = 403;
+    throw err;
   };
 
   const logout = () => {
