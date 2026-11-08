@@ -28,9 +28,9 @@ const RelatedProducts = ({ currentProduct, limit = 4 }) => {
 
   if (loading) {
     return (
-      <section className="container-page py-12 md:py-16">
+      <section className="container-page py-8 md:py-10">
         <h2 className="heading-section mb-6">{t('product.relatedProducts')}</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
           {Array.from({ length: limit }).map((_, i) => (
             <div key={i} className="aspect-[4/5] skeleton rounded-2xl" />
           ))}
@@ -42,7 +42,7 @@ const RelatedProducts = ({ currentProduct, limit = 4 }) => {
   if (products.length === 0) return null;
 
   return (
-    <section className="bg-slate-50/60 py-12 md:py-16">
+    <section className="bg-slate-50/60 py-8 md:py-10">
       <div className="container-page">
         <div className="flex items-end justify-between mb-6 md:mb-8">
           <div>
@@ -57,7 +57,7 @@ const RelatedProducts = ({ currentProduct, limit = 4 }) => {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {products.map((product, idx) => (
             <ProductCard key={product._id} product={product} index={idx} />
           ))}

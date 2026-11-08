@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FiLogIn } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useSiteConfig } from '../context/SiteConfigContext';
 import SEO from '../components/SEO';
 import { SUPPORTED_LOCALES } from '../i18n';
 
@@ -11,6 +12,7 @@ const Login = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { logoUrl } = useSiteConfig();
   const { lang: urlLang } = useParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : i18n.language || 'vi';
   const [loading, setLoading] = useState(false);
@@ -55,7 +57,9 @@ const Login = () => {
       <div className="w-full max-w-sm">
         <div className="bg-white rounded-lg shadow-lg p-6">
           <div className="text-center mb-6">
-            <span className="text-3xl">🏭</span>
+            {logoUrl && (
+              <img src={logoUrl} alt="Tungviet" className="mx-auto h-12 w-auto object-contain" />
+            )}
             <h1 className="text-lg font-semibold text-primary mt-2">{t('auth.loginTitle')}</h1>
             <p className="text-xs text-gray-500 mt-1">{t('auth.loginWelcome')}</p>
           </div>

@@ -7,7 +7,7 @@ import publicApi from '../api/publicApi';
 import { getLocalizedField } from '../utils/i18nField';
 import { SUPPORTED_LOCALES } from '../i18n';
 import SectionHeader from './SectionHeader';
-import placeholderProduct from '../assets/placeholder-product.svg';
+import useHomeSection from '../hooks/useHomeSection';
 
 const containerVariants = {
   hidden: {},
@@ -20,8 +20,9 @@ const cardVariants = {
 };
 
 const MarketShowcaseSection = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const isEN = i18n.language === 'en';
+  const section = useHomeSection('markets');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,40 +50,42 @@ const MarketShowcaseSection = () => {
     return () => { mounted = false; };
   }, [lang]);
 
+  if (!section.enabled) return null;
   if (!loading && items.length === 0) return null;
 
   return (
-    <section className="bg-white py-16 md:py-20 lg:py-24">
+    <section className="bg-white py-10 md:py-12 lg:py-14">
       <div className="container-page">
         <SectionHeader
           eyebrow={isEN ? 'Markets' : 'Thị trường'}
-          title={isEN ? 'Explore Our Markets' : 'Khám phá các thị trường'}
+          title={section.title || (isEN ? 'Explore Our Markets' : 'Khám phá các thị trường')}
           subtitle={
-            isEN
+            section.subtitle ||
+            (isEN
               ? 'Discover the diverse markets we serve and the unique solutions tailored for each.'
-              : 'Tìm hiểu các thị trường đa dạng mà chúng tôi phục vụ cùng những giải pháp phù hợp cho từng lĩnh vực.'
+              : 'Tìm hiểu các thị trường đa dạng mà chúng tôi phục vụ cùng những giải pháp phù hợp cho từng lĩnh vực.')
           }
           align="center"
-          className="mb-12"
+          className="mb-8"
         />
 
         {loading ? (
           <div className="flex justify-center">
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-4">
               {Array.from({ length: 6 }).map((_, i) => (
-                <div key={i} className="flex flex-col items-center gap-3">
-                  <div className="w-24 h-24 rounded-full skeleton" />
-                  <div className="h-4 w-20 skeleton rounded" />
-                  <div className="h-3 w-14 skeleton rounded" />
+                <div key={i} className="flex flex-col items-center gap-2">
+                  <div className="w-16 h-16 rounded-full skeleton" />
+                  <div className="h-3 w-20 skeleton rounded" />
+                  <div className="h-2.5 w-14 skeleton rounded" />
                 </div>
               ))}
             </div>
           </div>
         ) : (
           <motion.div
-            className={`grid gap-6 ${
+            className={`grid gap-4 ${
               items.length <= 2
-                ? 'grid-cols-2 max-w-sm mx-auto'
+                ? 'grid-cols-2 max-w-xs mx-auto'
                 : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6'
             }`}
             variants={containerVariants}
@@ -96,15 +99,15 @@ const MarketShowcaseSection = () => {
                 <motion.div
                   key={m._id}
                   variants={cardVariants}
-                  className="flex flex-col items-center text-center group"
+                  className="flex flex-col items-center gap-2 group"
                 >
                   <Link
                     to={`/${lang}/markets/${m._id}`}
-                    className="flex flex-col items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
+                    className="flex flex-col items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-xl"
                   >
                     {/* Circle image */}
                     <div className="relative">
-                      <div className="w-24 h-24 rounded-full overflow-hidden ring-2 ring-gray-100 group-hover:ring-primary/30 transition-all duration-300 group-hover:scale-105 shadow-sm group-hover:shadow-md">
+                      <div className="w-16 h-16 rounded-full overflow-hidden ring-2 ring-gray-100 group-hover:ring-primary/30 transition-all duration-300 group-hover:scale-105 shadow-sm group-hover:shadow-md">
                         {m.imageUrl ? (
                           <img
                             src={m.imageUrl}
@@ -121,25 +124,25 @@ const MarketShowcaseSection = () => {
                         <div
                           className={`fallback-icon absolute inset-0 flex items-center justify-center bg-primary-50 text-primary rounded-full${m.imageUrl ? ' hidden' : ''}`}
                         >
-                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
                             <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
                             <polyline points="9 22 9 12 15 12 15 22" />
                           </svg>
                         </div>
                       </div>
                       {/* Hover arrow indicator */}
-                      <span className="absolute -top-1 -right-1 w-7 h-7 rounded-full bg-primary text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1 translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0 shadow-sm">
-                        <FiArrowRight size={12} />
+                      <span className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-primary text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 -translate-x-1 translate-y-1 group-hover:translate-x-0 group-hover:translate-y-0 shadow-sm">
+                        <FiArrowRight size={11} />
                       </span>
                     </div>
 
                     {/* Market name */}
-                    <span className="text-sm font-semibold text-slate-800 group-hover:text-primary transition-colors leading-snug line-clamp-2 max-w-full px-1">
+                    <span className="text-xs font-semibold text-slate-800 group-hover:text-primary transition-colors leading-snug line-clamp-2 max-w-full px-1">
                       {name}
                     </span>
 
                     {/* Explore label */}
-                    <span className="text-xs text-slate-400 group-hover:text-primary transition-colors flex items-center gap-0.5">
+                    <span className="text-[11px] text-slate-400 group-hover:text-primary transition-colors flex items-center gap-0.5">
                       {isEN ? 'Explore' : 'Khám phá'}
                       <FiArrowRight
                         size={10}
@@ -160,7 +163,7 @@ const MarketShowcaseSection = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.4, delay: 0.2 }}
-            className="mt-10 text-center"
+            className="mt-8 text-center"
           >
             <Link
               to={`/${lang}/markets`}

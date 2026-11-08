@@ -69,7 +69,7 @@ const ProductCard = ({ product, index = 0 }) => {
     >
       <Link
         to={`/${lang}/products/${product._id}`}
-        className="relative block aspect-[4/3] overflow-hidden bg-gray-50 flex-shrink-0"
+        className="relative block aspect-[16/9] overflow-hidden bg-gray-50 flex-shrink-0"
       >
         <LazyImage
           src={product.imageUrl || placeholderProduct}
@@ -148,7 +148,7 @@ const ProductCard = ({ product, index = 0 }) => {
         </div>
       </Link>
 
-      <div className="flex-1 flex flex-col p-5">
+      <div className="flex-1 flex flex-col p-4">
         <Link
           to={`/${lang}/products/${product._id}`}
           className="block text-[15px] font-semibold text-slate-900 hover:text-primary transition-colors leading-snug line-clamp-2 min-h-[2.75rem]"

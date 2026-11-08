@@ -8,12 +8,13 @@ import FloatingContactBar from './FloatingContactBar';
 import SkipLink from './SkipLink';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import publicApi from '../api/publicApi';
+import FullPageLoader from './FullPageLoader';
 
 const Layout = () => {
   const [products, setProducts] = useState([]);
   const [mainTrees, setMainTrees] = useState([]);
   const [quoteSection, setQuoteSection] = useState(null);
-  const { seo, faviconUrl, floatingContacts } = useSiteConfig();
+  const { seo, faviconUrl, floatingContacts, initialLoading } = useSiteConfig();
 
   useEffect(() => {
     publicApi.getProducts({ limit: 100 })
@@ -55,6 +56,8 @@ const Layout = () => {
       )}
       <FloatingContactBar contacts={floatingContacts} />
       <Footer />
+      {/* Loading overlay phủ toàn bộ layout (header + main + footer) */}
+      {initialLoading && <FullPageLoader />}
     </div>
   );
 };

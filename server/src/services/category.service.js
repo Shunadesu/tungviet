@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Category from '../models/Category.js';
 import MainTree from '../models/MainTree.js';
+import Product from '../models/Product.js';
 import { AppError } from '../utils/AppError.js';
 import { buildPagination } from '../utils/apiResponse.js';
 import { invalidatePublicCache } from '../utils/cache.js';
@@ -37,14 +38,41 @@ const resolveMainTreeId = async (value) => {
 };
 
 export const categoryService = {
-  async list({ includeInactive = false, sort = 'order_asc', mainTree } = {}) {
+  /**
+   * Danh sách product line kèm số SKU thuộc mỗi nhóm.
+   *
+   * `skuCount` được tính bằng aggregation trên `Product.productLines` —
+   * 1 SKU có thể thuộc nhiều product line nên được đếm trong từng nhóm.
+   */
+  async list({ includeInactive = false, sort = 'order_asc', mainTree, withSkuCount = false } = {}) {
     const query = includeInactive ? {} : { isActive: true };
     if (mainTree) {
       const mtId = await resolveMainTreeId(mainTree);
       if (mtId) query.mainTree = mtId;
     }
     const sortOption = SORT_MAP[sort] || SORT_MAP.order_asc;
-    return Category.find(query).sort(sortOption).lean();
+    const categories = await Category.find(query).sort(sortOption).lean();
+    if (!withSkuCount) return categories;
+
+    const ids = categories.map((c) => c._id);
+    if (ids.length === 0) return categories.map((c) => ({ ...c, skuCount: 0 }));
+
+    const counts = await Product.aggregate([
+      {
+        $match: {
+          productLines: { $in: ids },
+          isActive: true,
+          webStatus: 'published',
+          isDeleted: { $ne: true },
+        },
+      },
+      { $unwind: '$productLines' },
+      { $match: { productLines: { $in: ids } } },
+      { $group: { _id: '$productLines', count: { $sum: 1 } } },
+    ]);
+    const countMap = new Map(counts.map((c) => [String(c._id), c.count]));
+
+    return categories.map((c) => ({ ...c, skuCount: countMap.get(String(c._id)) || 0 }));
   },
 
   async listPaginated({

@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FiCheckCircle, FiTrash2, FiX, FiSend, FiAlertCircle, FiMail, FiPhone, FiBox, FiArrowRight, FiArrowLeft, FiCheck } from 'react-icons/fi';
+import { FiCheckCircle, FiTrash2, FiX, FiSend, FiAlertCircle, FiMail, FiPhone, FiBox, FiArrowRight, FiArrowLeft, FiCheck, FiLayers } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
 import { useQuoteBag } from '../context/QuoteBagContext';
@@ -218,12 +218,12 @@ const ContactStep = ({ values, errors, onChange, onFieldBlur, lang }) => {
 };
 
 /* ─── Step 2: Product review ─────────────────────────────────────────────────── */
-const ReviewStep = ({ items, count, onRemove, onClear, onBrowse, marketContext, lang }) => {
+const ReviewStep = ({ items, count, onRemove, onClear, onBrowse, marketContext, lineContext, lang }) => {
   const { t } = useTranslation();
 
   return (
     <div className="space-y-3">
-      {count === 0 && !marketContext ? (
+      {count === 0 && !marketContext && !lineContext ? (
         <div className="text-center py-10">
           <FiBox size={48} className="mx-auto text-gray-200 mb-3" />
           <p className="text-sm text-gray-500 mb-4">{t('quote.bagEmpty')}</p>
@@ -242,6 +242,15 @@ const ReviewStep = ({ items, count, onRemove, onClear, onBrowse, marketContext, 
               <button onClick={() => {}} className="text-amber-600 hover:text-amber-800">
                 <FiX size={12} />
               </button>
+            </div>
+          )}
+
+          {lineContext && (
+            <div className="flex items-center justify-between bg-primary-50 border border-primary/20 rounded-lg px-3 py-2 text-xs">
+              <div className="flex items-center gap-2 text-primary-800">
+                <FiLayers size={14} />
+                <span>Dòng sản phẩm: <strong>{lineContext.name}</strong></span>
+              </div>
             </div>
           )}
 
@@ -295,7 +304,7 @@ const ReviewStep = ({ items, count, onRemove, onClear, onBrowse, marketContext, 
 };
 
 /* ─── Step 3: Confirm & submit ─────────────────────────────────────────────── */
-const ConfirmStep = ({ values, items, count, marketContext, sending, onSubmit, lang }) => {
+const ConfirmStep = ({ values, items, count, marketContext, lineContext, sending, onSubmit, lang }) => {
   const { t } = useTranslation();
 
   return (
@@ -334,6 +343,12 @@ const ConfirmStep = ({ values, items, count, marketContext, sending, onSubmit, l
           <div className="flex items-start gap-2">
             <span className="text-gray-400 w-24 flex-shrink-0">Thị trường:</span>
             <span>{marketContext.name}</span>
+          </div>
+        )}
+        {lineContext && (
+          <div className="flex items-start gap-2">
+            <span className="text-gray-400 w-24 flex-shrink-0">Dòng sản phẩm:</span>
+            <span>{lineContext.name}</span>
           </div>
         )}
         <div className="flex items-start gap-2">
@@ -423,6 +438,7 @@ const QuoteRequest = () => {
   const [submitError, setSubmitError] = useState('');
   const [submittedContact, setSubmittedContact] = useState(null);
   const [marketContext, setMarketContext] = useState(null);
+  const [lineContext, setLineContext] = useState(null);
   const [showResumeBanner, setShowResumeBanner] = useState(false);
   const [savedValues, setSavedValues] = useState(null);
   const [formData, setFormData] = useState({
@@ -477,6 +493,29 @@ const QuoteRequest = () => {
     return () => { cancelled = true; };
   }, [searchParams, lang]);
 
+  // Prefill product line context (?line=<categoryId>).
+  useEffect(() => {
+    const lineId = searchParams.get('line');
+    if (!lineId) return;
+    let cancelled = false;
+    publicApi.getCategory(lineId, lang).then((r) => {
+      if (cancelled) return;
+      const data = r?.data?.data;
+      if (!data) return;
+      const name = getLocalizedField(data, lang, 'name', 'nameEn');
+      setLineContext({ id: data._id, name });
+      setFormData((prev) =>
+        prev.message
+          ? prev
+          : {
+              ...prev,
+              message: `Tôi quan tâm đến dòng sản phẩm "${name}". Vui lòng gửi báo giá.`,
+            }
+      );
+    }).catch(() => {});
+    return () => { cancelled = true; };
+  }, [searchParams, lang]);
+
   // Autosave whenever form data changes.
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -519,7 +558,7 @@ const QuoteRequest = () => {
         if (!canProceedFromStep1()) return;
         clearErrors();
       }
-      if (count === 0 && !marketContext) {
+      if (count === 0 && !marketContext && !lineContext) {
         toast.error(t('quote.bagEmpty'));
         return;
       }
@@ -528,7 +567,7 @@ const QuoteRequest = () => {
   };
 
   const handleSubmit = async () => {
-    if (count === 0 && !marketContext) {
+    if (count === 0 && !marketContext && !lineContext) {
       setSubmitError(t('quote.bagEmpty'));
       return;
     }
@@ -545,6 +584,7 @@ const QuoteRequest = () => {
         message: formData.message.trim(),
         preferredContact: formData.preferredContact,
         market: marketContext?.name || '',
+        productType: lineContext?.name || '',
         items: items.map((it) => ({
           productId: it._id || it.id || '',
           name: it.name || '',
@@ -643,6 +683,14 @@ const QuoteRequest = () => {
           </div>
         )}
 
+        {/* Product line context tag */}
+        {lineContext && (
+          <div className="inline-flex items-center gap-2 bg-primary-50 border border-primary/20 text-primary-800 rounded-lg px-3 py-1.5 text-xs mb-4">
+            <FiLayers size={12} />
+            <span>Dòng sản phẩm: <strong>{lineContext.name}</strong></span>
+          </div>
+        )}
+
         {/* Card */}
         <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
           {/* Step header */}
@@ -680,6 +728,7 @@ const QuoteRequest = () => {
                     onClear={clearQuoteBag}
                     onBrowse={() => {}}
                     marketContext={marketContext}
+                    lineContext={lineContext}
                     lang={lang}
                   />
                 )}
@@ -689,6 +738,7 @@ const QuoteRequest = () => {
                     items={items}
                     count={count}
                     marketContext={marketContext}
+                    lineContext={lineContext}
                     sending={sending}
                     onSubmit={handleSubmit}
                     lang={lang}
@@ -732,7 +782,7 @@ const QuoteRequest = () => {
         </div>
 
         {/* No products warning */}
-        {count === 0 && !marketContext && (
+        {count === 0 && !marketContext && !lineContext && (
           <p className="text-xs text-center text-gray-400 mt-3">
             Bạn chưa chọn sản phẩm nào. Có thể gửi yêu cầu với chỉ thông tin liên hệ.
           </p>

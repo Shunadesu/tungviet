@@ -6,12 +6,17 @@ import { htmlToText } from '../utils/html';
 import { resolveSubDocLink } from '../utils/subDocLink';
 
 const MarketAppCard = ({ app, index = 0, lang }) => {
-  const previewProducts = Array.isArray(app.productEntries)
-    ? app.productEntries
-        .map((entry) => entry.productId)
-        .filter(Boolean)
-        .slice(0, 3)
+  // `app.productEntries` là mảng `{ productId }` — server đã populate product.
+  const products = Array.isArray(app.productEntries)
+    ? app.productEntries.map((entry) => entry?.productId).filter(Boolean)
     : [];
+
+  const previewProducts = products.slice(0, 3);
+
+  // Ứng dụng liên quan lấy từ `product.applications` của các product thuộc app.
+  const relatedApplications = products
+    .flatMap((p) => (Array.isArray(p.applications) ? p.applications : []))
+    .filter(Boolean);
 
   return (
     <motion.article
@@ -19,41 +24,41 @@ const MarketAppCard = ({ app, index = 0, lang }) => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.35, delay: Math.min(index, 8) * 0.04 }}
-      className="group relative h-full bg-gradient-to-br from-accent-50/40 via-white to-white rounded-2xl border border-accent-100 p-5 flex flex-col gap-4 transition-all duration-300 hover:border-accent-300 hover:shadow-card-hover hover:-translate-y-0.5 overflow-hidden"
+      className="group relative h-full bg-gradient-to-br from-accent-50/40 via-white to-white rounded-xl border border-accent-100 p-4 flex flex-col gap-3 transition-all duration-300 hover:border-accent-300 hover:shadow-card-hover hover:-translate-y-0.5 overflow-hidden"
     >
       <span
         aria-hidden="true"
-        className="absolute top-3 right-3 inline-flex items-center justify-center min-w-[26px] h-[26px] px-2 rounded-full text-[11px] font-bold bg-accent text-white"
+        className="absolute top-3 right-3 inline-flex items-center justify-center min-w-[24px] h-[24px] px-1.5 rounded-full text-[10px] font-bold bg-accent text-white"
       >
         {String(index + 1).padStart(2, '0')}
       </span>
 
-      <div className="flex items-start gap-4">
+      <div className="flex items-start gap-3">
         {app.imageUrl ? (
           <img
             src={app.imageUrl}
             alt={app.title}
             loading="lazy"
-            className="w-14 h-14 rounded-2xl object-cover flex-shrink-0 ring-1 ring-accent-100 transition-all group-hover:ring-accent-300"
+            className="w-12 h-12 rounded-xl object-cover flex-shrink-0 ring-1 ring-accent-100 transition-all group-hover:ring-accent-300"
             onError={(e) => {
               e.currentTarget.src = placeholderProduct;
             }}
           />
         ) : (
-          <span className="inline-flex items-center justify-center w-14 h-14 rounded-2xl ring-1 ring-accent-100 flex-shrink-0 bg-accent-50 text-accent-700">
-            <FiPackage size={22} />
+          <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl ring-1 ring-accent-100 flex-shrink-0 bg-accent-50 text-accent-700">
+            <FiPackage size={20} />
           </span>
         )}
 
-        <div className="flex-1 min-w-0 pr-8">
-          <h3 className="text-base font-semibold text-slate-900 leading-snug mb-1 line-clamp-2">
+        <div className="flex-1 min-w-0 pr-7">
+          <h3 className="text-sm font-semibold text-slate-900 leading-snug mb-1 line-clamp-2">
             {app.title}
           </h3>
         </div>
       </div>
 
       {(app.description || app.descriptionEn) && (
-        <p className="text-sm text-slate-600 leading-relaxed line-clamp-3 break-words">
+        <p className="text-xs text-slate-600 leading-relaxed line-clamp-3 break-words">
           {htmlToText(app.description || app.descriptionEn)}
         </p>
       )}
@@ -88,7 +93,37 @@ const MarketAppCard = ({ app, index = 0, lang }) => {
         return null;
       })()}
 
-      {previewProducts.length > 0 && (
+      {relatedApplications.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {relatedApplications.slice(0, 3).map((application, i) => (
+            <span
+              key={application._id || i}
+              className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200"
+            >
+              {application.imageUrl ? (
+                <img
+                  src={application.imageUrl}
+                  alt=""
+                  className="w-3 h-3 rounded-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
+              ) : null}
+              <span className="truncate max-w-[120px]">
+                {application.title || application.titleEn}
+              </span>
+            </span>
+          ))}
+          {relatedApplications.length > 3 && (
+            <span className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-50 text-slate-500">
+              +{relatedApplications.length - 3}
+            </span>
+          )}
+        </div>
+      )}
+
+      {products.length > 0 && (
         <div className="mt-auto pt-3 border-t border-accent-100/80">
           <div className="flex items-center gap-2 mb-2">
             <div className="flex -space-x-2">
@@ -114,48 +149,13 @@ const MarketAppCard = ({ app, index = 0, lang }) => {
               {products.length} {lang === 'en' ? 'products' : 'sản phẩm'}
             </span>
           </div>
-          {products.length > 0 && (
-            <Link
-              to={`/${lang}/products/${products[0]._id}`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-accent-700 hover:text-accent-800 transition-colors"
-            >
-              {lang === 'en' ? 'Explore product' : 'Xem sản phẩm'}
-              <FiArrowRight size={11} />
-            </Link>
-          )}
-        </div>
-      )}
-
-      {entries.length > 0 && entries.some((e) => e.application) && (
-        <div className="flex flex-wrap gap-1.5">
-          {entries
-            .filter((e) => e.application)
-            .slice(0, 3)
-            .map((e, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200"
-              >
-                {e.application.imageUrl ? (
-                  <img
-                    src={e.application.imageUrl}
-                    alt=""
-                    className="w-3 h-3 rounded-full object-cover"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                    }}
-                  />
-                ) : null}
-                <span className="truncate max-w-[120px]">
-                  {e.application.title || e.application.titleEn}
-                </span>
-              </span>
-            ))}
-          {entries.filter((e) => e.application).length > 3 && (
-            <span className="inline-flex items-center text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-50 text-slate-500">
-              +{entries.filter((e) => e.application).length - 3}
-            </span>
-          )}
+          <Link
+            to={`/${lang}/products/${products[0]._id}`}
+            className="inline-flex items-center gap-1 text-xs font-medium text-accent-700 hover:text-accent-800 transition-colors"
+          >
+            {lang === 'en' ? 'Explore product' : 'Xem sản phẩm'}
+            <FiArrowRight size={11} />
+          </Link>
         </div>
       )}
     </motion.article>

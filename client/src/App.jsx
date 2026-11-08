@@ -12,7 +12,7 @@ import LocaleRedirect from './components/LocaleRedirect';
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
 import CompareFloatingBar from './components/CompareFloatingBar';
-import PageFallback from './components/PageFallback';
+import RouteProgress from './components/RouteProgress';
 
 // Code-splitting via React.lazy() reduces initial bundle size significantly.
 // Each page becomes its own chunk, loaded only when the user navigates to it.
@@ -64,7 +64,7 @@ function App() {
                         <Route
                           index
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <Home />
                             </ReactSuspense>
                           }
@@ -72,7 +72,7 @@ function App() {
                         <Route
                           path="products"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <ProductList />
                             </ReactSuspense>
                           }
@@ -80,7 +80,7 @@ function App() {
                         <Route
                           path="products/compare"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <CompareProducts />
                             </ReactSuspense>
                           }
@@ -88,7 +88,7 @@ function App() {
                         <Route
                           path="products/:id"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <ProductDetail />
                             </ReactSuspense>
                           }
@@ -96,7 +96,7 @@ function App() {
                         <Route
                           path="quote"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <QuoteRequest />
                             </ReactSuspense>
                           }
@@ -104,7 +104,7 @@ function App() {
                         <Route
                           path="cart"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <QuoteBag />
                             </ReactSuspense>
                           }
@@ -112,7 +112,7 @@ function App() {
                         <Route
                           path="checkout"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <QuoteRequest />
                             </ReactSuspense>
                           }
@@ -120,7 +120,7 @@ function App() {
                         <Route
                           path="wishlist"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <Wishlist />
                             </ReactSuspense>
                           }
@@ -128,7 +128,7 @@ function App() {
                         <Route
                           path="login"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <Login />
                             </ReactSuspense>
                           }
@@ -136,7 +136,7 @@ function App() {
                         <Route
                           path="register"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <Register />
                             </ReactSuspense>
                           }
@@ -144,7 +144,7 @@ function App() {
                         <Route
                           path="orders"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <OrderHistory />
                             </ReactSuspense>
                           }
@@ -152,7 +152,7 @@ function App() {
                         <Route
                           path="about"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <About />
                             </ReactSuspense>
                           }
@@ -160,7 +160,7 @@ function App() {
                         <Route
                           path="about/board-of-directors"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <BoardOfDirectors />
                             </ReactSuspense>
                           }
@@ -168,7 +168,7 @@ function App() {
                         <Route
                           path="about/locations"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <Locations />
                             </ReactSuspense>
                           }
@@ -176,7 +176,7 @@ function App() {
                         <Route
                           path="about/leadership"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <Leadership />
                             </ReactSuspense>
                           }
@@ -188,7 +188,7 @@ function App() {
                         <Route
                           path="news"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <News />
                             </ReactSuspense>
                           }
@@ -196,7 +196,7 @@ function App() {
                         <Route
                           path="news/:slug"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <NewsDetail />
                             </ReactSuspense>
                           }
@@ -204,7 +204,7 @@ function App() {
                         <Route
                           path="markets"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <Markets />
                             </ReactSuspense>
                           }
@@ -212,7 +212,7 @@ function App() {
                         <Route
                           path="markets/:id"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <MarketDetail />
                             </ReactSuspense>
                           }
@@ -220,7 +220,7 @@ function App() {
                         <Route
                           path="main-trees"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <MainTrees />
                             </ReactSuspense>
                           }
@@ -228,7 +228,7 @@ function App() {
                         <Route
                           path="main-trees/:id"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <MainTreeDetail />
                             </ReactSuspense>
                           }
@@ -236,7 +236,7 @@ function App() {
                         <Route
                           path="categories/:id"
                           element={
-                            <ReactSuspense fallback={<PageFallback />}>
+                            <ReactSuspense fallback={<RouteProgress />}>
                               <CategoryDetail />
                             </ReactSuspense>
                           }

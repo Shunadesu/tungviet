@@ -66,15 +66,54 @@ Skeleton.Group = ({ children, className = '' }) => (
  * Skeleton card grid for product/market listing pages.
  * Renders `cols` cards x `rows` rows. Uses a card-like block per item.
  */
-Skeleton.CardGrid = ({ rows = 2, cols = 4, gap = 'gap-5 md:gap-6', className = '' }) => (
+Skeleton.CardGrid = ({ rows = 2, cols = 4, gap = 'gap-3 md:gap-4', className = '' }) => (
   <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${gap} ${className}`}>
     {Array.from({ length: rows * cols }).map((_, idx) => (
       <div key={idx} className="space-y-3">
-        <Skeleton variant="rect" height={180} width="100%" className="rounded-xl" />
+        <Skeleton variant="rect" height={140} width="100%" className="rounded-xl" />
         <Skeleton variant="text" width="70%" />
         <Skeleton variant="text" width="40%" />
       </div>
     ))}
+  </div>
+);
+
+/**
+ * Skeleton for the Markets listing page (filter bar + wide-image cards).
+ * The hero is rendered by the page itself so SEO metadata stays visible.
+ */
+Skeleton.Markets = ({ cards = 6 }) => (
+  <div aria-busy="true">
+    {/* Filter bar */}
+    <div className="flex items-center gap-2.5 flex-wrap mb-6">
+      <Skeleton variant="rect" width={180} height={40} className="rounded-xl" />
+      <Skeleton variant="rect" width={130} height={40} className="rounded-xl" />
+      <Skeleton variant="rect" width={140} height={40} className="rounded-xl" />
+      <Skeleton variant="rect" width={150} height={40} className="rounded-xl" />
+      <Skeleton variant="rect" width={220} height={40} className="rounded-xl" />
+    </div>
+
+    {/* Card grid — wide image on top */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      {Array.from({ length: cards }).map((_, idx) => (
+        <div
+          key={idx}
+          className="bg-white rounded-xl border border-gray-100 shadow-card overflow-hidden flex flex-col"
+        >
+          <div className="aspect-[16/9] bg-gray-100 animate-pulse flex-shrink-0" />
+          <div className="p-4 space-y-3">
+            <Skeleton variant="text" width="70%" height={14} />
+            <Skeleton variant="text" width="40%" height={10} />
+            <Skeleton variant="text" width="100%" height={10} />
+            <Skeleton variant="text" width="85%" height={10} />
+            <div className="pt-3 border-t border-gray-100 flex items-center gap-2.5">
+              <Skeleton variant="rect" width="100%" height={36} className="rounded-lg" />
+              <Skeleton variant="rect" width="100%" height={36} className="rounded-lg" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
@@ -85,15 +124,15 @@ Skeleton.MarketDetail = () => (
   <div className="pb-24 md:pb-28" aria-busy="true">
     <div className="relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-primary-50/50" />
-      <div className="relative container-page py-12 md:py-16 lg:py-20">
-        <Skeleton variant="text" width={220} height={12} className="mb-5" />
-        <Skeleton variant="text" width="60%" height={36} />
-        <Skeleton variant="text" width="80%" height={36} className="mt-3" />
-        <Skeleton variant="text" width="50%" height={16} className="mt-4" />
+      <div className="relative container-page py-8 md:py-10 lg:py-12">
+        <Skeleton variant="text" width={220} height={12} className="mb-3" />
+        <Skeleton variant="text" width="60%" height={32} />
+        <Skeleton variant="text" width="80%" height={32} className="mt-3" />
+        <Skeleton variant="text" width="50%" height={16} className="mt-3" />
       </div>
     </div>
-    <div className="container-page -mt-6 mb-8">
-      <Skeleton variant="rect" width="100%" height={360} className="rounded-2xl" />
+    <div className="container-page -mt-4 mb-6">
+      <Skeleton variant="rect" width="100%" height={220} className="rounded-xl" />
     </div>
     <div className="container-page">
       <div className="flex gap-2 mb-8 border-b border-gray-200 pb-3">
@@ -169,11 +208,11 @@ Skeleton.NewsDetail = () => (
 Skeleton.PageHero = () => (
   <div className="relative overflow-hidden">
     <div className="absolute inset-0 bg-gradient-to-br from-primary-50 via-white to-primary-50/50" />
-    <div className="relative container-page py-12 md:py-16 lg:py-20">
-      <Skeleton variant="text" width={220} height={12} className="mb-5" />
-      <Skeleton variant="text" width="55%" height={36} />
-      <Skeleton variant="text" width="40%" height={36} className="mt-3" />
-      <Skeleton variant="text" width="55%" height={16} className="mt-4" />
+    <div className="relative container-page py-8 md:py-10 lg:py-12">
+      <Skeleton variant="text" width={220} height={12} className="mb-3" />
+      <Skeleton variant="text" width="55%" height={32} />
+      <Skeleton variant="text" width="40%" height={32} className="mt-3" />
+      <Skeleton variant="text" width="55%" height={16} className="mt-3" />
     </div>
   </div>
 );
@@ -257,8 +296,8 @@ Skeleton.MainTreeDetail = () => (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {Array.from({ length: 3 }).map((_, idx) => (
             <div key={idx} className="rounded-2xl border border-gray-100 bg-white overflow-hidden">
-              <Skeleton variant="rect" width="100%" height={180} className="rounded-none" />
-              <div className="p-5 space-y-3">
+              <Skeleton variant="rect" width="100%" height={140} className="rounded-none" />
+              <div className="p-4 space-y-3">
                 <Skeleton variant="text" width="70%" height={15} />
                 <Skeleton variant="text" width="100%" height={10} />
                 <Skeleton variant="text" width="85%" height={10} />
@@ -273,6 +312,106 @@ Skeleton.MainTreeDetail = () => (
 
     <div className="container-page pb-8">
       <Skeleton variant="text" width={120} height={11} />
+    </div>
+  </div>
+);
+
+/**
+ * Skeleton for CategoryDetail page (hero + banner + description + SKU table).
+ */
+Skeleton.CategoryDetail = () => (
+  <div className="bg-white" aria-busy="true">
+    {/* Hero */}
+    <Skeleton.PageHero />
+
+    {/* Banner */}
+    <div className="container-page -mt-4 mb-8">
+      <div className="max-w-3xl mx-auto">
+        <Skeleton variant="rect" width="100%" height={220} className="rounded-xl" />
+      </div>
+    </div>
+
+    {/* Description */}
+    <div className="container-page mb-8 space-y-2.5">
+      <Skeleton variant="text" width="100%" height={13} />
+      <Skeleton variant="text" width="96%" height={13} />
+      <Skeleton variant="text" width="88%" height={13} />
+    </div>
+
+    {/* Back link */}
+    <div className="container-page mb-6">
+      <Skeleton variant="text" width={180} height={12} />
+    </div>
+
+    {/* Section header */}
+    <div className="container-page py-8 md:py-10">
+      <div className="flex items-end justify-between mb-6 md:mb-8 gap-3 flex-wrap">
+        <div className="space-y-2">
+          <Skeleton variant="text" width={100} height={11} />
+          <Skeleton variant="text" width={180} height={18} />
+        </div>
+        <Skeleton variant="text" width={120} height={13} />
+      </div>
+
+      {/* SKU table — desktop */}
+      <div className="hidden md:block">
+        <div className="w-full">
+          <div className="border-b border-gray-200 grid grid-cols-12 gap-3 pb-3">
+            <Skeleton variant="text" width={70} height={10} className="col-span-2" />
+            <Skeleton variant="text" width={60} height={10} className="col-span-3" />
+            <Skeleton variant="text" width={80} height={10} className="col-span-2" />
+            <Skeleton variant="text" width={60} height={10} className="col-span-2" />
+            <Skeleton variant="text" width={40} height={10} className="col-span-1" />
+            <Skeleton variant="text" width={50} height={10} className="col-span-1" />
+            <Skeleton variant="text" width={50} height={10} className="col-span-1" />
+          </div>
+          {Array.from({ length: 8 }).map((_, idx) => (
+            <div key={idx} className="border-b border-gray-100 py-3 grid grid-cols-12 gap-3 items-center">
+              <div className="col-span-2 flex items-center gap-2.5">
+                <Skeleton variant="rect" width={40} height={40} className="rounded-lg" />
+                <Skeleton variant="text" width={48} height={11} />
+              </div>
+              <div className="col-span-3">
+                <Skeleton variant="text" width="90%" height={12} />
+              </div>
+              <div className="col-span-2">
+                <Skeleton variant="text" width={60} height={11} />
+              </div>
+              <div className="col-span-2">
+                <Skeleton variant="text" width={50} height={11} />
+              </div>
+              <div className="col-span-1">
+                <Skeleton variant="text" width={40} height={11} />
+              </div>
+              <div className="col-span-1">
+                <Skeleton variant="text" width={55} height={11} />
+              </div>
+              <div className="col-span-1 flex justify-end">
+                <Skeleton variant="rect" width={72} height={26} className="rounded-lg" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* SKU cards — mobile */}
+      <div className="md:hidden space-y-3">
+        {Array.from({ length: 6 }).map((_, idx) => (
+          <div key={idx} className="border border-gray-100 rounded-xl p-3.5 bg-white">
+            <div className="flex items-start gap-3">
+              <Skeleton variant="rect" width={56} height={56} className="rounded-lg" />
+              <div className="flex-1 space-y-2">
+                <Skeleton variant="text" width={70} height={12} />
+                <Skeleton variant="text" width="85%" height={12} />
+              </div>
+            </div>
+            <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-100">
+              <Skeleton variant="text" width={80} height={11} />
+              <Skeleton variant="rect" width={90} height={26} className="rounded-lg" />
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   </div>
 );

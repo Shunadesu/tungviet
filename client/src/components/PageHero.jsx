@@ -39,10 +39,10 @@ const PageHero = ({
         </div>
       )}
 
-      <div className="relative container-page py-12 md:py-16 lg:py-20">
+      <div className="relative container-page py-8 md:py-10 lg:py-12">
         {breadcrumb.length > 0 && (
           <nav
-            className={`flex items-center gap-1.5 text-xs mb-5 ${
+            className={`flex items-center gap-1.5 text-xs mb-3 ${
               background ? 'text-white/80' : 'text-gray-500'
             }`}
           >
@@ -84,7 +84,7 @@ const PageHero = ({
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.05 }}
-            className={`text-3xl md:text-4xl lg:text-display-lg font-bold tracking-tight ${
+            className={`text-2xl md:text-3xl font-bold tracking-tight ${
               background ? 'text-white' : 'text-slate-900'
             }`}
           >
@@ -96,7 +96,7 @@ const PageHero = ({
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.1 }}
-              className={`mt-4 text-base md:text-lg leading-relaxed ${
+              className={`mt-2 text-sm md:text-base leading-relaxed max-w-2xl ${
                 background ? 'text-white/85' : 'text-slate-600'
               }`}
             >
@@ -109,7 +109,7 @@ const PageHero = ({
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.15 }}
-              className={`mt-6 ${align === 'center' ? 'flex justify-center' : ''}`}
+              className={`mt-4 ${align === 'center' ? 'flex justify-center' : ''}`}
             >
               {children}
             </motion.div>

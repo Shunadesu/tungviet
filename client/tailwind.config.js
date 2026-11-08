@@ -48,6 +48,13 @@ export default {
         'display': ['2.25rem', { lineHeight: '2.75rem', letterSpacing: '-0.02em', fontWeight: '700' }],
         'display-lg': ['3rem', { lineHeight: '3.5rem', letterSpacing: '-0.025em', fontWeight: '700' }],
       },
+      // Semantic aspect ratios used across listing/detail pages so every
+      // card crops media the same way.
+      aspectRatio: {
+        tile: '1 / 1',
+        card: '4 / 3',
+        banner: '21 / 9',
+      },
       spacing: {
         '18': '4.5rem',
         '22': '5.5rem',

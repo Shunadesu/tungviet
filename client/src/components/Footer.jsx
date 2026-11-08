@@ -1,14 +1,14 @@
 import { Link, useParams } from 'react-router-dom';
 import { FiPhone, FiMail, FiMapPin } from 'react-icons/fi';
-import { GiChemicalDrop, GiFactory } from 'react-icons/gi';
+import { GiChemicalDrop } from 'react-icons/gi';
 import { useTranslation } from 'react-i18next';
 import { useSiteConfig } from '../context/SiteConfigContext';
 import { SUPPORTED_LOCALES } from '../i18n';
 
 const Footer = () => {
   const { t } = useTranslation();
-  const { footer, logoUrl: siteLogo } = useSiteConfig();
-  const { about, phone, email, address, copyright, logoUrl: footerLogo, mapEmbed } = footer;
+  const { footer, logoUrl: siteLogo, loading: configLoading } = useSiteConfig();
+  const { about, phone, email, address, copyright, logoUrl: footerLogo, mapEmbed } = footer || {};
   const { lang: urlLang } = useParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
   const prefix = `/${lang}`;
@@ -23,12 +23,9 @@ const Footer = () => {
             <div className="mb-3">
               {displayLogo ? (
                 <img src={displayLogo} alt=" Tungviet" className="h-10 w-auto max-w-[180px]" />
-              ) : (
-                <div className="flex items-center gap-2">
-                  <GiFactory size={24} />
-                  <span className="text-base font-semibold"> Tungviet</span>
-                </div>
-              )}
+              ) : configLoading ? (
+                <div className="h-10 w-32 rounded-md bg-white/10 animate-pulse" aria-hidden="true" />
+              ) : null}
             </div>
             <p className="text-xs text-gray-300 leading-relaxed">{about}</p>
           </div>
@@ -114,9 +111,11 @@ const Footer = () => {
           );
         })()}
 
-        <div className="border-t border-primary-700 mt-6 pt-4 text-center">
-          <p className="text-xs text-gray-400">{copyright}</p>
-        </div>
+        {copyright && (
+          <div className="border-t border-primary-700 mt-6 pt-4 text-center">
+            <p className="text-xs text-gray-400">{copyright}</p>
+          </div>
+        )}
       </div>
     </footer>
   );

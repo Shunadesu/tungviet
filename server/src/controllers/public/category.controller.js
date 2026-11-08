@@ -9,7 +9,8 @@ export const getAllCategories = async (req, res, next) => {
   try {
     const locale = resolveLocale(req);
     const { mainTree } = req.query;
-    const cacheParams = { locale, mainTree: mainTree || '' };
+    const withSkuCount = req.query.withSkuCount === 'true' || req.query.withSkuCount === '1';
+    const cacheParams = { locale, mainTree: mainTree || '', withSkuCount };
     const key = cacheKeys.publicCategories(cacheParams);
     const cached = cacheStore.get(key);
     if (cached) return apiResponse.ok(res, cached);
@@ -17,6 +18,7 @@ export const getAllCategories = async (req, res, next) => {
     const items = await categoryService.list({
       sort: 'order_asc',
       mainTree,
+      withSkuCount,
     });
     const localized = items.map((doc) => localizeFields(doc, locale, LOCALIZABLE_FIELDS));
     cacheStore.set(key, localized, TTL.PUBLIC_CATEGORIES);

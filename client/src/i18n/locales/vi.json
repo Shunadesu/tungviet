@@ -7,7 +7,8 @@
     "clearSearch": "Xóa tìm kiếm",
     "copyLink": "Sao chép liên kết",
     "maxCompareItems": "Đã đạt tối đa {{max}} sản phẩm để so sánh",
-    "loadMore": "Xem thêm"
+    "loadMore": "Xem thêm",
+    "close": "Đóng"
   },
   "search": {
     "placeholder": "Tìm sản phẩm theo tên, mã hoặc từ khóa...",
@@ -31,7 +32,8 @@
     "addedToWishlist": "Đã thêm vào yêu thích",
     "removedFromWishlist": "Đã xoá khỏi yêu thích",
     "addedToCompare": "Đã thêm vào so sánh",
-    "removedFromCompare": "Đã xoá khỏi so sánh"
+    "removedFromCompare": "Đã xoá khỏi so sánh",
+    "addedToQuoteBag": "Đã thêm sản phẩm vào yêu cầu báo giá"
   },
   "nav": {
     "home": "Trang chủ",
@@ -169,17 +171,6 @@
     "ctaTitle": "Bạn cần báo giá?",
     "ctaSubtitle": "Đội ngũ tư vấn kỹ thuật sẽ phản hồi trong vòng 24 giờ"
   },
-  "hero": {
-    "fallback": {
-      "eyebrow": "Tùng Việt",
-      "title": "Nhựa thông công nghiệp hàng đầu",
-      "description": "Giải pháp nguyên liệu nhựa thông, rosin và hóa chất công nghiệp cho xây dựng, đường bộ, bao bì và hơn thế nữa.",
-      "ctaPrimary": "Khám phá sản phẩm",
-      "ctaSecondary": "Yêu cầu báo giá",
-      "scrollHint": "Cuộn xuống để xem thêm"
-    },
-    "loading": "Đang tải..."
-  },
   "mainTree": {
     "title": "Ngành hàng",
     "subtitle": "Danh mục các ngành hàng nhựa thông công nghiệp của Tùng Việt",
@@ -208,6 +199,7 @@
     "noDescription": "Chưa có mô tả cho ngành hàng này.",
     "noProducts": "Chưa có sản phẩm nào trong ngành hàng này.",
     "productsInCategory": "Sản phẩm trong ngành hàng",
+    "skuList": "Danh sách SKU",
     "viewAll": "Xem tất cả sản phẩm"
   },
   "product": {
@@ -215,6 +207,15 @@
     "noDescription": "Chưa có mô tả",
     "allProducts": "Tất cả sản phẩm",
     "productsCount": "{{n}} sản phẩm",
+    "mainProductsCount": "dòng sản phẩm",
+    "skuCount": "{{n}} SKU",
+    "viewSkus": "Xem SKU",
+    "truncatedNotice": "Đang hiển thị {{shown}} trong tổng số {{total}} SKU — danh sách có thể chưa đầy đủ.",
+    "skuCode": "Mã SKU",
+    "skuName": "Tên SKU",
+    "skuActions": "Thao tác",
+    "otherSkusInLine": "SKU khác trong dòng sản phẩm",
+    "viewProductLine": "Xem dòng sản phẩm",
     "productsSubtitle": "Khám phá danh mục sản phẩm nhựa thông và nguyên liệu công nghiệp chất lượng cao.",
     "searchResultsSubtitle": "Danh sách sản phẩm phù hợp với từ khóa của bạn.",
     "searchResultsFor": "Kết quả cho \"{{q}}\"",
@@ -236,6 +237,8 @@
       "all": "Tất cả",
       "mainTree": "Ngành hàng",
       "productLine": "Product line",
+      "selectedCount": "Đã chọn {{n}}",
+      "apply": "Áp dụng",
       "selectMainTreeFirst": "Chọn ngành hàng trước để lọc theo product line."
     },
     "sort": {
@@ -412,6 +415,10 @@
     "searchResultsTitle": "Kết quả cho \"{{q}}\"",
     "searchResultsSubtitle": "Các thị trường ứng dụng phù hợp với từ khóa của bạn.",
     "cardsCount": "{{n}} thị trường",
+    "allMarkets": "Tất cả thị trường",
+    "requestQuote": "Yêu cầu báo giá",
+    "featuredBadge": "Nổi bật",
+    "loadMore": "Xem thêm thị trường",
     "quoteCallout": {
       "title": "Bạn cần giải pháp riêng cho thị trường này?",
       "subtitle": "Gửi yêu cầu báo giá nhanh — chúng tôi sẽ tư vấn sản phẩm phù hợp cho thị trường \"{{market}}\" trong vòng 24 giờ.",
@@ -433,11 +440,20 @@
       "label": "Sắp xếp",
       "default": "Mặc định",
       "newest": "Mới nhất",
-      "nameAsc": "Tên: A-Z"
+      "nameAsc": "Tên: A-Z",
+      "nameDesc": "Tên: Z-A",
+      "mostProducts": "Nhiều sản phẩm nhất"
     },
     "filter": {
+      "title": "Bộ lọc",
       "active": "Đang lọc",
-      "clearAll": "Xóa bộ lọc"
+      "clearAll": "Xóa bộ lọc",
+      "all": "Tất cả",
+      "industry": "Ngành hàng",
+      "featured": "Nổi bật",
+      "hasProducts": "Có sản phẩm",
+      "selectedCount": "Đã chọn {{n}}",
+      "apply": "Áp dụng"
     },
     "pagination": {
       "previous": "Trang trước",

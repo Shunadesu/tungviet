@@ -82,7 +82,7 @@ const MarketDetailTabs = ({
               tabIndex={isActive ? 0 : -1}
               onClick={() => onChange(tab.id)}
               onKeyDown={(e) => handleKeyDown(e, tab.id, index)}
-              className={`relative inline-flex items-center gap-2 px-4 py-4 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-t-md ${
+              className={`relative inline-flex items-center gap-2 px-3 py-2.5 text-sm font-medium whitespace-nowrap transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-t-md ${
                 isActive
                   ? 'text-primary'
                   : 'text-gray-500 hover:text-gray-800'

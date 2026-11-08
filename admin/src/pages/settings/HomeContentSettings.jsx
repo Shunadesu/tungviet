@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   FiSave,
   FiTrash2,
@@ -34,6 +34,7 @@ const SECTION_KEYS = [
   { key: 'members', label: 'Ban lãnh đạo', defaultLimit: 4 },
   { key: 'quoteSection', label: 'Yêu cầu báo giá', defaultLimit: 0 },
   { key: 'locations', label: 'Văn phòng', defaultLimit: 3 },
+  { key: 'ecovadis', label: 'EcoVadis', defaultLimit: 0 },
 ];
 
 const defaultSections = () =>
@@ -319,6 +320,220 @@ const CertificatesTab = ({ initial, onSave }) => {
             </div>
           </div>
         ))}
+      </div>
+    </Card>
+  );
+};
+
+const emptyEcovadis = () => ({
+  eyebrow: { vi: '', en: '' },
+  title: { vi: '', en: '' },
+  subtitle: { vi: '', en: '' },
+  imageUrl: '',
+  badgeLabel: '',
+  link1Label: { vi: '', en: '' },
+  link1Href: '',
+  link2Label: { vi: '', en: '' },
+  link2Href: '',
+  active: true,
+});
+
+/**
+ * EcovadisTab - cấu hình band EcoVadis hiển thị trên trang chủ.
+ * Không có nội dung nào được hardcode: Admin nhập gì thì trang chủ hiển thị nấy.
+ */
+const EcovadisTab = ({ initial, onSave }) => {
+  const [form, setForm] = useState({ ...emptyEcovadis(), ...(initial || {}) });
+  const [uploading, setUploading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const fileRef = useRef(null);
+  const { addNotification } = useNotification();
+
+  const set = (patch) => setForm((prev) => ({ ...prev, ...patch }));
+
+  const handleUpload = async (file) => {
+    setUploading(true);
+    try {
+      const res = await adminApi.uploadImage(file);
+      const url = res?.data?.data?.url;
+      if (url) {
+        set({ imageUrl: url });
+        addNotification('Upload huy hiệu EcoVadis thành công');
+      }
+    } catch (err) {
+      addNotification('Upload thất bại', 'error');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const save = async () => {
+    setSaving(true);
+    try {
+      const res = await adminApi.updateEcovadis(form);
+      const saved = res?.data?.data || form;
+      setForm({ ...emptyEcovadis(), ...saved });
+      onSave?.(saved);
+      addNotification('Lưu nội dung EcoVadis thành công');
+    } catch (err) {
+      addNotification(err.response?.data?.message || 'Lưu thất bại', 'error');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Card
+      title="EcoVadis"
+      icon={<FiAward size={16} />}
+      action={
+        <button
+          type="button"
+          onClick={save}
+          disabled={saving}
+          className="btn-primary text-xs flex items-center gap-1"
+        >
+          <FiSave size={12} />
+          {saving ? 'Đang lưu...' : 'Lưu'}
+        </button>
+      }
+    >
+      <p className="text-[10px] text-gray-500">
+        Band giải thưởng EcoVadis trên trang chủ. Để trống toàn bộ nếu không muốn
+        hiển thị — section sẽ tự ẩn.
+      </p>
+
+      <div className="space-y-3 mt-3">
+        <div>
+          <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+            Eyebrow
+          </label>
+          <LocaleField
+            value={form.eyebrow}
+            onChange={(v) => set({ eyebrow: v })}
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+            Tiêu đề
+          </label>
+          <LocaleField value={form.title} onChange={(v) => set({ title: v })} />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+            Mô tả
+          </label>
+          <textarea
+            value={form.subtitle?.vi || ''}
+            onChange={(e) =>
+              set({ subtitle: { ...form.subtitle, vi: e.target.value } })
+            }
+            rows={3}
+            className="input-field text-xs w-full"
+          />
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+            Huy hiệu (ảnh)
+          </label>
+          <div className="flex items-center gap-2">
+            {form.imageUrl ? (
+              <img
+                src={form.imageUrl}
+                alt=""
+                className="w-12 h-12 rounded-full object-cover border"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                }}
+              />
+            ) : (
+              <div className="w-12 h-12 rounded-full bg-gray-100 text-gray-400 flex items-center justify-center">
+                <FiAward size={16} />
+              </div>
+            )}
+            <label className="btn-secondary text-[10px] flex items-center gap-1 cursor-pointer">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleUpload(f);
+                  e.target.value = '';
+                }}
+              />
+              {uploading ? 'Đang tải...' : 'Chọn ảnh'}
+            </label>
+            <input
+              type="url"
+              value={form.imageUrl}
+              onChange={(e) => set({ imageUrl: e.target.value })}
+              placeholder="Hoặc URL"
+              className="input-field text-[10px] flex-1"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[10px] font-medium mb-0.5 text-gray-700">
+            Nhãn huy hiệu (alt text)
+          </label>
+          <input
+            type="text"
+            value={form.badgeLabel}
+            onChange={(e) => set({ badgeLabel: e.target.value })}
+            placeholder="VD: EcoVadis Platinum"
+            className="input-field text-xs w-full"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1">
+            <label className="block text-[10px] font-medium text-gray-700">
+              Nút 1
+            </label>
+            <LocaleField
+              value={form.link1Label}
+              onChange={(v) => set({ link1Label: v })}
+            />
+            <input
+              type="text"
+              value={form.link1Href}
+              onChange={(e) => set({ link1Href: e.target.value })}
+              placeholder="href, VD: /markets"
+              className="input-field text-[10px] w-full"
+            />
+          </div>
+          <div className="space-y-1">
+            <label className="block text-[10px] font-medium text-gray-700">
+              Nút 2
+            </label>
+            <LocaleField
+              value={form.link2Label}
+              onChange={(v) => set({ link2Label: v })}
+            />
+            <input
+              type="text"
+              value={form.link2Href}
+              onChange={(e) => set({ link2Href: e.target.value })}
+              placeholder="href, VD: /news"
+              className="input-field text-[10px] w-full"
+            />
+          </div>
+        </div>
+
+        <label className="flex items-center gap-1 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={form.active !== false}
+            onChange={(e) => set({ active: e.target.checked })}
+            className="rounded w-3 h-3"
+          />
+          <span className="text-[10px] font-medium">Hiển thị</span>
+        </label>
       </div>
     </Card>
   );
@@ -720,6 +935,7 @@ const HomeContentSettings = () => {
   const [certificates, setCertificates] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
+  const [ecovadis, setEcovadis] = useState(emptyEcovadis());
   const { addNotification } = useNotification();
 
   useEffect(() => {
@@ -734,6 +950,7 @@ const HomeContentSettings = () => {
             ? data.homeSections
             : defaultSections()
         );
+        setEcovadis({ ...emptyEcovadis(), ...(data.ecovadis || {}) });
       } catch (err) {
         addNotification('Không tải được cấu hình', 'error');
       } finally {
@@ -746,6 +963,7 @@ const HomeContentSettings = () => {
     () => [
       { id: 'homeSections', label: 'Sections', icon: <FiLayout size={12} /> },
       { id: 'certificates', label: 'Chứng nhận', icon: <FiAward size={12} /> },
+      { id: 'ecovadis', label: 'EcoVadis', icon: <FiAward size={12} /> },
       { id: 'testimonials', label: 'Đánh giá', icon: <FiMessageSquare size={12} /> },
     ],
     []
@@ -809,6 +1027,12 @@ const HomeContentSettings = () => {
               <CertificatesTab
                 initial={certificates}
                 onSave={setCertificates}
+              />
+            )}
+            {activeTab === 'ecovadis' && (
+              <EcovadisTab
+                initial={ecovadis}
+                onSave={setEcovadis}
               />
             )}
             {activeTab === 'testimonials' && (

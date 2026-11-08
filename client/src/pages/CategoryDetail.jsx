@@ -1,52 +1,39 @@
 import { useEffect, useState } from 'react';
 import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { FiArrowLeft, FiArrowRight, FiBox } from 'react-icons/fi';
+import { FiArrowLeft, FiArrowRight, FiBox, FiLayers } from 'react-icons/fi';
 import publicApi from '../api/publicApi';
 import { getLocalizedField } from '../utils/i18nField';
 import { SUPPORTED_LOCALES } from '../i18n';
 import PageHero from '../components/PageHero';
-import ProductCard from '../components/ProductCard';
+import Skeleton from '../components/Skeleton';
+import SkuTable from '../components/SkuTable';
 import EmptyState from '../components/EmptyState';
 import SectionHeader from '../components/SectionHeader';
-import LoadMore from '../components/LoadMore';
 import SEO from '../components/SEO';
 import { sanitizeHtml } from '../utils/sanitize';
 import { htmlToText } from '../utils/html';
 
-const PAGE_SIZE = 24;
-
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06 } },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
-};
+/** Số SKU tối đa tải về cho 1 product line. */
+const MAX_SKU_FETCH = 500;
 
 const CategoryDetail = () => {
   const { t } = useTranslation();
   const { id, lang: urlLang } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
   const page = Math.max(1, parseInt(searchParams.get('page'), 10) || 1);
 
   const [category, setCategory] = useState(null);
   const [mainTree, setMainTree] = useState(null);
-  const [products, setProducts] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 0 });
+  const [skus, setSkus] = useState([]);
+  const [totalSkus, setTotalSkus] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   useEffect(() => {
     let mounted = true;
-    const isFirstPage = page === 1;
-    if (isFirstPage) setLoading(true);
-    else setLoadingMore(true);
+    setLoading(true);
 
     Promise.all([publicApi.getCategory(id, lang).catch(() => null)])
       .then(async ([catRes]) => {
@@ -58,23 +45,21 @@ const CategoryDetail = () => {
         }
         setCategory(cat);
 
-        const mainTreeId = cat.mainTree;
-        const [mtRes, prodsRes] = await Promise.all([
-          mainTreeId
-            ? publicApi.getMainTree(mainTreeId, lang).catch(() => null)
-            : Promise.resolve(null),
-          publicApi
-            .getProducts({ lang, category: id, page, limit: PAGE_SIZE })
-            .catch(() => null),
-        ]);
+        // `cat.mainTree` đã được populate sẵn từ server (object, không phải id)
+        const mt = cat.mainTree && typeof cat.mainTree === 'object' ? cat.mainTree : null;
+        if (mt) setMainTree(mt);
+
+        const prodsRes = await publicApi
+          .getProducts({ lang, productLine: id, page: 1, limit: MAX_SKU_FETCH })
+          .catch(() => null);
 
         if (!mounted) return;
-        if (mtRes?.data?.data) setMainTree(mtRes.data.data);
-        const items = Array.isArray(prodsRes?.data?.data) ? prodsRes.data.data : [];
-        const pg = prodsRes?.data?.pagination || { page, total: items.length, pages: 1 };
-        if (isFirstPage) setProducts(items);
-        else setProducts((prev) => [...prev, ...items]);
-        setPagination(pg);
+
+        const raw = prodsRes?.data?.data;
+        const items = Array.isArray(raw) ? raw : raw?.items || [];
+        setSkus(items);
+        const pg = prodsRes?.data?.pagination || prodsRes?.data?.data?.pagination;
+        setTotalSkus(pg?.total ?? items.length);
 
         const name = getLocalizedField(cat, lang, 'name', 'nameEn');
         document.title = `${name} | Tungviet`;
@@ -84,10 +69,7 @@ const CategoryDetail = () => {
         if (mounted) setNotFound(true);
       })
       .finally(() => {
-        if (mounted) {
-          setLoading(false);
-          setLoadingMore(false);
-        }
+        if (mounted) setLoading(false);
       });
 
     return () => {
@@ -96,26 +78,8 @@ const CategoryDetail = () => {
     };
   }, [id, lang, page, t]);
 
-  const loadMore = () => {
-    if (pagination.page < pagination.pages) {
-      const next = new URLSearchParams(searchParams);
-      next.set('page', String(pagination.page + 1));
-      setSearchParams(next);
-      setTimeout(() => {
-        window.scrollBy({ top: 200, behavior: 'smooth' });
-      }, 80);
-    }
-  };
-
-  const hasMore = pagination.page < pagination.pages;
-
   if (loading) {
-    return (
-      <div className="container-page py-16 md:py-24 text-center">
-        <div className="inline-block w-7 h-7 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="mt-3 text-sm text-gray-500">{t('common.loading')}</p>
-      </div>
-    );
+    return <Skeleton.CategoryDetail />;
   }
 
   if (notFound || !category) {
@@ -162,6 +126,8 @@ const CategoryDetail = () => {
   }
   breadcrumb.push({ label: name });
 
+  const skuCount = skus.length;
+
   return (
     <div className="bg-white">
       <SEO
@@ -169,17 +135,25 @@ const CategoryDetail = () => {
         description={seoDescription}
         keywords={t('seo.defaultKeywords')}
         url={`/${lang}/categories/${id}`}
+        breadcrumb={breadcrumb}
       />
 
       <PageHero
         title={name}
         subtitle={descriptionText || undefined}
         breadcrumb={breadcrumb}
-      />
+      >
+        {skuCount > 0 && (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 text-white text-xs font-semibold">
+            <FiLayers size={12} />
+            {t('product.skuCount', { n: skuCount })}
+          </span>
+        )}
+      </PageHero>
 
       {category.imageUrl && (
-        <section className="container-page -mt-6 mb-10">
-          <div className="rounded-2xl overflow-hidden shadow-lg aspect-video bg-gray-100">
+        <section className="container-page -mt-4 mb-8">
+          <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-card aspect-banner bg-gray-100">
             <img
               src={category.imageUrl}
               alt={name}
@@ -190,9 +164,9 @@ const CategoryDetail = () => {
       )}
 
       {description && (
-        <section className="container-page mb-10 md:mb-12">
+        <section className="container-page mb-8">
           <div
-            className="prose prose-lg max-w-none text-slate-700 leading-relaxed"
+            className="prose prose-base max-w-none text-slate-700 leading-relaxed"
             dangerouslySetInnerHTML={{ __html: sanitizeHtml(description) }}
           />
         </section>
@@ -206,14 +180,14 @@ const CategoryDetail = () => {
         {mainTree ? mainTreeName : t('category.backToList')}
       </Link>
 
-      <section className="container-page py-10 md:py-12">
+      <section className="container-page py-8 md:py-10">
         <div className="flex items-end justify-between mb-6 md:mb-8 gap-3 flex-wrap">
           <SectionHeader
             eyebrow={t('category.title')}
-            title={t('category.productsInCategory')}
+            title={t('category.skuList')}
             className="mb-0"
           />
-          {products.length > 0 && (
+          {skuCount > 0 && (
             <Link
               to={`/${lang}/products?category=${id}${mainTree ? `&industries=${mainTree._id}` : ''}`}
               className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:text-primary-700 transition-colors whitespace-nowrap"
@@ -224,35 +198,20 @@ const CategoryDetail = () => {
           )}
         </div>
 
-        {products.length === 0 ? (
+        {skus.length === 0 ? (
           <EmptyState
             icon={FiBox}
             title={t('category.noProducts')}
             description={t('mainTree.noSubCategoriesHint')}
           />
         ) : (
-          <>
-            <motion.div
-              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6"
-              variants={containerVariants}
-              initial="hidden"
-              animate="show"
-            >
-              {products.map((product, idx) => (
-                <motion.div key={product._id} variants={itemVariants}>
-                  <ProductCard product={product} index={idx} />
-                </motion.div>
-              ))}
-            </motion.div>
-            <LoadMore
-              hasMore={hasMore}
-              loading={loadingMore}
-              onLoad={loadMore}
-              total={pagination.total}
-              shown={products.length}
-              label={t('product.loadMore')}
-            />
-          </>
+          <SkuTable skus={skus} lang={lang} />
+        )}
+
+        {totalSkus > skus.length && (
+          <p className="mt-5 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            {t('product.truncatedNotice', { shown: skus.length, total: totalSkus })}
+          </p>
         )}
       </section>
     </div>

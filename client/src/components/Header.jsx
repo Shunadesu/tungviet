@@ -21,6 +21,7 @@ import { useQuoteBag } from '../context/QuoteBagContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useCompare } from '../context/CompareContext';
 import { useSiteConfig } from '../context/SiteConfigContext';
+import useHomeSection from '../hooks/useHomeSection';
 import { SUPPORTED_LOCALES } from '../i18n';
 import publicApi from '../api/publicApi';
 import { getLocalizedField } from '../utils/i18nField';
@@ -30,233 +31,188 @@ const LOCALE_LABELS = { vi: 'VI', en: 'EN' };
 const SCROLL_THRESHOLD = 16;
 
 // ─── Products Dropdown ───────────────────────────────────────────────────────
-const ProductsDropdown = ({
-  open,
-  onClose,
-  lang,
-  mainTrees,
-  categories,
-  products,
-  productsLoading,
-}) => {
-  // Group categories by mainTree for each tree's column
+/**
+ * Dropdown "Sản phẩm" hiển thị theo IA mới: mỗi mục là một **product line**
+ * (danh mục sản phẩm), kèm số lượng SKU bên trong. Bấm vào sẽ điều hướng
+ * tới trang chi tiết của product line, nơi có bảng SKU đầy đủ.
+ */
+const ProductsDropdown = ({ onClose, lang, mainTrees, categories, loading }) => {
+  // Group product lines (categories) by mainTree
   const getCategoriesForTree = (treeId) =>
     (categories || []).filter((c) => String(c.mainTree) === String(treeId));
-
-  // Group products by mainTree (via category.mainTree)
-  const getProductsForTree = (treeId) =>
-    (products || []).filter((p) => {
-      const cat = p.category || p.categoryId;
-      if (!cat) return false;
-      return String(typeof cat === 'object' ? cat.mainTree : cat) === String(treeId);
-    });
 
   // Take first 4 main trees for 2-column layout
   const visibleTrees = (mainTrees || []).slice(0, 4);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.15 }}
-          onMouseEnter={onClose.cancel}
-          onMouseLeave={onClose.schedule}
-          className="absolute left-0 right-0 mx-auto top-full mt-2 w-[700px] max-w-[calc(100vw-2rem)] bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden z-50"
-        >
-          <div className="p-5">
-            {productsLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary mx-auto" />
-              </div>
-            ) : visibleTrees.length === 0 ? (
-              <div className="text-center py-10">
-                <FiBox size={32} className="mx-auto text-gray-300 mb-2" />
-                <p className="text-sm text-gray-500">
-                  {lang === 'en' ? 'No products available yet.' : 'Chưa có sản phẩm nào.'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-5">
-                {visibleTrees.map((tree) => {
-                  const treeProducts = getProductsForTree(tree._id);
-                  const treeCategories = getCategoriesForTree(tree._id);
+    <>
+      <div className="p-5">
+        {loading ? (
+        <div className="flex items-center justify-center py-10">
+          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary mx-auto" />
+        </div>
+      ) : visibleTrees.length === 0 ? (
+        <div className="text-center py-10">
+          <FiBox size={32} className="mx-auto text-gray-300 mb-2" />
+          <p className="text-sm text-gray-500">
+            {lang === 'en' ? 'No products available yet.' : 'Chưa có sản phẩm nào.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-5">
+          {visibleTrees.map((tree) => {
+            const treeCategories = getCategoriesForTree(tree._id);
 
-                  return (
-                    <div key={tree._id} className="flex flex-col min-w-0">
-                      {/* Tree title */}
-                      <Link
-                        to={`/${lang}/main-trees/${tree._id}`}
-                        onClick={onClose.immediate}
-                        className="mb-3 pb-2 border-b border-gray-200 group flex items-center justify-between"
-                      >
-                        <h3 className="text-[11px] font-bold text-gray-800 uppercase tracking-wide group-hover:text-primary transition-colors truncate">
-                          {getLocalizedField(tree, lang, 'name', 'nameEn')}
-                        </h3>
-                        <FiArrowRight size={12} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0 ml-2" />
-                      </Link>
+            return (
+              <div key={tree._id} className="flex flex-col min-w-0">
+                {/* Tree title */}
+                <Link
+                  to={`/${lang}/main-trees/${tree._id}`}
+                  onClick={onClose.immediate}
+                  className="mb-3 pb-2 border-b border-gray-200 group flex items-center justify-between"
+                >
+                  <h3 className="text-[11px] font-bold text-gray-800 uppercase tracking-wide group-hover:text-primary transition-colors truncate">
+                    {getLocalizedField(tree, lang, 'name', 'nameEn')}
+                  </h3>
+                  <FiArrowRight size={12} className="opacity-0 group-hover:opacity-60 transition-opacity shrink-0 ml-2" />
+                </Link>
 
-                      {/* Products row */}
-                      {treeProducts.length > 0 ? (
-                        <div className="flex flex-wrap gap-2">
-                          {treeProducts.slice(0, 4).map((product) => (
-                            <Link
-                              key={product._id}
-                              to={`/${lang}/products/${product._id}`}
-                              onClick={onClose.immediate}
-                              className="group flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-gray-50 transition-colors w-full"
-                            >
-                              {product.thumbnail ? (
-                                <img
-                                  src={product.thumbnail}
-                                  alt={getLocalizedField(product, lang, 'name', 'nameEn')}
-                                  className="w-9 h-9 rounded-md object-cover flex-shrink-0 bg-gray-100"
-                                />
-                              ) : (
-                                <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
-                                  <FiBox size={14} className="text-gray-300" />
-                                </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium text-gray-800 group-hover:text-primary transition-colors truncate leading-tight">
-                                  {getLocalizedField(product, lang, 'name', 'nameEn')}
-                                </p>
-                                {product.shortCode && (
-                                  <p className="text-[10px] text-gray-400 truncate">{product.shortCode}</p>
-                                )}
-                              </div>
-                            </Link>
-                          ))}
-                        </div>
-                      ) : treeCategories.length > 0 ? (
-                        /* Fallback: show categories if no products */
-                        <div className="flex flex-wrap gap-1">
-                          {treeCategories.slice(0, 6).map((cat) => (
-                            <Link
-                              key={cat._id}
-                              to={`/${lang}/categories/${cat._id}`}
-                              onClick={onClose.immediate}
-                              className="text-[11px] text-gray-600 hover:text-primary px-2 py-1 rounded bg-gray-50 hover:bg-primary/5 transition-colors"
-                            >
+                {/* Product lines */}
+                {treeCategories.length > 0 ? (
+                  <div className="flex flex-col gap-1">
+                    {treeCategories.slice(0, 6).map((cat) => {
+                      const skuCount = cat.skuCount || 0;
+                      return (
+                        <Link
+                          key={cat._id}
+                          to={`/${lang}/categories/${cat._id}`}
+                          onClick={onClose.immediate}
+                          className="group flex items-center gap-2.5 px-2 py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                        >
+                          {cat.imageUrl ? (
+                            <img
+                              src={cat.imageUrl}
+                              alt={getLocalizedField(cat, lang, 'name', 'nameEn')}
+                              className="w-9 h-9 rounded-md object-cover flex-shrink-0 bg-gray-100"
+                            />
+                          ) : (
+                            <div className="w-9 h-9 rounded-md bg-gray-100 flex items-center justify-center flex-shrink-0">
+                              <FiBox size={14} className="text-gray-300" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-medium text-gray-800 group-hover:text-primary transition-colors truncate leading-tight">
                               {getLocalizedField(cat, lang, 'name', 'nameEn')}
-                            </Link>
-                          ))}
-                        </div>
-                      ) : (
-                        <p className="text-xs text-gray-400 italic">
-                          {lang === 'en' ? 'No products yet.' : 'Chưa có sản phẩm.'}
-                        </p>
-                      )}
-                    </div>
-                  );
-                })}
+                            </p>
+                            {skuCount > 0 && (
+                              <p className="text-[10px] text-gray-400 truncate">
+                                {lang === 'en' ? `${skuCount} SKUs` : `${skuCount} SKU`}
+                              </p>
+                            )}
+                          </div>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 italic">
+                    {lang === 'en' ? 'No products yet.' : 'Chưa có sản phẩm.'}
+                  </p>
+                )}
               </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-5 pb-4 flex items-center justify-between border-t border-gray-100 pt-3">
-            <Link
-              to={`/${lang}/products`}
-              onClick={onClose.immediate}
-              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
-            >
-              {lang === 'en' ? 'View all products' : 'Xem tất cả sản phẩm'}
-              <FiArrowRight size={12} />
-            </Link>
-            <span className="text-[10px] text-gray-400">
-              {mainTrees?.length || 0} {lang === 'en' ? 'industries' : 'ngành'}
-            </span>
-          </div>
-        </motion.div>
+            );
+          })}
+        </div>
       )}
-    </AnimatePresence>
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 pb-4 flex items-center justify-between border-t border-gray-100 pt-3">
+        <Link
+          to={`/${lang}/products`}
+          onClick={onClose.immediate}
+          className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+        >
+          {lang === 'en' ? 'View all products' : 'Xem tất cả sản phẩm'}
+          <FiArrowRight size={12} />
+        </Link>
+        <span className="text-[10px] text-gray-400">
+          {mainTrees?.length || 0} {lang === 'en' ? 'industries' : 'ngành'}
+        </span>
+      </div>
+    </>
   );
 };
 
 // ─── Markets Dropdown ─────────────────────────────────────────────────────────
-const MarketsDropdown = ({ open, onClose, lang, markets, marketsLoading }) => {
+const MarketsDropdown = ({ onClose, lang, markets, marketsLoading }) => {
   const visibleMarkets = (markets || []).slice(0, 6);
 
   return (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -6 }}
-          transition={{ duration: 0.15 }}
-          onMouseEnter={onClose.cancel}
-          onMouseLeave={onClose.schedule}
-          className="absolute left-0 right-0 mx-auto top-full mt-2 w-[640px] max-w-[calc(100vw-2rem)] bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden z-50"
-        >
-          <div className="p-5">
-            {marketsLoading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary mx-auto" />
-              </div>
-            ) : visibleMarkets.length === 0 ? (
-              <div className="text-center py-10">
-                <FiTrendingUp size={32} className="mx-auto text-gray-300 mb-2" />
-                <p className="text-sm text-gray-500">
-                  {lang === 'en' ? 'No markets available yet.' : 'Chưa có thị trường nào.'}
-                </p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-3">
-                {visibleMarkets.map((market) => (
-                  <Link
-                    key={market._id}
-                    to={`/${lang}/markets/${market._id}`}
-                    onClick={onClose.immediate}
-                    className="group flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 hover:border-primary/20"
-                  >
-                    {market.imageUrl ? (
-                      <img
-                        src={market.imageUrl}
-                        alt={getLocalizedField(market, lang, 'title', 'titleEn')}
-                        className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-                        <FiTrendingUp size={18} className="text-gray-300" />
-                      </div>
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-xs font-semibold text-gray-800 group-hover:text-primary transition-colors leading-tight mb-0.5">
-                        {getLocalizedField(market, lang, 'title', 'titleEn')}
-                      </h3>
-                      {(market.description || market.descriptionEn) && (
-                        <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">
-                          {getLocalizedField(market, lang, 'description', 'descriptionEn')}
-                        </p>
-                      )}
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-5 pb-4 flex items-center justify-between border-t border-gray-100 pt-3">
+    <>
+      <div className="p-5">
+        {marketsLoading ? (
+        <div className="flex items-center justify-center py-10">
+          <div className="animate-spin rounded-full h-7 w-7 border-b-2 border-primary mx-auto" />
+        </div>
+      ) : visibleMarkets.length === 0 ? (
+        <div className="text-center py-10">
+          <FiTrendingUp size={32} className="mx-auto text-gray-300 mb-2" />
+          <p className="text-sm text-gray-500">
+            {lang === 'en' ? 'No markets available yet.' : 'Chưa có thị trường nào.'}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {visibleMarkets.map((market) => (
             <Link
-              to={`/${lang}/markets`}
+              key={market._id}
+              to={`/${lang}/markets/${market._id}`}
               onClick={onClose.immediate}
-              className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+              className="group flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 hover:border-primary/20"
             >
-              {lang === 'en' ? 'View all markets' : 'Xem tất cả thị trường'}
-              <FiArrowRight size={12} />
+              {market.imageUrl ? (
+                <img
+                  src={market.imageUrl}
+                  alt={getLocalizedField(market, lang, 'title', 'titleEn')}
+                  className="w-12 h-12 rounded-lg object-cover flex-shrink-0 bg-gray-100"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
+                  <FiTrendingUp size={18} className="text-gray-300" />
+                </div>
+              )}
+              <div className="flex-1 min-w-0">
+                <h3 className="text-xs font-semibold text-gray-800 group-hover:text-primary transition-colors leading-tight mb-0.5">
+                  {getLocalizedField(market, lang, 'title', 'titleEn')}
+                </h3>
+                {(market.description || market.descriptionEn) && (
+                  <p className="text-[10px] text-gray-400 line-clamp-2 leading-relaxed">
+                    {getLocalizedField(market, lang, 'description', 'descriptionEn')}
+                  </p>
+                )}
+              </div>
             </Link>
-            <span className="text-[10px] text-gray-400">
-              {markets?.length || 0} {lang === 'en' ? 'markets' : 'thị trường'}
-            </span>
-          </div>
-        </motion.div>
+          ))}
+        </div>
       )}
-    </AnimatePresence>
+      </div>
+
+      {/* Footer */}
+      <div className="px-5 pb-4 flex items-center justify-between border-t border-gray-100 pt-3">
+        <Link
+          to={`/${lang}/markets`}
+          onClick={onClose.immediate}
+          className="text-xs font-semibold text-primary hover:underline flex items-center gap-1"
+        >
+          {lang === 'en' ? 'View all markets' : 'Xem tất cả thị trường'}
+          <FiArrowRight size={12} />
+        </Link>
+        <span className="text-[10px] text-gray-400">
+          {markets?.length || 0} {lang === 'en' ? 'markets' : 'thị trường'}
+        </span>
+      </div>
+    </>
   );
 };
 
@@ -267,7 +223,12 @@ const Header = () => {
   const { count } = useQuoteBag();
   const { count: wishlistCount } = useWishlist();
   const { count: compareCount } = useCompare();
-  const { logoUrl } = useSiteConfig();
+  const { logoUrl, loading: configLoading, heroSlides } = useSiteConfig();
+  const heroSection = useHomeSection('hero');
+  const hasHeroSlides =
+    heroSection.enabled &&
+    Array.isArray(heroSlides) &&
+    heroSlides.some((s) => s && s.active !== false);
   const navigate = useNavigate();
   const location = useLocation();
   const { lang: urlLang } = useParams();
@@ -278,8 +239,7 @@ const Header = () => {
   const [scrolled, setScrolled] = useState(false);
   const [mainTrees, setMainTrees] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [productsLoading, setProductsLoading] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [markets, setMarkets] = useState([]);
   const [marketsLoading, setMarketsLoading] = useState(false);
 
@@ -300,7 +260,7 @@ const Header = () => {
     closeTimer.current = setTimeout(() => {
       setProductsDropdownOpen(false);
       setMarketsDropdownOpen(false);
-    }, 150);
+    }, 250);
   };
 
   const closeDropdown = () => {
@@ -332,12 +292,13 @@ const Header = () => {
     return () => document.removeEventListener('keydown', onKey);
   }, [searchModalOpen, productsDropdownOpen]);
 
-  // Load main trees + categories
+  // Load main trees + categories (kèm số SKU của mỗi product line)
   useEffect(() => {
     let cancelled = false;
+    setCategoriesLoading(true);
     Promise.allSettled([
       publicApi.getMainTrees(currentLang),
-      publicApi.getCategories({ lang: currentLang, limit: 200 }),
+      publicApi.getCategories({ lang: currentLang, limit: 200, withSkuCount: true }),
     ]).then(([mtRes, catRes]) => {
       if (cancelled) return;
       if (mtRes.status === 'fulfilled') {
@@ -348,33 +309,13 @@ const Header = () => {
         const raw = catRes.value?.data?.data;
         setCategories(Array.isArray(raw) ? raw : raw?.items || []);
       }
+      setCategoriesLoading(false);
     });
     return () => {
       cancelled = true;
     };
   }, [currentLang]);
 
-  // Load featured products when dropdown opens
-  const productsFetchedRef = useRef(false);
-  useEffect(() => {
-    if (!productsDropdownOpen) return;
-    if (productsFetchedRef.current) return;
-    productsFetchedRef.current = true;
-    setProductsLoading(true);
-    publicApi
-      .getFeaturedProducts({ lang: currentLang, limit: 20 })
-      .then((res) => {
-        const data = res?.data?.data;
-        setProducts(Array.isArray(data) ? data : data?.items || []);
-        setProductsLoading(false);
-      })
-      .catch(() => {
-        productsFetchedRef.current = false;
-        setProductsLoading(false);
-      });
-  }, [productsDropdownOpen, currentLang]);
-
-  // Load markets when dropdown opens
   const marketsFetchedRef = useRef(false);
   useEffect(() => {
     if (!marketsDropdownOpen) return;
@@ -413,7 +354,7 @@ const Header = () => {
   };
 
   const isHome = location.pathname === `/${currentLang}` || location.pathname === `/${currentLang}/`;
-  const transparent = isHome && !scrolled && !menuOpen && !searchModalOpen && !productsDropdownOpen && !marketsDropdownOpen;
+  const transparent = isHome && hasHeroSlides && !scrolled && !menuOpen && !searchModalOpen && !productsDropdownOpen && !marketsDropdownOpen;
 
   const headerBase = 'sticky top-0 z-50 transition-all duration-300';
   const headerTheme = transparent
@@ -444,10 +385,6 @@ const Header = () => {
   const loginClass = transparent
     ? 'text-xs font-medium text-white hover:underline ml-1 hidden sm:inline'
     : 'text-xs font-medium text-primary hover:underline ml-1 hidden sm:inline';
-
-  const logoFallbackTextClass = transparent
-    ? 'text-base font-semibold text-white truncate'
-    : 'text-base font-semibold text-primary truncate';
 
   const mobileLinkClass = transparent
     ? 'py-2 px-1 text-sm text-white/90 hover:text-white hover:bg-white/10'
@@ -480,12 +417,9 @@ const Header = () => {
                   alt="Tungviet"
                   className="h-16 w-auto w-full object-contain"
                 />
-              ) : (
-                <>
-                  <span className="text-xl shrink-0">🏭</span>
-                  <span className={logoFallbackTextClass}>Tungviet</span>
-                </>
-              )}
+              ) : configLoading ? (
+                <span className="block h-10 w-24 rounded-md bg-gray-200/60 animate-pulse" aria-hidden="true" />
+              ) : null}
             </Link>
           </div>
 
@@ -500,34 +434,44 @@ const Header = () => {
             <div
               onMouseEnter={() => {
                 cancelClose();
+                setMarketsDropdownOpen(false);
                 setProductsDropdownOpen(true);
               }}
               onMouseLeave={scheduleClose}
             >
-              <button type="button" className={navLinkClass}>
+              <Link
+                to={`/${currentLang}/products`}
+                onClick={closeDropdown}
+                className={navLinkClass}
+              >
                 {currentLang === 'en' ? 'Products' : 'Sản phẩm'}
                 <FiChevronDown
                   size={14}
                   className={`transition-transform duration-200 ${productsDropdownOpen ? 'rotate-180' : ''}`}
                 />
-              </button>
+              </Link>
             </div>
 
             {/* Thị trường (dropdown trigger) */}
             <div
               onMouseEnter={() => {
                 cancelClose();
+                setProductsDropdownOpen(false);
                 setMarketsDropdownOpen(true);
               }}
               onMouseLeave={scheduleClose}
             >
-              <button type="button" className={navLinkClass}>
+              <Link
+                to={`/${currentLang}/markets`}
+                onClick={closeDropdown}
+                className={navLinkClass}
+              >
                 {currentLang === 'en' ? 'Markets' : 'Thị trường'}
                 <FiChevronDown
                   size={14}
                   className={`transition-transform duration-200 ${marketsDropdownOpen ? 'rotate-180' : ''}`}
                 />
-              </button>
+              </Link>
             </div>
 
             {/* Tin tức */}
@@ -635,38 +579,53 @@ const Header = () => {
           </div>
         </div>
 
-        {/* Products Dropdown - centered on header */}
-        <div
-          className="absolute left-0 right-0 flex justify-center"
-          style={{ pointerEvents: productsDropdownOpen ? 'auto' : 'none' }}
-          onMouseEnter={cancelClose}
-          onMouseLeave={scheduleClose}
-        >
-          <ProductsDropdown
-            open={productsDropdownOpen}
-            onClose={dropdownCloseHandlers}
-            lang={currentLang}
-            mainTrees={mainTrees}
-            categories={categories}
-            products={products}
-            productsLoading={productsLoading}
-          />
-        </div>
-
-        {/* Markets Dropdown - centered on header */}
-        <div
-          className="absolute left-0 right-0 flex justify-center"
-          style={{ pointerEvents: marketsDropdownOpen ? 'auto' : 'none' }}
-          onMouseEnter={cancelClose}
-          onMouseLeave={scheduleClose}
-        >
-          <MarketsDropdown
-            open={marketsDropdownOpen}
-            onClose={dropdownCloseHandlers}
-            lang={currentLang}
-            markets={markets}
-            marketsLoading={marketsLoading}
-          />
+        {/* Dropdown - single container so products/markets panels never overlap */}
+        <div className="absolute left-0 right-0 top-full flex justify-center pt-2 pointer-events-none">
+          <AnimatePresence>
+            {(productsDropdownOpen || marketsDropdownOpen) && (
+              <motion.div
+                key="header-dropdown"
+                initial={{ opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.15 }}
+                className="relative pointer-events-auto"
+              >
+                {/* Hover bridge: keeps dropdown open while moving from nav trigger down to panel */}
+                <div
+                  className="absolute -top-3 inset-x-0 h-3"
+                  onMouseEnter={cancelClose}
+                  onMouseLeave={scheduleClose}
+                />
+                <div
+                  className={`relative bg-white shadow-2xl rounded-2xl border border-gray-100 overflow-hidden z-50 ${
+                    productsDropdownOpen
+                      ? 'w-[700px] max-w-[calc(100vw-2rem)]'
+                      : 'w-[640px] max-w-[calc(100vw-2rem)]'
+                  }`}
+                  onMouseEnter={cancelClose}
+                  onMouseLeave={scheduleClose}
+                >
+                  {productsDropdownOpen ? (
+                    <ProductsDropdown
+                      onClose={dropdownCloseHandlers}
+                      lang={currentLang}
+                      mainTrees={mainTrees}
+                      categories={categories}
+                      loading={categoriesLoading}
+                    />
+                  ) : (
+                    <MarketsDropdown
+                      onClose={dropdownCloseHandlers}
+                      lang={currentLang}
+                      markets={markets}
+                      marketsLoading={marketsLoading}
+                    />
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* SearchModal */}

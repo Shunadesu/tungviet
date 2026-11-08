@@ -1,234 +1,276 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
-import { FiArrowRight, FiArrowUpRight, FiBox, FiPackage, FiSearch } from 'react-icons/fi';
+import { FiSearch } from 'react-icons/fi';
 import publicApi from '../api/publicApi';
 import { getLocalizedField } from '../utils/i18nField';
 import { SUPPORTED_LOCALES } from '../i18n';
 import PageHero from '../components/PageHero';
+import MarketCard from '../components/MarketCard';
+import MarketFilterTopBar from '../components/MarketFilterTopBar';
+import ActiveFilterChips from '../components/ActiveFilterChips';
 import EmptyState from '../components/EmptyState';
+import LoadMore from '../components/LoadMore';
+import Skeleton from '../components/Skeleton';
 import SEO from '../components/SEO';
 import { htmlToText } from '../utils/html';
 import { buildItemListJsonLd } from '../utils/jsonLd';
+import useMarketFilters from '../hooks/useMarketFilters';
+import useDebounce from '../hooks/useDebounce';
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.06, delayChildren: 0.04 } },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 16 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: 'easeOut' } },
-};
-
-const GRADIENTS = [
-  'from-sky-500 to-blue-600',
-  'from-emerald-500 to-teal-600',
-  'from-cyan-500 to-sky-600',
-  'from-teal-500 to-cyan-600',
-  'from-blue-500 to-indigo-600',
-  'from-emerald-500 to-green-600',
-];
+/**
+ * Số thị trường hiển thị mỗi lần bấm "Xem thêm".
+ */
+const PAGE_SIZE = 9;
 
 const Markets = () => {
   const { t, i18n } = useTranslation();
   const { lang: urlLang } = useParams();
   const lang = SUPPORTED_LOCALES.includes(urlLang) ? urlLang : 'vi';
   const isEN = i18n.language === 'en';
+
+  const { values, setParam, clearAll, activeCount, getShareUrl } = useMarketFilters();
+
   const [items, setItems] = useState([]);
-  const [grouped, setGrouped] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  const search = values.search;
+  const sort = values.sort;
+
+  // Ô tìm kiếm: state cục bộ + debounce để không ghi URL mỗi ký tự.
+  const [searchInput, setSearchInput] = useState(search || '');
+  const debouncedSearch = useDebounce(searchInput, 400);
 
   useEffect(() => {
+    setSearchInput(search || '');
+  }, [search]);
+
+  useEffect(() => {
+    if (debouncedSearch !== search) {
+      setParam('q', debouncedSearch);
+    }
+  }, [debouncedSearch]);
+
+  useEffect(() => {
+    let cancelled = false;
     setLoading(true);
-    Promise.all([
-      publicApi.getMarketTrees({ lang }),
-      publicApi.getMarketsGrouped(lang),
-    ])
-      .then(([flatRes, groupedRes]) => {
-        setItems(Array.isArray(flatRes.data?.data) ? flatRes.data.data : []);
-        setGrouped(Array.isArray(groupedRes.data?.data) ? groupedRes.data.data : []);
+    publicApi
+      .getMarketTrees({ lang })
+      .then((res) => {
+        if (cancelled) return;
+        setItems(Array.isArray(res.data?.data) ? res.data.data : []);
       })
       .catch((err) => console.warn('[Markets] fetch failed:', err))
-      .finally(() => setLoading(false));
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [lang]);
 
-  const filtered = useMemo(() => {
-    if (!search.trim()) return items;
-    const q = search.toLowerCase().trim();
-    return items.filter((m) => {
-      const title = getLocalizedField(m, lang, 'title', 'titleEn') || '';
-      const desc = getLocalizedField(m, lang, 'description', 'descriptionEn') || '';
-      return (
-        title.toLowerCase().includes(q) || desc.toLowerCase().includes(q)
-      );
+  /**
+   * Danh sách ngành hàng (MainTree) dùng cho bộ lọc — gom từ `market.industry[]`
+   * vì API đã populate sẵn, không cần gọi thêm endpoint.
+   */
+  const industryOptions = useMemo(() => {
+    const map = new Map();
+    items.forEach((m) => {
+      const list = Array.isArray(m.industry) ? m.industry : m.industry ? [m.industry] : [];
+      list.filter(Boolean).forEach((ind) => {
+        const id = String(ind._id || ind);
+        if (!id || map.has(id)) return;
+        map.set(id, { _id: id, name: ind.name || '', nameEn: ind.nameEn || '' });
+      });
     });
-  }, [items, search, lang]);
+    return Array.from(map.values()).sort((a, b) =>
+      (a.name || a.nameEn || '').localeCompare(b.name || b.nameEn || '')
+    );
+  }, [items]);
+
+  const filtered = useMemo(() => {
+    const q = (search || '').trim().toLowerCase();
+    const selectedIndustries = (values.industries || []).map(String);
+
+    let result = items.filter((m) => {
+      // Từ khóa: tên + mô tả
+      if (q) {
+        const title = getLocalizedField(m, lang, 'title', 'titleEn') || '';
+        const desc = getLocalizedField(m, lang, 'description', 'descriptionEn') || '';
+        if (!title.toLowerCase().includes(q) && !desc.toLowerCase().includes(q)) {
+          return false;
+        }
+      }
+
+      // Ngành hàng
+      if (selectedIndustries.length > 0) {
+        const ids = (Array.isArray(m.industry) ? m.industry : m.industry ? [m.industry] : [])
+          .filter(Boolean)
+          .map((ind) => String(ind._id || ind));
+        if (!selectedIndustries.some((id) => ids.includes(id))) return false;
+      }
+
+      // Chỉ thị trường nổi bật
+      if (values.featured && m.isFeatured !== true) return false;
+
+      // Chỉ thị trường có sản phẩm
+      if (values.hasProducts && !(Number(m.productCount) > 0)) return false;
+
+      return true;
+    });
+
+    const nameOf = (m) => getLocalizedField(m, lang, 'title', 'titleEn') || '';
+    switch (sort) {
+      case 'name_asc':
+        result.sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+        break;
+      case 'name_desc':
+        result.sort((a, b) => nameOf(b).localeCompare(nameOf(a)));
+        break;
+      case 'newest':
+        result.sort((a, b) => {
+          const at = new Date(a.createdAt || 0).getTime();
+          const bt = new Date(b.createdAt || 0).getTime();
+          if (bt !== at) return bt - at;
+          return nameOf(a).localeCompare(nameOf(b));
+        });
+        break;
+      case 'most_products':
+        result.sort((a, b) => (Number(b.productCount) || 0) - (Number(a.productCount) || 0));
+        break;
+      default:
+        result.sort((a, b) => {
+          const featuredDiff = (b.isFeatured === true ? 1 : 0) - (a.isFeatured === true ? 1 : 0);
+          if (featuredDiff !== 0) return featuredDiff;
+          const orderDiff = (a.order || 0) - (b.order || 0);
+          if (orderDiff !== 0) return orderDiff;
+          return nameOf(a).localeCompare(nameOf(b));
+        });
+    }
+
+    return result;
+  }, [items, search, sort, lang, values.industries, values.featured, values.hasProducts]);
+
+  // Reset số lượng hiển thị khi danh sách thay đổi
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [filtered.length, search, sort, values.industries, values.featured, values.hasProducts]);
+
+  const visibleMarkets = filtered.slice(0, visibleCount);
+  const hasMore = visibleCount < filtered.length;
+
+  const loadMore = () => {
+    setVisibleCount((prev) => prev + PAGE_SIZE);
+    setTimeout(() => {
+      window.scrollBy({ top: 200, behavior: 'smooth' });
+    }, 80);
+  };
 
   const itemListJsonLd = useMemo(
     () => buildItemListJsonLd(filtered, { lang }),
     [filtered, lang]
   );
 
+  const breadcrumb = useMemo(
+    () => [
+      { label: t('market.breadcrumbHome'), to: `/${lang}` },
+      { label: t('market.breadcrumbMarkets') },
+    ],
+    [lang, t]
+  );
+
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="bg-white min-h-screen"
+    >
       <SEO
         title={t('market.title')}
         description={t('market.subtitle') || htmlToText(t('market.title'))}
-        keywords={isEN ? 'markets, applications, rosin, resin, Tungviet' : 'thị trường, ứng dụng, rosin, nhựa, Tungviet'}
+        keywords={
+          isEN
+            ? 'markets, applications, rosin, resin, Tungviet'
+            : 'thị trường, ứng dụng, rosin, nhựa, Tungviet'
+        }
         url={`/${lang}/markets`}
         type="website"
+        breadcrumb={breadcrumb}
         jsonLd={itemListJsonLd}
       />
+
       <PageHero
         title={t('market.title')}
         subtitle={t('market.subtitle')}
-        breadcrumb={[
-          { label: t('market.breadcrumbHome'), to: `/${lang}` },
-          { label: t('market.breadcrumbMarkets') },
-        ]}
+        breadcrumb={breadcrumb}
       />
 
-      <section className="container-page py-12 md:py-16">
-        <div className="flex items-center justify-between gap-3 mb-6 flex-wrap">
-          <h2 className="text-xl md:text-2xl font-bold text-slate-900">
-            {isEN ? 'All markets' : 'Tất cả thị trường'}
-            <span className="ml-2 text-sm font-medium text-slate-500">
-              ({filtered.length})
-            </span>
-          </h2>
-          <div className="relative w-full sm:w-72">
-            <FiSearch
-              size={14}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
-            />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={isEN ? 'Search markets...' : 'Tìm thị trường...'}
-              className="input-field pl-9 pr-3 text-sm"
-            />
-          </div>
-        </div>
+      <section className="container-page py-6 md:py-8">
+        {/* Thanh bộ lọc ngang */}
+        <MarketFilterTopBar
+          values={values}
+          setParam={setParam}
+          industries={industryOptions}
+          sort={sort}
+          onSortChange={(v) => setParam('sort', v)}
+          activeCount={activeCount}
+          resultCount={filtered.length}
+          searchInput={searchInput}
+          onSearchInputChange={setSearchInput}
+          onSearchSubmit={() => setParam('q', searchInput)}
+        />
+
+        {/* Active filter chips */}
+        <ActiveFilterChips
+          mode="market"
+          values={values}
+          setParam={setParam}
+          clearAll={clearAll}
+          getShareUrl={getShareUrl}
+          mainTrees={industryOptions}
+        />
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-card h-48"
-              >
-                <div className="w-14 h-14 rounded-2xl skeleton mb-5" />
-                <div className="h-4 w-3/4 skeleton mb-3" />
-                <div className="h-3 w-full skeleton mb-2" />
-                <div className="h-3 w-2/3 skeleton" />
-              </div>
-            ))}
-          </div>
+          <Skeleton.Markets />
         ) : filtered.length === 0 ? (
           <EmptyState
-            icon={FiBox}
-            title={isEN ? 'No markets found' : 'Không tìm thấy thị trường'}
-            description={
-              isEN
-                ? 'Try a different search term.'
-                : 'Hãy thử với từ khóa khác.'
+            icon={FiSearch}
+            title={t('market.noResults')}
+            description={t('market.noResultsHint')}
+            action={
+              <button type="button" onClick={clearAll} className="btn-secondary">
+                {t('market.filter.clearAll')}
+              </button>
             }
           />
         ) : (
-          <motion.div
-            className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-5 md:gap-6"
-            variants={containerVariants}
-            initial="hidden"
-            animate="show"
-          >
-            {filtered.map((m, idx) => {
-              const name = getLocalizedField(m, lang, 'title', 'titleEn');
-              const description = getLocalizedField(
-                m,
-                lang,
-                'description',
-                'descriptionEn'
-              );
-              const gradient = GRADIENTS[idx % GRADIENTS.length];
-              const appCount = Array.isArray(m.applications)
-                ? m.applications.length
-                : 0;
-              return (
-                <motion.div key={m._id} variants={cardVariants}>
-                  <Link
-                    to={`/${lang}/markets/${m._id}`}
-                    className="group relative block h-full bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-card-hover hover:-translate-y-1 transition-all duration-300 overflow-hidden"
-                  >
-                    {m.imageUrl ? (
-                      <div className="aspect-video bg-gray-100 overflow-hidden">
-                        <img
-                          src={m.imageUrl}
-                          alt={name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                      </div>
-                    ) : (
-                      <div
-                        className={`aspect-video bg-gradient-to-br ${gradient} flex items-center justify-center`}
-                      >
-                        <FiBox size={56} className="text-white/40" />
-                      </div>
-                    )}
-                    <div className="p-5 md:p-6">
-                      {m.isFeatured === true && (
-                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full mb-2">
-                          <FiPackage size={10} />
-                          {isEN ? 'Featured' : 'Nổi bật'}
-                        </span>
-                      )}
-                      <h3 className="text-base md:text-lg font-bold text-slate-900 mb-2 tracking-tight group-hover:text-primary transition-colors">
-                        {name}
-                      </h3>
-                      {description && (
-                        <p className="text-xs md:text-sm text-slate-600 leading-relaxed line-clamp-3">
-                          {description}
-                        </p>
-                      )}
-                      <div className="mt-4 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-3 text-[11px] text-slate-500">
-                          {Number.isFinite(m.productCount) && m.productCount > 0 && (
-                            <span className="inline-flex items-center gap-1">
-                              <FiPackage size={10} />
-                              {m.productCount} {isEN ? 'products' : 'SP'}
-                            </span>
-                          )}
-                          {appCount > 0 && (
-                            <span>
-                              {appCount} {isEN ? 'applications' : 'ứng dụng'}
-                            </span>
-                          )}
-                        </div>
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
-                          {t('market.viewDetails')}
-                          <FiArrowRight
-                            size={12}
-                            className="transition-transform group-hover:translate-x-1"
-                          />
-                        </span>
-                      </div>
-                    </div>
-                    <FiArrowUpRight
-                      size={16}
-                      className="absolute top-4 right-4 text-slate-300 group-hover:text-primary group-hover:rotate-12 transition-all duration-300"
-                    />
-                  </Link>
-                </motion.div>
-              );
-            })}
-          </motion.div>
+          <>
+            <h2 className="text-lg md:text-xl font-bold text-slate-900 mb-4">
+              {t('market.allMarkets')}
+              <span className="ml-2 text-sm font-medium text-slate-500">
+                ({filtered.length})
+              </span>
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {visibleMarkets.map((m, index) => (
+                <MarketCard key={m._id} market={m} index={index} lang={lang} />
+              ))}
+            </div>
+            <LoadMore
+              hasMore={hasMore}
+              loading={false}
+              onLoad={loadMore}
+              total={filtered.length}
+              shown={visibleMarkets.length}
+              label={t('market.loadMore')}
+            />
+          </>
         )}
       </section>
-    </div>
+    </motion.div>
   );
 };
 

@@ -40,6 +40,7 @@ const ProductDetail = () => {
 
   const [product, setProduct] = useState(null);
   const [columns, setColumns] = useState([]);
+  const [lineSkus, setLineSkus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [added, setAdded] = useState(false);
@@ -78,6 +79,7 @@ const ProductDetail = () => {
         setNotFound(true);
       } else {
         setProduct(data);
+        fetchLineSkus(data);
       }
 
       if (columnsResult.status === 'fulfilled') {
@@ -92,6 +94,27 @@ const ProductDetail = () => {
       }
     } finally {
       setLoading(false);
+    }
+  };
+
+  /**
+   * Tải các SKU khác nằm trong cùng product line để hiển thị mục
+   * "SKU khác trong dòng sản phẩm" (điều hướng 2 chiều).
+   */
+  const fetchLineSkus = async (data) => {
+    const line = Array.isArray(data.productLines) ? data.productLines[0] : null;
+    const lineId = line?._id;
+    if (!lineId) {
+      setLineSkus([]);
+      return;
+    }
+    try {
+      const res = await publicApi.getProducts({ lang, productLine: lineId, limit: 50 });
+      const raw = res?.data?.data;
+      const items = Array.isArray(raw) ? raw : raw?.items || [];
+      setLineSkus(items.filter((p) => String(p._id) !== String(data._id)));
+    } catch {
+      setLineSkus([]);
     }
   };
 
@@ -121,7 +144,7 @@ const ProductDetail = () => {
         variant="notFound"
         title={t('product.notFound')}
         description={
-          isEN
+          lang === 'en'
             ? 'This product may have been removed or the link is incorrect.'
             : 'Sản phẩm này có thể đã được gỡ hoặc liên kết không chính xác.'
         }
@@ -185,10 +208,11 @@ const ProductDetail = () => {
       to: `/${lang}/main-trees/${primaryIndustry._id}`,
     });
   }
-  if (product.productLine && product.productLine._id) {
+  const primaryLine = Array.isArray(product.productLines) ? product.productLines[0] : null;
+  if (primaryLine && primaryLine._id) {
     breadcrumb.push({
-      label: getLocalizedField(product.productLine, lang, 'name', 'nameEn'),
-      to: `/${lang}/categories/${product.productLine._id}`,
+      label: getLocalizedField(primaryLine, lang, 'name', 'nameEn'),
+      to: `/${lang}/categories/${primaryLine._id}`,
     });
   }
   breadcrumb.push({ label: product.name });
@@ -387,6 +411,39 @@ const ProductDetail = () => {
           </div>
         )}
       </section>
+
+      {/* SKU khác trong cùng dòng sản phẩm */}
+      {lineSkus.length > 0 && primaryLine && (
+        <section className="container-page pb-12 md:pb-16">
+          <div className="flex items-center gap-3 mb-5">
+            <span className="heading-eyebrow">{t('product.otherSkusInLine')}</span>
+            <div className="flex-1 h-px bg-gray-100" />
+            <Link
+              to={`/${lang}/categories/${primaryLine._id}`}
+              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline whitespace-nowrap"
+            >
+              {t('product.viewProductLine')}
+              <FiArrowRight size={12} />
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {lineSkus.map((sku) => (
+              <Link
+                key={sku._id}
+                to={`/${lang}/products/${sku._id}`}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white hover:border-primary hover:bg-primary-50 transition-colors"
+              >
+                <span className="font-mono text-[11px] font-semibold text-slate-900">
+                  {sku.productCode || '—'}
+                </span>
+                <span className="text-xs text-slate-500 truncate max-w-[16rem]">
+                  {getLocalizedField(sku, lang, 'name', 'nameEn')}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <RelatedProducts currentProduct={product} />
 

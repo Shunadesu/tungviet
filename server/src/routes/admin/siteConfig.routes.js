@@ -21,6 +21,7 @@ import {
   clearFavicon,
   updateFloatingContacts,
   updateCertificates,
+  updateEcovadis,
   updateTestimonials,
   updateHomeSections,
 } from '../../controllers/siteConfig.controller.js';
@@ -280,6 +281,18 @@ router.put('/floating-contacts', adminAuth, updateFloatingContacts);
  *       200: { description: OK }
  */
 router.put('/certificates', adminAuth, updateCertificates);
+
+/**
+ * @openapi
+ * /api/admin/site-config/ecovadis:
+ *   put:
+ *     tags: [Admin - Site Config]
+ *     summary: Cập nhật nội dung band EcoVadis hiển thị trên trang chủ
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
+ */
+router.put('/ecovadis', adminAuth, updateEcovadis);
 
 /**
  * @openapi

@@ -1,85 +1,58 @@
 import { useTranslation } from 'react-i18next';
-import { motion } from 'framer-motion';
-import { FiShield, FiCheckCircle } from 'react-icons/fi';
+import { FiAward } from 'react-icons/fi';
 import SectionHeader from './SectionHeader';
+import { useSiteConfig } from '../context/SiteConfigContext';
+import { SUPPORTED_LOCALES } from '../i18n';
+import useHomeSection from '../hooks/useHomeSection';
 
-const CERTIFICATES = [
-  {
-    key: 'iso9001',
-    code: 'ISO 9001:2015',
-    fullName_vi: 'Hệ thống Quản lý Chất lượng',
-    fullName_en: 'Quality Management System',
-    issuer: 'International',
-    accent: 'from-primary to-primary-700',
-  },
-  {
-    key: 'iso14001',
-    code: 'ISO 14001:2015',
-    fullName_vi: 'Hệ thống Quản lý Môi trường',
-    fullName_en: 'Environmental Management',
-    issuer: 'International',
-    accent: 'from-emerald-500 to-teal-600',
-  },
-  {
-    key: 'reach',
-    code: 'REACH',
-    fullName_vi: 'An toàn Hóa chất Liên minh châu Âu',
-    fullName_en: 'EU Chemicals Safety',
-    issuer: 'European Union',
-    accent: 'from-cyan-500 to-sky-600',
-  },
-  {
-    key: 'fda',
-    code: 'FDA',
-    fullName_vi: 'Cục Quản lý Thực phẩm & Dược phẩm Hoa Kỳ',
-    fullName_en: 'US Food & Drug Administration',
-    issuer: 'United States',
-    accent: 'from-teal-500 to-emerald-600',
-  },
-  {
-    key: 'gmp',
-    code: 'GMP',
-    fullName_vi: 'Thực hành Sản xuất Tốt',
-    fullName_en: 'Good Manufacturing Practice',
-    issuer: 'World Health Org.',
-    accent: 'from-blue-500 to-indigo-600',
-  },
-  {
-    key: 'rohs',
-    code: 'RoHS',
-    fullName_vi: 'Hạn chế Chất độc hại',
-    fullName_en: 'Restriction of Hazardous Substances',
-    issuer: 'EU Directive',
-    accent: 'from-green-500 to-emerald-600',
-  },
-];
+const CertificateBadge = ({ cert }) => {
+  const name = cert.name || '';
+  const description = cert.description || '';
 
-const CertificateBadge = ({ cert, isEN }) => (
-  <div className="flex-shrink-0 mx-3 my-1">
-    <div className="group bg-white rounded-2xl px-5 py-4 border border-slate-100 transition-all duration-300 flex items-center gap-4 min-w-[280px] hover:-translate-y-0.5">
-      <div className={`relative w-14 h-14 flex-shrink-0 rounded-xl bg-gradient-to-br ${cert.accent} text-white flex items-center justify-center shadow-lg transition-transform duration-300 group-hover:scale-105 group-hover:rotate-[4deg]`}>
-        <FiShield size={26} />
-        <span className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow">
-          <FiCheckCircle size={14} className="text-emerald-500" fill="currentColor" />
-        </span>
-      </div>
+  return (
+    <div className="flex-shrink-0 mx-3 my-1">
+      <div className="group bg-white rounded-2xl px-5 py-4 border border-slate-100 transition-all duration-300 flex items-center gap-4 min-w-[260px] hover:-translate-y-0.5 hover:shadow-md">
+        <div className="relative w-14 h-14 flex-shrink-0 rounded-xl bg-primary-50 text-primary flex items-center justify-center overflow-hidden">
+          {cert.imageUrl ? (
+            <img
+              src={cert.imageUrl}
+              alt={name || ''}
+              loading="lazy"
+              className="w-full h-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
+              onError={(e) => {
+                e.currentTarget.style.display = 'none';
+              }}
+            />
+          ) : (
+            <FiAward size={26} />
+          )}
+        </div>
 
-      <div className="min-w-0">
-        <p className="text-sm font-bold text-slate-900 truncate">{cert.code}</p>
-        <p className="text-xs text-slate-500 mt-0.5 truncate">
-          {isEN ? cert.fullName_en : cert.fullName_vi}
-        </p>
-        <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-0.5">
-          {cert.issuer}
-        </p>
+        <div className="min-w-0">
+          {name && <p className="text-sm font-bold text-slate-900 truncate">{name}</p>}
+          {description && (
+            <p className="text-xs text-slate-500 mt-0.5 truncate">{description}</p>
+          )}
+        </div>
       </div>
     </div>
-  </div>
-);
+  );
+};
 
+/**
+ * CertificatesSection - hiển thị chứng nhận lấy từ API (quản lý tại
+ * Admin > Nội dung trang chủ > Chứng nhận). Không có dữ liệu giả hardcode.
+ */
 const CertificatesSection = () => {
   const { t, i18n } = useTranslation();
-  const isEN = i18n.language === 'en';
+  const { certificates = [] } = useSiteConfig();
+  const section = useHomeSection('certificates');
+  const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
+
+  const items = (certificates || []).filter((c) => c && c.active !== false);
+
+  if (!section.enabled) return null;
+  if (items.length === 0) return null;
 
   const Marquee = ({ reverse = false, duration = 50 }) => (
     <div className="relative overflow-hidden group/track">
@@ -87,8 +60,8 @@ const CertificatesSection = () => {
         className={`flex w-max ${reverse ? 'animate-marquee-reverse' : 'animate-marquee'} group-hover/track:[animation-play-state:paused]`}
         style={{ animationDuration: `${duration}s` }}
       >
-        {[...CERTIFICATES, ...CERTIFICATES].map((cert, index) => (
-          <CertificateBadge key={`${cert.key}-${index}`} cert={cert} isEN={isEN} />
+        {[...items, ...items].map((cert, index) => (
+          <CertificateBadge key={`${cert._id || cert.name}-${index}`} cert={cert} />
         ))}
       </div>
       <style>{`
@@ -114,9 +87,9 @@ const CertificatesSection = () => {
     <section className="relative bg-gradient-to-br from-primary-50/40 via-white to-emerald-50/40 py-16 md:py-20 overflow-hidden">
       <div className="max-w-6xl mx-auto px-4">
         <SectionHeader
-          eyebrow={isEN ? 'Certifications' : 'Chứng nhận'}
-          title={t('certificates.title')}
-          subtitle={t('certificates.subtitle')}
+          eyebrow={lang === 'en' ? 'Certifications' : 'Chứng nhận'}
+          title={section.title || t('certificates.title')}
+          subtitle={section.subtitle || t('certificates.subtitle')}
           align="center"
           className="mb-10"
         />

@@ -113,9 +113,11 @@ const useProductFilters = () => {
   const activeCount = useMemo(() => {
     let count = 0;
     if (values.industries.length > 0) count += 1;
-    if (values.category) count += 1;
     if (values.market.length > 0) count += 1;
     if (values.softeningPoint) count += 1;
+    // `category` chỉ dùng cho deep-link (?category=) — vẫn tính để chip và
+    // badge "Bộ lọc" trên mobile hiển thị đồng nhất.
+    if (values.category) count += 1;
     return count;
   }, [values]);
 

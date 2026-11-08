@@ -1,14 +1,18 @@
 import useHeroSlides from './hooks/useHeroSlides';
-import HeroSectionSkeleton from './HeroSectionSkeleton';
 import getHeroVariant from './utils/heroVariants';
+import useHomeSection from '../../hooks/useHomeSection';
 
 /**
  * HeroSection - main entry point for the hero area.
  *
  * Behaviour:
- *  - When loading: render skeleton
- *  - When 0 slides: render skeleton (with i18n fallback)
- *  - When 1+ slides: render each via its variant
+ *  - Admin tắt section "hero": không render gì.
+ *  - Chưa có slide nào được cấu hình: KHÔNG render banner giả (gradient cứng,
+ *    ảnh mặc định hay nội dung fallback). Khu vực này để trống cho tới khi
+ *    Admin cấu hình slide trong "Hero slider".
+ *  - Trong lúc cấu hình site đang tải lần đầu: overlay loading phủ toàn bộ
+ *    layout do <Layout /> đảm nhiệm, nên hero chỉ cần trả về null.
+ *  - Khi có 1+ slide: render từng slide qua variant tương ứng.
  *
  * Note: navigation/pagination between slides is intentionally not included
  * in the variant layer. Each variant renders ONE slide. If the homepage
@@ -16,11 +20,11 @@ import getHeroVariant from './utils/heroVariants';
  * Swiper using per-slide variants as slides.
  */
 const HeroSection = () => {
-  const { slides, loading, lang } = useHeroSlides();
+  const { slides, lang } = useHeroSlides();
+  const section = useHomeSection('hero');
 
-  if (loading || slides.length === 0) {
-    return <HeroSectionSkeleton />;
-  }
+  if (!section.enabled) return null;
+  if (!slides || slides.length === 0) return null;
 
   return (
     <div className="hero-section-root">

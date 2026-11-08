@@ -12,7 +12,7 @@ const defaultFooter = {
   phone: '',
   email: '',
   address: '',
-  copyright: '© 2024  Tungviet. Tất cả quyền được bảo lưu.',
+  copyright: '',
   logoUrl: '',
   mapEmbed: '',
 };

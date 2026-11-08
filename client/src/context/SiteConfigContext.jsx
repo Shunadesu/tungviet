@@ -3,13 +3,20 @@ import { useTranslation } from 'react-i18next';
 import publicApi from '../api/publicApi';
 import { SUPPORTED_LOCALES } from '../i18n';
 
+/**
+ * Default cấu hình khi API lỗi / chưa sẵn sàng.
+ *
+ * Tất cả đều rỗng: không được dùng dữ liệu giả (logo, banner, SĐT, email,
+ * địa chỉ, copyright). Khi thiếu dữ liệu, giao diện sẽ bỏ trống phần tương
+ * ứng hoặc hiển thị loading thay vì hiển thị nội dung bịa.
+ */
 const buildDefaults = () => ({
   footer: {
     about: '',
-    phone: '0123 456 789',
-    email: 'contact@.vn',
-    address: 'KCN Tân Bình, TP.HCM',
-    copyright: '© 2024  Tungviet. All rights reserved.',
+    phone: '',
+    email: '',
+    address: '',
+    copyright: '',
     logoUrl: '',
     mapEmbed: '',
   },
@@ -26,7 +33,9 @@ const SiteConfigContext = createContext({
   seo: null,
   faviconUrl: null,
   floatingContacts: [],
+  ecovadis: null,
   loading: true,
+  initialLoading: true,
   refresh: () => {},
 });
 
@@ -61,7 +70,12 @@ export const SiteConfigProvider = ({ children }) => {
   const [certificates, setCertificates] = useState([]);
   const [testimonials, setTestimonials] = useState([]);
   const [homeSections, setHomeSections] = useState([]);
+  const [ecovadis, setEcovadis] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Chỉ true cho tới khi lần tải cấu hình ĐẦU TIÊN hoàn tất.
+  // Dùng để phủ loading overlay lên toàn bộ layout (header + main + footer).
+  // Các lần tải lại sau (đổi ngôn ngữ) không nên che màn hình.
+  const [initialLoading, setInitialLoading] = useState(true);
 
   useEffect(() => {
     const onLangChange = () => {
@@ -106,10 +120,12 @@ const normalizeContactId = (contact, index) => {
       setCertificates(Array.isArray(data.certificates) ? data.certificates : []);
       setTestimonials(Array.isArray(data.testimonials) ? data.testimonials : []);
       setHomeSections(Array.isArray(data.homeSections) ? data.homeSections : []);
+      setEcovadis(data.ecovadis || null);
     } catch (err) {
       console.warn('[SiteConfig] fetch failed, using defaults:', err?.message);
     } finally {
       setLoading(false);
+      setInitialLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [lang]);
@@ -135,7 +151,9 @@ const normalizeContactId = (contact, index) => {
         certificates,
         testimonials,
         homeSections,
+        ecovadis,
         loading,
+        initialLoading,
         refresh: fetchConfig,
       }}
     >

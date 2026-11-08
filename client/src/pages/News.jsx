@@ -93,9 +93,9 @@ const News = () => {
       />
 
       {/* Hero */}
-      <section className="bg-gradient-to-r from-primary/90 to-primary py-16">
-        <div className="max-w-6xl mx-auto px-4 text-center text-white">
-          <h1 className="text-3xl md:text-4xl font-bold mb-2">
+      <section className="bg-gradient-to-r from-primary/90 to-primary py-10">
+        <div className="container-page text-center text-white">
+          <h1 className="text-2xl md:text-3xl font-bold mb-1.5">
             {isVi ? 'Tin tức & Blog' : 'News & Blog'}
           </h1>
           <p className="text-white/80">
@@ -106,9 +106,9 @@ const News = () => {
         </div>
       </section>
 
-      <div className="max-w-6xl mx-auto px-4 py-10">
+      <div className="container-page py-8">
         {/* Category filter */}
-        <div className="flex flex-wrap gap-2 mb-8">
+        <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => handleCategoryClick('')}
             className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${
@@ -134,10 +134,10 @@ const News = () => {
 
         {/* Grid */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse">
-                <div className="bg-gray-200 rounded-xl h-48 mb-4" />
+                <div className="bg-gray-200 rounded-xl h-36 mb-4" />
                 <div className="bg-gray-200 h-4 w-3/4 rounded mb-2" />
                 <div className="bg-gray-200 h-3 w-1/2 rounded" />
               </div>
@@ -149,7 +149,7 @@ const News = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-5">
               {posts.map((post) => (
                 <Link
                   key={post._id}
@@ -161,13 +161,13 @@ const News = () => {
                       <img
                         src={post.thumbnail}
                         alt={post.title}
-                        className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
+                        className="w-full h-36 object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
-                      <div className="w-full h-48 bg-gray-100 flex items-center justify-center text-gray-400">
+                      <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-gray-400">
                         <svg
-                          width="48"
-                          height="48"
+                          width="36"
+                          height="36"
                           fill="none"
                           viewBox="0 0 24 24"
                         >
@@ -179,7 +179,7 @@ const News = () => {
                         </svg>
                       </div>
                     )}
-                    <div className="p-4">
+                    <div className="p-3.5">
                       {post.category && (
                         <span className="text-xs font-medium text-primary bg-primary/10 px-2 py-0.5 rounded-full">
                           {getCategoryLabel(post.category)}

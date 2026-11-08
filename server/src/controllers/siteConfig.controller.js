@@ -448,6 +448,29 @@ export const updateCertificates = async (req, res, next) => {
   }
 };
 
+const sanitizeEcovadis = (body = {}) => ({
+  eyebrow: localePair(body.eyebrow, 200),
+  title: localePair(body.title, 200),
+  subtitle: localePair(body.subtitle, 500),
+  imageUrl: trimText(body.imageUrl, 500),
+  badgeLabel: trimText(body.badgeLabel, 120),
+  link1Label: localePair(body.link1Label, 120),
+  link1Href: trimText(body.link1Href, 500),
+  link2Label: localePair(body.link2Label, 120),
+  link2Href: trimText(body.link2Href, 500),
+  active: body.active === false ? false : true,
+});
+
+export const updateEcovadis = async (req, res, next) => {
+  try {
+    const payload = sanitizeEcovadis(req.body || {});
+    const config = await siteConfigService.updateEcovadis(payload);
+    return apiResponse.ok(res, config.ecovadis, 'Cập nhật nội dung EcoVadis thành công');
+  } catch (err) {
+    next(err);
+  }
+};
+
 const sanitizeTestimonial = (body = {}) => {
   let rating = Number(body.rating);
   if (!Number.isFinite(rating)) rating = 5;

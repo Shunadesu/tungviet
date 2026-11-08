@@ -166,6 +166,37 @@ const testimonialSchema = new mongoose.Schema(
   { _id: true }
 );
 
+const ecovadisSchema = new mongoose.Schema(
+  {
+    eyebrow: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    title: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    subtitle: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    imageUrl: { type: String, default: '' },
+    badgeLabel: { type: String, default: '' },
+    link1Label: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    link1Href: { type: String, default: '' },
+    link2Label: {
+      vi: { type: String, trim: true, default: '' },
+      en: { type: String, trim: true, default: '' },
+    },
+    link2Href: { type: String, default: '' },
+    active: { type: Boolean, default: true },
+  },
+  { _id: false }
+);
+
 const homeSectionSchema = new mongoose.Schema(
   {
     key: {
@@ -188,6 +219,7 @@ const homeSectionSchema = new mongoose.Schema(
         'members',
         'quoteSection',
         'locations',
+        'ecovadis',
       ],
       required: true,
     },
@@ -208,15 +240,13 @@ const homeSectionSchema = new mongoose.Schema(
 
 const footerSchema = new mongoose.Schema(
   {
-    about: {
-      type: String,
-      default:
-        'Chuyên cung cấp các loại cây cảnh chất lượng cao, từ cây trong nhà đến cây ngoài trời, mang thiên nhiên đến gần bạn hơn.',
-    },
-    phone: { type: String, default: '0123 456 789' },
-    email: { type: String, default: 'contact@zuna.vn' },
-    address: { type: String, default: '123 Đường Cây Xanh, TP.HCM' },
-    copyright: { type: String, default: '© 2024 Zuna Tungviet. Tất cả quyền được bảo lưu.' },
+    // Không đặt giá trị mặc định giả (SĐT/email/địa chỉ/copyright).
+    // Nếu Admin chưa cấu hình thì để trống — client sẽ ẩn phần tương ứng.
+    about: { type: String, default: '' },
+    phone: { type: String, default: '' },
+    email: { type: String, default: '' },
+    address: { type: String, default: '' },
+    copyright: { type: String, default: '' },
     logoUrl: { type: String, default: '' },
     mapEmbed: { type: String, default: '' },
   },
@@ -263,6 +293,7 @@ const siteConfigSchema = new mongoose.Schema(
     certificates: { type: [certificateSchema], default: [] },
     testimonials: { type: [testimonialSchema], default: [] },
     homeSections: { type: [homeSectionSchema], default: [] },
+    ecovadis: { type: ecovadisSchema, default: () => ({}) },
     seo: { type: seoSchema, default: () => ({}) },
     faviconUrl: { type: String, default: null },
     faviconFilename: { type: String, default: null },

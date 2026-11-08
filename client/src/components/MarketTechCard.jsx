@@ -34,7 +34,7 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-50px' }}
       transition={{ duration: 0.4, delay: Math.min(index, 6) * 0.05 }}
-      className="group relative h-full flex flex-col rounded-2xl bg-white border border-gray-100 overflow-hidden transition-all duration-300 hover:border-primary/40 hover:shadow-card-hover hover:-translate-y-0.5"
+      className="group relative h-full flex flex-col rounded-xl bg-white border border-gray-100 overflow-hidden transition-all duration-300 hover:border-primary/40 hover:shadow-card-hover hover:-translate-y-0.5"
     >
       {/* Top accent bar */}
       <span
@@ -43,7 +43,7 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
       />
 
       {/* Header zone: number + icon + title */}
-      <div className="relative p-5 pb-4">
+      <div className="relative p-4 pb-3">
         <span
           aria-hidden="true"
           className="absolute top-3 right-3 inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold tracking-wider bg-primary-50 text-primary-700 ring-1 ring-primary-100"
@@ -52,28 +52,28 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
           #{String(index + 1).padStart(2, '0')}
         </span>
 
-        <div className="flex items-start gap-4">
+        <div className="flex items-start gap-3">
           {tech.imageUrl ? (
             <img
               src={tech.imageUrl}
               alt={tech.title}
               loading="lazy"
-              className="w-16 h-16 rounded-2xl object-cover flex-shrink-0 ring-2 ring-primary-100 transition-all group-hover:ring-primary-300 group-hover:scale-105"
+              className="w-12 h-12 rounded-xl object-cover flex-shrink-0 ring-2 ring-primary-100 transition-all group-hover:ring-primary-300 group-hover:scale-105"
               onError={(e) => {
                 e.currentTarget.src = placeholderProduct;
               }}
             />
           ) : (
-            <span className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary ring-2 ring-primary-100 flex-shrink-0 transition-all group-hover:scale-105">
-              <FiCpu size={26} />
+            <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-50 to-primary-100 text-primary ring-2 ring-primary-100 flex-shrink-0 transition-all group-hover:scale-105">
+              <FiCpu size={20} />
             </span>
           )}
 
-          <div className="flex-1 min-w-0 pr-12">
+          <div className="flex-1 min-w-0 pr-10">
             <span className="inline-block text-[10px] font-semibold uppercase tracking-[0.18em] text-primary/70 mb-1">
               {lang === 'en' ? 'Technology' : 'Công nghệ'}
             </span>
-            <h3 className="text-lg font-bold text-slate-900 leading-snug line-clamp-2">
+            <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2">
               {tech.title}
             </h3>
           </div>
@@ -82,7 +82,7 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
 
       {/* Body: summary or bullets */}
       {fullText && (
-        <div className="px-5 pb-2 flex-1">
+        <div className="px-4 pb-2 flex-1">
           {bullets.length >= 2 ? (
             <ul className="space-y-2">
               {bullets.map((b, i) => (
@@ -115,7 +115,7 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="px-5 pb-3 pt-1 border-t border-gray-100">
+            <div className="px-4 pb-3 pt-1 border-t border-gray-100">
               <p className="text-sm text-slate-600 leading-relaxed break-words whitespace-pre-line">
                 {fullText}
               </p>
@@ -125,13 +125,13 @@ const MarketTechCard = ({ tech, index = 0, lang = 'vi' }) => {
         )}
       </AnimatePresence>
       {!isLong && (
-        <div className="px-5 pb-2">
+        <div className="px-4 pb-2">
           <SpecificationsTable specs={tech.specifications} lang={lang} />
         </div>
       )}
 
       {/* Footer: chips (related product count) + toggle + link */}
-      <div className="px-5 py-3 mt-auto border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-3 flex-wrap">
+      <div className="px-4 py-2.5 mt-auto border-t border-gray-100 bg-gray-50/50 flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-2 text-xs text-slate-500 min-w-0">
           {Array.isArray(tech.products) && tech.products.length > 0 && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white ring-1 ring-gray-200 text-slate-600 font-medium">

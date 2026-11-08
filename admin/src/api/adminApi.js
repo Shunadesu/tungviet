@@ -132,6 +132,7 @@ export const adminApi = {
   updateCertificates: (data) => axiosClient.put('/admin/site-config/certificates', data),
   updateTestimonials: (data) => axiosClient.put('/admin/site-config/testimonials', data),
   updateHomeSections: (data) => axiosClient.put('/admin/site-config/home-sections', data),
+  updateEcovadis: (data) => axiosClient.put('/admin/site-config/ecovadis', data),
 
   // Members (Board of Directors)
   getMembers: () => axiosClient.get('/admin/members'),

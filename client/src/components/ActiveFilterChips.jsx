@@ -6,11 +6,16 @@ import { useToast } from '../context/ToastContext';
 
 /**
  * Renders one FilterChip per active filter value with a remove button.
- * Resolves `industries` / `category` / `market` values to their localized names
- * so the user sees "Cây ngành: Nhựa thông" instead of the raw ObjectId.
+ * Resolves `industries` / `market` values to their localized names so the user
+ * sees "Cây ngành: Nhựa thông" instead of the raw ObjectId.
  *
  * `industries` and `market` are arrays (CSV in URL), each producing one chip
  * per selected id.
+ *
+ * Two modes are supported:
+ *   - `mode="product"` (default): trang sản phẩm — industries / category /
+ *     market / softeningPoint.
+ *   - `mode="market"`: trang thị trường — industries / featured / hasProducts.
  */
 const ActiveFilterChips = ({
   values,
@@ -21,17 +26,19 @@ const ActiveFilterChips = ({
   categories = [],
   marketTrees = [],
   softeningPointRanges = [],
+  mode = 'product',
 }) => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language === 'en' ? 'en' : 'vi';
   const toast = useToast();
+  const isMarketMode = mode === 'market';
 
   const chips = [];
   const selectedIndustries = Array.isArray(values.industries) ? values.industries : [];
   const selectedMarkets = Array.isArray(values.market) ? values.market : [];
 
   selectedIndustries.forEach((id) => {
-    const m = mainTrees.find((x) => x._id === id);
+    const m = mainTrees.find((x) => String(x._id) === String(id));
     chips.push({
       key: `industries-${id}`,
       label: `${t('nav.mainTreeMenuTitle')}: ${getLocalizedField(m || {}, lang, 'name', 'nameEn') || id}`,
@@ -42,36 +49,55 @@ const ActiveFilterChips = ({
     });
   });
 
-  if (values.category) {
-    const c = categories.find((x) => x._id === values.category);
-    if (c) {
-      chips.push({
-        key: 'category',
-        label: `${t('product.filter.productLine')}: ${getLocalizedField(c, lang, 'name', 'nameEn')}`,
-        onRemove: () => setParam('category', ''),
-      });
-    }
+  // Deep-link `?category=` vẫn được hỗ trợ: hiện chip để người dùng bỏ lọc.
+  if (!isMarketMode && values.category) {
+    const c = (categories || []).find((x) => String(x._id) === String(values.category));
+    chips.push({
+      key: 'category',
+      label: `${t('product.filter.productLine')}: ${
+        getLocalizedField(c || {}, lang, 'name', 'nameEn') || values.category
+      }`,
+      onRemove: () => setParam('category', ''),
+    });
   }
 
-  selectedMarkets.forEach((id) => {
-    const m = marketTrees.find((x) => x._id === id);
-    chips.push({
-      key: `market-${id}`,
-      label: `${t('nav.marketTrees')}: ${getLocalizedField(m || {}, lang, 'title', 'titleEn') || id}`,
-      onRemove: () => {
-        const next = selectedMarkets.filter((x) => x !== id);
-        setParam('market', next);
-      },
+  if (!isMarketMode) {
+    selectedMarkets.forEach((id) => {
+      const m = marketTrees.find((x) => x._id === id);
+      chips.push({
+        key: `market-${id}`,
+        label: `${t('nav.marketTrees')}: ${getLocalizedField(m || {}, lang, 'title', 'titleEn') || id}`,
+        onRemove: () => {
+          const next = selectedMarkets.filter((x) => x !== id);
+          setParam('market', next);
+        },
+      });
     });
-  });
 
-  if (values.softeningPoint) {
-    const range = softeningPointRanges.find((r) => r.value === values.softeningPoint);
-    chips.push({
-      key: 'softeningPoint',
-      label: `${t('product.softeningPoint')}: ${range ? range.label : values.softeningPoint}`,
-      onRemove: () => setParam('softeningPoint', ''),
-    });
+    if (values.softeningPoint) {
+      const range = softeningPointRanges.find((r) => r.value === values.softeningPoint);
+      chips.push({
+        key: 'softeningPoint',
+        label: `${t('product.softeningPoint')}: ${range ? range.label : values.softeningPoint}`,
+        onRemove: () => setParam('softeningPoint', ''),
+      });
+    }
+  } else {
+    if (values.featured) {
+      chips.push({
+        key: 'featured',
+        label: t('market.filter.featured'),
+        onRemove: () => setParam('featured', ''),
+      });
+    }
+
+    if (values.hasProducts) {
+      chips.push({
+        key: 'hasProducts',
+        label: t('market.filter.hasProducts'),
+        onRemove: () => setParam('hasProducts', ''),
+      });
+    }
   }
 
   if (chips.length === 0 && !getShareUrl) return null;
@@ -103,7 +129,9 @@ const ActiveFilterChips = ({
   return (
     <div className="flex flex-wrap items-center gap-2 mb-5">
       {chips.length > 0 && (
-        <span className="text-xs text-gray-500">{t('product.filter.active')}:</span>
+        <span className="text-xs text-gray-500">
+          {isMarketMode ? t('market.filter.active') : t('product.filter.active')}:
+        </span>
       )}
       {chips.map((chip) => (
         <FilterChip key={chip.key} label={chip.label} active onRemove={chip.onRemove} />
@@ -114,7 +142,7 @@ const ActiveFilterChips = ({
           onClick={clearAll}
           className="text-xs text-primary hover:underline font-medium ml-1"
         >
-          {t('product.filter.clearAll')}
+          {isMarketMode ? t('market.filter.clearAll') : t('product.filter.clearAll')}
         </button>
       )}
       {getShareUrl && (

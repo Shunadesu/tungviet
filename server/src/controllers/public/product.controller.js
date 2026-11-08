@@ -13,17 +13,23 @@ import { localizeFields, resolveLocale } from '../../utils/i18n.js';
 
 const LOCALIZABLE_FIELDS = ['name', 'description'];
 
+/** Trần số bản ghi trả về cho 1 lần gọi endpoint danh sách sản phẩm. */
+const MAX_PUBLIC_LIMIT = 500;
+
 export const getAllProducts = async (req, res, next) => {
   try {
     const locale = resolveLocale(req);
+    // Giới hạn limit để tránh bị client tải quá nhiều bản ghi trong 1 lần.
+    const limit = Math.min(MAX_PUBLIC_LIMIT, Math.max(1, parseInt(req.query.limit, 10) || 20));
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const params = {
       search: req.query.search,
       sort: req.query.sort,
       industries: req.query.industries,
       productLine: req.query.productLine || req.query.category,
       market: req.query.market || req.query.marketIds,
-      page: req.query.page,
-      limit: req.query.limit,
+      page,
+      limit,
     };
 
     if (!params.search) {

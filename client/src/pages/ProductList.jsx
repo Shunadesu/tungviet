@@ -1,19 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import {
-  FiGrid,
-  FiList,
-  FiSearch,
-  FiFilter,
-  FiX,
-  FiBox,
-  FiArrowRight,
-} from 'react-icons/fi';
+import { FiSearch, FiX } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
-import ProductCard from '../components/ProductCard';
+import ProductLineCard from '../components/ProductLineCard';
 import PageHero from '../components/PageHero';
-import ProductFilterSidebar from '../components/ProductFilterSidebar';
+import ProductFilterTopBar from '../components/ProductFilterTopBar';
 import ActiveFilterChips from '../components/ActiveFilterChips';
 import EmptyState from '../components/EmptyState';
 import LoadMore from '../components/LoadMore';
@@ -22,37 +13,33 @@ import publicApi from '../api/publicApi';
 import useProductFilters from '../hooks/useProductFilters';
 import useDebounce from '../hooks/useDebounce';
 import { getLocalizedField } from '../utils/i18nField';
+import { filterBySofteningRange, SOFTENING_RANGES } from '../utils/softeningPoint';
 import { SUPPORTED_LOCALES } from '../i18n';
 
-const SOFTENING_RANGES = [
-  { value: '', label: '—' },
-  { value: '<80', label: '< 80°C' },
-  { value: '80-100', label: '80 – 100°C' },
-  { value: '100-120', label: '100 – 120°C' },
-  { value: '>120', label: '> 120°C' },
-];
+/**
+ * Số SKU tải về tối đa trong 1 lần gọi API. Khi catalog vượt ngưỡng này,
+ * cần bổ sung endpoint `/public/product-lines` phía server (xem docs/PRODUCTS_PAGE_PLAN.md).
+ */
+const MAX_SKU_FETCH = 500;
 
-const PAGE_SIZE = 24;
+const PAGE_SIZE = 12;
 
 const ProductList = () => {
   const { t, i18n } = useTranslation();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
 
   const { values, setParam, clearAll, activeCount, getShareUrl } = useProductFilters();
-  const [searchParams] = useSearchParams();
-  const [products, setProducts] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, total: 0, pages: 0 });
-  const [loading, setLoading] = useState(true);
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [viewMode, setViewMode] = useState('grid');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const [productLines, setProductLines] = useState([]);
+  const [skus, setSkus] = useState([]);
+  const [totalSkus, setTotalSkus] = useState(0);
   const [mainTrees, setMainTrees] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [marketTrees, setMarketTrees] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   const search = values.search;
   const sort = values.sort;
-  const page = Math.max(1, parseInt(values.page, 10) || 1);
 
   // Local input state for debounced search
   const [searchInput, setSearchInput] = useState(search || '');
@@ -70,29 +57,17 @@ const ProductList = () => {
     }
   }, [debouncedSearch]);
 
-  // Reset to page 1 whenever any filter other than page changes
-  useEffect(() => {
-    if (page !== 1) setParam('page', 1);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [search, sort, values.industries, values.category, values.market, values.softeningPoint]);
-
-  // Fetch mainTrees + categories + markets for chip labels + UI hints
+  // Fetch mainTrees + marketTrees cho bộ lọc và nhãn chip
   useEffect(() => {
     let cancelled = false;
     Promise.all([
       publicApi.getMainTrees(lang).catch(() => null),
-      publicApi.getCategories({ lang }).catch(() => null),
       publicApi.getMarketTrees({ lang }).catch(() => null),
-    ]).then(([mtRes, catRes, mktRes]) => {
+    ]).then(([mtRes, mktRes]) => {
       if (cancelled) return;
       if (mtRes?.data?.data) setMainTrees(Array.isArray(mtRes.data.data) ? mtRes.data.data : []);
-      if (catRes?.data?.data) {
-        const raw = catRes.data.data;
-        setCategories(Array.isArray(raw) ? raw : raw?.items || []);
-      }
       if (mktRes?.data?.data) {
-        const raw = mktRes.data.data;
-        const flat = Array.isArray(raw) ? raw : [];
+        const flat = Array.isArray(mktRes.data.data) ? mktRes.data.data : [];
         const tops = flat.filter((m) => !m.parent);
         setMarketTrees(tops.length ? tops : flat);
       }
@@ -102,52 +77,197 @@ const ProductList = () => {
     };
   }, [lang]);
 
-  // Fetch products — page 1 replaces, page >1 appends
+  /**
+   * Fetch toàn bộ product line (danh mục sản phẩm) và toàn bộ SKU.
+   *
+   * Trang này hiển thị "sản phẩm chính" = product line, nên phải gom SKU về
+   * nhóm để đếm. Vì vậy ta tải tất cả SKU (giới hạn MAX_SKU_FETCH) thay vì
+   * phân trang ở mức SKU.
+   */
   useEffect(() => {
-    const isFirstPage = page === 1;
-    if (isFirstPage) setLoading(true);
-    else setLoadingMore(true);
+    let cancelled = false;
+    setLoading(true);
 
-    const params = { lang, page, limit: PAGE_SIZE };
-    if (search) params.search = search;
-    if (sort) params.sort = sort;
-    if (values.industries && values.industries.length > 0) {
-      params.industries = values.industries.join(',');
-    }
-    if (values.category) params.productLine = values.category;
-    if (values.market && values.market.length > 0) {
-      params.market = values.market.join(',');
-    }
-    if (values.softeningPoint) params.softeningPoint = values.softeningPoint;
+    Promise.all([
+      publicApi.getCategories({ lang }).catch(() => null),
+      publicApi.getProducts({ lang, page: 1, limit: MAX_SKU_FETCH }).catch(() => null),
+    ]).then(([plRes, skuRes]) => {
+      if (cancelled) return;
 
-    publicApi
-      .getProducts(params)
-      .then((res) => {
-        const items = Array.isArray(res.data?.data) ? res.data.data : [];
-        const pg = res.data?.pagination || { page, total: items.length, pages: 1 };
-        if (isFirstPage) setProducts(items);
-        else setProducts((prev) => [...prev, ...items]);
-        setPagination(pg);
-      })
-      .catch((err) => {
-        console.warn('[ProductList] getProducts failed:', err);
-        if (isFirstPage) setProducts([]);
-        setPagination({ page: 1, total: 0, pages: 0 });
-      })
-      .finally(() => {
-        setLoading(false);
-        setLoadingMore(false);
+      if (plRes?.data?.data) {
+        const raw = plRes.data.data;
+        setProductLines(Array.isArray(raw) ? raw : raw?.items || []);
+      }
+
+      if (skuRes?.data?.data) {
+        const raw = skuRes.data.data;
+        const items = Array.isArray(raw) ? raw : raw?.items || [];
+        setSkus(items);
+        const pg = skuRes.data?.pagination || skuRes.data?.data?.pagination;
+        setTotalSkus(pg?.total ?? items.length);
+      }
+    }).finally(() => {
+      if (!cancelled) setLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [lang]);
+
+  /**
+   * Gom SKU theo product line, đồng thời áp dụng các bộ lọc ở mức SKU.
+   *
+   * - Ngành hàng / Thị trường: lọc ở server (đã hỗ trợ sẵn)? Không — ta tải
+   *   toàn bộ SKU rồi lọc tại client để số đếm "sản phẩm chính" luôn khớp với
+   *   bộ lọc đang chọn.
+   * - Điểm làm mềm: so khớp theo khoảng số (server so khớp chuỗi chính xác).
+   * - Tìm kiếm: khớp theo tên product line, tên SKU hoặc mã SKU.
+   */
+  const groups = useMemo(() => {
+    const selectedIndustries = values.industries || [];
+    const selectedMarkets = values.market || [];
+    const q = search.trim().toLowerCase();
+
+    // 1. Lọc SKU theo điểm làm mềm + thị trường + ngành hàng
+    //    (Từ khoá KHÔNG lọc ở bước này — xem bước 5.)
+    const filteredSkus = filterBySofteningRange(skus, values.softeningPoint).filter((sku) => {
+      // Ngành hàng
+      if (selectedIndustries.length > 0) {
+        const skuIndustries = (sku.industries || []).map((i) =>
+          String(typeof i === 'object' ? i._id : i)
+        );
+        if (!selectedIndustries.some((id) => skuIndustries.includes(String(id)))) {
+          return false;
+        }
+      }
+
+      // Thị trường
+      if (selectedMarkets.length > 0) {
+        const skuMarkets = (sku.marketIds || []).map((m) =>
+          String(typeof m === 'object' ? m._id : m)
+        );
+        if (!selectedMarkets.some((id) => skuMarkets.includes(String(id)))) {
+          return false;
+        }
+      }
+
+      // Từ khoá
+      if (q) {
+        const skuName = `${sku.name || ''} ${sku.nameEn || ''}`.toLowerCase();
+        const skuCode = (sku.productCode || '').toLowerCase();
+        const lineNames = (Array.isArray(sku.productLines) ? sku.productLines : [])
+          .map((l) => `${l?.name || ''} ${l?.nameEn || ''}`.toLowerCase())
+          .join(' ');
+        if (!skuName.includes(q) && !skuCode.includes(q) && !lineNames.includes(q)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+
+    // 2. Gom SKU theo product line
+    const byLine = new Map();
+    filteredSkus.forEach((sku) => {
+      const lines = Array.isArray(sku.productLines) ? sku.productLines : [];
+      lines.forEach((line) => {
+        const lineId = String(typeof line === 'object' ? line._id : line);
+        if (!lineId) return;
+        if (!byLine.has(lineId)) byLine.set(lineId, []);
+        byLine.get(lineId).push(sku);
       });
-  }, [lang, search, sort, values.industries, values.category, values.market, values.softeningPoint, page]);
+    });
+
+    // 3. Ghép với thông tin product line đầy đủ (ảnh, mô tả, tên)
+    let result = productLines
+      .map((line) => {
+        const lineSkus = byLine.get(String(line._id)) || [];
+        const lineName = `${line.name || ''} ${line.nameEn || ''}`.toLowerCase();
+        const nameMatched = q ? lineName.includes(q) : false;
+
+        // Với từ khoá: SKU được tính vào nhóm khi tên/mã SKU khớp, HOẶC khi
+        // tên product line khớp (lúc đó lấy toàn bộ SKU của nhóm).
+        const countedSkus = q
+          ? nameMatched
+            ? lineSkus
+            : lineSkus.filter(
+                (s) =>
+                  `${s.name || ''} ${s.nameEn || ''}`.toLowerCase().includes(q) ||
+                  `${s.productCode || ''}`.toLowerCase().includes(q)
+              )
+          : lineSkus;
+
+        return {
+          line,
+          skus: countedSkus,
+          skuCount: countedSkus.length,
+          // SKU mới nhất / nhiều view nhất — dùng cho sắp xếp
+          newestAt: countedSkus.reduce(
+            (max, s) => Math.max(max, new Date(s.createdAt || 0).getTime()),
+            0
+          ),
+          maxViews: countedSkus.reduce((max, s) => Math.max(max, s.viewCount || 0), 0),
+        };
+      })
+      // Chỉ giữ product line có ít nhất 1 SKU khớp bộ lọc
+      .filter((g) => g.skuCount > 0);
+
+    // 4. Lọc theo product line cụ thể (deep-link ?category=)
+    if (values.category) {
+      result = result.filter((g) => String(g.line._id) === String(values.category));
+    }
+
+    // 5. Sắp xếp
+    const nameOf = (g) =>
+      getLocalizedField(g.line, lang, 'name', 'nameEn') || '';
+    switch (sort) {
+      case 'name_asc':
+        result.sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+        break;
+      case 'name_desc':
+        result.sort((a, b) => nameOf(b).localeCompare(nameOf(a)));
+        break;
+      case 'newest':
+        result.sort((a, b) => b.newestAt - a.newestAt);
+        break;
+      case 'popularity':
+        result.sort((a, b) => b.maxViews - a.maxViews);
+        break;
+      default:
+        result.sort((a, b) => {
+          const orderDiff = (a.line.order || 0) - (b.line.order || 0);
+          if (orderDiff !== 0) return orderDiff;
+          return nameOf(a).localeCompare(nameOf(b));
+        });
+    }
+
+    return result;
+  }, [
+    productLines,
+    skus,
+    values.industries,
+    values.market,
+    values.softeningPoint,
+    values.category,
+    search,
+    sort,
+    lang,
+  ]);
+
+  // Reset số lượng hiển thị khi danh sách thay đổi
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [groups.length, search, sort, values.industries, values.market, values.softeningPoint]);
+
+  const visibleGroups = groups.slice(0, visibleCount);
+  const hasMore = visibleCount < groups.length;
 
   const loadMore = () => {
-    if (pagination.page < pagination.pages) {
-      setParam('page', String(pagination.page + 1));
-      // Smooth scroll to the newly-loaded row
-      setTimeout(() => {
-        window.scrollBy({ top: 200, behavior: 'smooth' });
-      }, 80);
-    }
+    setVisibleCount((prev) => prev + PAGE_SIZE);
+    setTimeout(() => {
+      window.scrollBy({ top: 200, behavior: 'smooth' });
+    }, 80);
   };
 
   const clearSearch = () => {
@@ -163,47 +283,15 @@ const ProductList = () => {
     [lang, t]
   );
 
-  // Determine active market context (first market in the filter, if any).
-  const activeMarket = useMemo(() => {
-    if (!values.market || values.market.length === 0) return null;
-    const id = values.market[0];
-    const found = marketTrees.find((m) => String(m._id) === String(id));
-    return found ? { id, ...found } : { id, name: '', description: '' };
-  }, [values.market, marketTrees]);
+  const heroTitle = search
+    ? t('product.searchResultsFor', { q: search })
+    : t('nav.products');
+  const heroSubtitle = search
+    ? t('product.searchResultsSubtitle')
+    : t('product.productsSubtitle');
 
-  // Pick a few other markets to suggest when the current filter has no
-  // results. We prefer markets outside the current filter and prefer
-  // admin-featured markets first.
-  const suggestedMarkets = useMemo(() => {
-    if (!marketTrees || marketTrees.length === 0) return [];
-    const activeIds = new Set((values.market || []).map(String));
-    return [...marketTrees]
-      .filter((m) => !activeIds.has(String(m._id)))
-      .sort((a, b) => {
-        if (a.isFeatured === true && b.isFeatured !== true) return -1;
-        if (b.isFeatured === true && a.isFeatured !== true) return 1;
-        return 0;
-      })
-      .slice(0, 3);
-  }, [marketTrees, values.market]);
-
-  // Hero copy adapts to the active context so the user always knows why they
-  // landed here.
-  const heroTitle = (() => {
-    if (search) return t('product.searchResultsFor', { q: search });
-    if (activeMarket) {
-      const name = activeMarket.name || getLocalizedField(activeMarket, lang, 'title', 'titleEn');
-      return t('product.marketFilteredTitle', { market: name });
-    }
-    return t('nav.products');
-  })();
-  const heroSubtitle = (() => {
-    if (search) return t('product.searchResultsSubtitle');
-    if (activeMarket) return t('product.marketFilteredSubtitle');
-    return t('product.productsSubtitle');
-  })();
-
-  const hasMore = pagination.page < pagination.pages;
+  // Cảnh báo khi catalog vượt giới hạn tải
+  const truncated = totalSkus > skus.length && skus.length >= MAX_SKU_FETCH;
 
   return (
     <motion.div
@@ -221,21 +309,6 @@ const ProductList = () => {
       />
 
       <PageHero breadcrumb={breadcrumb} title={heroTitle} subtitle={heroSubtitle}>
-        {activeMarket && !search && (
-          <div className="mb-5">
-            <span className="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1.5 rounded-full ring-1 ring-white/20">
-              <FiBox size={12} />
-              {t('product.marketFilteredBadge')}
-              <Link
-                to={`/${lang}/markets/${activeMarket.id}`}
-                className="ml-1 underline hover:text-white"
-              >
-                {t('product.viewMarket')}
-                <FiArrowRight className="inline ml-1" size={10} />
-              </Link>
-            </span>
-          </div>
-        )}
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -268,77 +341,18 @@ const ProductList = () => {
         </form>
       </PageHero>
 
-      <section className="container-page py-8 md:py-12">
-        {/* Sticky toolbar */}
-        <div className="sticky top-16 md:top-20 z-20 -mx-4 px-4 py-3 bg-white/85 backdrop-blur border-b border-gray-100 mb-6">
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setSidebarOpen(true)}
-                className="md:hidden inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 text-sm font-medium hover:border-primary hover:text-primary transition-colors"
-              >
-                <FiFilter size={14} />
-                {t('product.filter.title')}
-                {activeCount > 0 && (
-                  <span className="ml-1 badge-primary !text-[10px] !px-1.5 !py-0">
-                    {activeCount}
-                  </span>
-                )}
-              </button>
-              <p className="text-sm text-slate-600">
-                <span className="font-semibold text-slate-900">{pagination.total}</span>{' '}
-                {t('product.productsCount', { n: pagination.total })}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <select
-                value={sort}
-                onChange={(e) => setParam('sort', e.target.value)}
-                aria-label={t('product.sort.title')}
-                className="text-sm border border-gray-200 rounded-lg px-3 py-2 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/10 bg-white"
-              >
-                <option value="">{t('product.sort.default')}</option>
-                <option value="name_asc">{t('product.sort.nameAsc')}</option>
-                <option value="name_desc">{t('product.sort.nameDesc')}</option>
-                <option value="price_asc">{t('product.sort.priceAsc')}</option>
-                <option value="price_desc">{t('product.sort.priceDesc')}</option>
-                <option value="newest">{t('product.sort.newest')}</option>
-                <option value="popularity">{t('product.sort.popular')}</option>
-              </select>
-
-              <div className="hidden md:flex items-center gap-1 bg-white border border-gray-200 rounded-lg p-1">
-                <button
-                  type="button"
-                  onClick={() => setViewMode('grid')}
-                  aria-label="Grid view"
-                  aria-pressed={viewMode === 'grid'}
-                  className={`p-1.5 rounded transition-colors ${
-                    viewMode === 'grid'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-500 hover:text-primary'
-                  }`}
-                >
-                  <FiGrid size={14} />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setViewMode('list')}
-                  aria-label="List view"
-                  aria-pressed={viewMode === 'list'}
-                  className={`p-1.5 rounded transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-primary text-white'
-                      : 'text-gray-500 hover:text-primary'
-                  }`}
-                >
-                  <FiList size={14} />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      <section className="container-page py-6 md:py-8">
+        {/* Thanh bộ lọc ngang */}
+        <ProductFilterTopBar
+          values={values}
+          setParam={setParam}
+          mainTrees={mainTrees}
+          marketTrees={marketTrees}
+          sort={sort}
+          onSortChange={(v) => setParam('sort', v)}
+          activeCount={activeCount}
+          resultCount={groups.length}
+        />
 
         {/* Active filter chips */}
         <ActiveFilterChips
@@ -347,116 +361,57 @@ const ProductList = () => {
           clearAll={clearAll}
           getShareUrl={getShareUrl}
           mainTrees={mainTrees}
-          categories={categories}
+          categories={productLines}
           marketTrees={marketTrees}
-          softeningPointRanges={SOFTENING_RANGES.filter((r) => r.value)}
+          softeningPointRanges={SOFTENING_RANGES}
         />
 
-        <div className="flex gap-8">
-          <ProductFilterSidebar
-            open={sidebarOpen}
-            onClose={() => setSidebarOpen(false)}
-            values={values}
-            setParam={setParam}
-            clearAll={clearAll}
-            activeCount={activeCount}
-          />
+        {truncated && (
+          <p className="mb-5 text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+            {t('product.truncatedNotice', { shown: skus.length, total: totalSkus })}
+          </p>
+        )}
 
-          <div className="flex-1 min-w-0">
-            {loading ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="aspect-[4/5] skeleton rounded-2xl" />
-                ))}
-              </div>
-            ) : products.length === 0 ? (
-              <>
-                <EmptyState
-                  icon={FiSearch}
-                  title={t('product.noResults')}
-                  description={
-                    search
-                      ? t('product.searchResultsSubtitle')
-                      : t('product.noResultsHint')
-                  }
-                  action={
-                    <div className="flex flex-wrap items-center justify-center gap-2">
-                      <button type="button" onClick={clearAll} className="btn-secondary">
-                        {t('product.filter.clearAll')}
-                      </button>
-                      {activeMarket && (
-                        <Link
-                          to={`/${lang}/markets/${activeMarket.id}`}
-                          className="btn-primary"
-                        >
-                          {t('product.viewMarket')}
-                        </Link>
-                      )}
-                    </div>
-                  }
-                />
-
-                {suggestedMarkets.length > 0 && (
-                  <div className="mt-10">
-                    <h3 className="text-sm font-semibold text-slate-900 mb-3 text-center">
-                      {t('product.suggestMarketsTitle')}
-                    </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                      {suggestedMarkets.map((m) => {
-                        const name = getLocalizedField(m, lang, 'title', 'titleEn');
-                        return (
-                          <Link
-                            key={m._id}
-                            to={`/${lang}/markets/${m._id}`}
-                            className="group flex items-center gap-3 bg-white border border-gray-100 rounded-xl px-4 py-3 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all"
-                          >
-                            <span className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-primary-50 text-primary flex-shrink-0">
-                              <FiBox size={18} />
-                            </span>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-slate-900 truncate group-hover:text-primary transition-colors">
-                                {name}
-                              </p>
-                              {m.isFeatured === true && (
-                                <p className="text-[10px] text-amber-600 font-medium uppercase tracking-wider">
-                                  {t('product.featuredTag')}
-                                </p>
-                              )}
-                            </div>
-                            <FiArrowRight
-                              size={14}
-                              className="text-slate-400 group-hover:text-primary group-hover:translate-x-1 transition-all flex-shrink-0"
-                            />
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </>
-            ) : (
-              <>
-                <div
-                  className={
-                    viewMode === 'grid'
-                      ? 'grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-6'
-                      : 'space-y-4'
-                  }
-                >
-                  {products.map((product, index) => (
-                    <ProductCard key={product._id} product={product} index={index} />
-                  ))}
-                </div>
-                <LoadMore
-                  hasMore={hasMore}
-                  loading={loadingMore}
-                  onLoad={loadMore}
-                  label={t('product.loadMore')}
-                />
-              </>
-            )}
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="aspect-[4/5] skeleton rounded-xl" />
+            ))}
           </div>
-        </div>
+        ) : groups.length === 0 ? (
+          <EmptyState
+            icon={FiSearch}
+            title={t('product.noResults')}
+            description={search ? t('product.searchResultsSubtitle') : t('product.noResultsHint')}
+            action={
+              <button type="button" onClick={clearAll} className="btn-secondary">
+                {t('product.filter.clearAll')}
+              </button>
+            }
+          />
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+              {visibleGroups.map((group, index) => (
+                <ProductLineCard
+                  key={group.line._id}
+                  productLine={group.line}
+                  skuCount={group.skuCount}
+                  index={index}
+                  lang={lang}
+                />
+              ))}
+            </div>
+            <LoadMore
+              hasMore={hasMore}
+              loading={false}
+              onLoad={loadMore}
+              total={groups.length}
+              shown={visibleGroups.length}
+              label={t('product.loadMore')}
+            />
+          </>
+        )}
       </section>
     </motion.div>
   );

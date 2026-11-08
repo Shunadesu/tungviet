@@ -178,7 +178,7 @@ const MarketDetail = () => {
   const seoDescription = htmlToText(description || `${name} - Tungviet`).slice(0, 200);
 
   return (
-    <div className="pb-24 md:pb-28">
+    <div className="pb-20 md:pb-24">
       <SEO
         title={name}
         description={seoDescription}
@@ -201,8 +201,8 @@ const MarketDetail = () => {
       />
 
       {market.imageUrl && (
-        <section className="container-page -mt-6 mb-8">
-          <div className="rounded-2xl overflow-hidden shadow-lg aspect-video bg-gray-100">
+        <section className="container-page -mt-4 mb-6">
+          <div className="max-w-3xl mx-auto rounded-xl overflow-hidden shadow-card aspect-banner bg-gray-100">
             <img
               src={market.imageUrl}
               alt={name}
@@ -231,24 +231,24 @@ const MarketDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="container-page py-10 md:py-14"
+            className="container-page py-8 md:py-10"
           >
             <Link
               to={`/${lang}/markets`}
-              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary mb-6 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
+              className="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-primary mb-4 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"
             >
               <FiArrowLeft size={14} />
               {t('market.backToList')}
             </Link>
 
             {description && (
-              <div className="prose prose-lg max-w-none text-slate-700 leading-relaxed mb-6">
+              <div className="prose prose-base max-w-none text-slate-700 leading-relaxed mb-5">
                 <p>{description}</p>
               </div>
             )}
 
             {market.introductions?.vi || market.introductions?.en ? (
-              <div className="prose prose-base max-w-none text-slate-700 leading-relaxed mb-10 border-l-4 border-primary-200 pl-4 bg-primary-50/30 rounded-r-lg py-4">
+              <div className="prose prose-base max-w-none text-slate-700 leading-relaxed mb-6 border-l-4 border-primary-200 pl-4 bg-primary-50/30 rounded-r-lg py-3">
                 <div
                   className="font-medium"
                   dangerouslySetInnerHTML={{
@@ -264,7 +264,7 @@ const MarketDetail = () => {
             ) : null}
 
             {/* Quote callout — drives the lead-gen journey */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-700 text-white rounded-2xl p-6 md:p-8 mb-6 shadow-card">
+            <div className="relative overflow-hidden bg-gradient-to-br from-primary via-primary to-primary-700 text-white rounded-xl p-5 md:p-6 mb-5 shadow-card">
               <div
                 aria-hidden="true"
                 className="absolute -top-24 -right-24 w-72 h-72 rounded-full bg-white/10 blur-3xl pointer-events-none"
@@ -294,7 +294,7 @@ const MarketDetail = () => {
             </div>
 
             {/* Featured products CTA — drives traffic to the products tab */}
-            <div className="bg-gradient-to-r from-primary-50 to-primary-100/60 rounded-2xl p-6 md:p-7 flex items-center justify-between gap-4 flex-wrap">
+            <div className="bg-gradient-to-r from-primary-50 to-primary-100/60 rounded-xl p-5 md:p-6 flex items-center justify-between gap-4 flex-wrap">
               <div>
                 <h3 className="text-lg md:text-xl font-semibold text-slate-900 mb-1">
                   {t('market.productsInMarket')}
@@ -323,18 +323,18 @@ const MarketDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="container-page py-10 md:py-14"
+            className="container-page py-8 md:py-10"
           >
             <SectionHeader
               eyebrow={t('market.tabs.technologies')}
               title={t('market.tabs.technologies')}
               align="left"
-              className="mb-8"
+              className="mb-6"
             />
             {technologies.length === 0 ? (
               <EmptyState icon={FiBox} title={t('market.noTechnologies')} />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {technologies.map((tech, idx) => (
                   <MarketTechCard key={tech._id || idx} tech={tech} index={idx} lang={lang} />
                 ))}
@@ -352,18 +352,18 @@ const MarketDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="container-page py-10 md:py-14"
+            className="container-page py-8 md:py-10"
           >
             <SectionHeader
               eyebrow={t('market.tabs.applications')}
               title={t('market.tabs.applications')}
               align="left"
-              className="mb-8"
+              className="mb-6"
             />
             {applications.length === 0 ? (
               <EmptyState icon={FiBox} title={t('market.noApplications')} />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 md:gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                 {applications.map((app, idx) => (
                   <div key={app._id || idx} className="flex flex-col">
                     <MarketAppCard app={app} index={idx} lang={lang} />
@@ -389,14 +389,14 @@ const MarketDetail = () => {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="container-page py-10 md:py-14"
+            className="container-page py-8 md:py-10"
           >
-            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-8">
+            <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wider text-primary mb-1">
                   {t('market.tabs.products')}
                 </p>
-                <h2 className="text-2xl md:text-3xl font-bold text-slate-900 tracking-tight">
+                <h2 className="text-xl md:text-2xl font-bold text-slate-900 tracking-tight">
                   {t('market.tabs.products')}
                 </h2>
                 {productsTotal > 0 && (
@@ -460,7 +460,7 @@ const MarketDetail = () => {
               <EmptyState icon={FiBox} title={t('market.noProducts')} />
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
                   {visibleProducts.map((product, idx) => (
                     <ProductCard key={product._id} product={product} index={idx} />
                   ))}
@@ -507,7 +507,7 @@ const MarketDetail = () => {
           <div
             role="region"
             aria-label={isEN ? 'Quick actions for this market' : 'Hành động nhanh cho thị trường này'}
-            className="pointer-events-auto bg-white/90 backdrop-blur border border-primary-100 rounded-2xl shadow-card px-4 md:px-6 py-3 flex items-center justify-between gap-3 flex-wrap"
+            className="pointer-events-auto bg-white/90 backdrop-blur border border-primary-100 rounded-xl shadow-card px-4 py-2.5 flex items-center justify-between gap-3 flex-wrap"
           >
             <div className="min-w-0">
               <p className="text-xs text-slate-500">

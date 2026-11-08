@@ -404,7 +404,7 @@ const MainTreeDetail = () => {
               }
 
               return (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                   {sorted.map((cat, idx) => {
                     const catName = getLocalizedField(cat, lang, 'name', 'nameEn');
                     const catDesc = stripHtml(
@@ -426,7 +426,7 @@ const MainTreeDetail = () => {
                         >
                           {/* Image area */}
                           {cat.imageUrl ? (
-                            <div className="aspect-video bg-gray-50 overflow-hidden flex-shrink-0">
+                            <div className="aspect-card bg-gray-50 overflow-hidden flex-shrink-0">
                               <img
                                 src={cat.imageUrl}
                                 alt={catName}
@@ -435,24 +435,24 @@ const MainTreeDetail = () => {
                               />
                             </div>
                           ) : (
-                            <div className="aspect-video flex-shrink-0 bg-gradient-to-br from-primary-50 via-indigo-50 to-emerald-50
+                            <div className="aspect-card flex-shrink-0 bg-gradient-to-br from-primary-50 via-indigo-50 to-emerald-50
                                             flex items-center justify-center">
-                              <FiGrid size={36} className="text-primary/30" />
+                              <FiGrid size={28} className="text-primary/30" />
                             </div>
                           )}
 
                           {/* Content */}
-                          <div className="flex flex-col flex-1 p-5">
-                            <h3 className="text-[15px] font-bold text-slate-900 group-hover:text-primary
-                                           transition-colors line-clamp-1 mb-1.5">
+                          <div className="flex flex-col flex-1 p-4">
+                            <h3 className="text-sm font-bold text-slate-900 group-hover:text-primary
+                                           transition-colors line-clamp-1 mb-1">
                               {catName}
                             </h3>
                             {catDesc && (
-                              <p className="text-xs text-slate-500 leading-relaxed line-clamp-3 flex-1">
+                              <p className="text-xs text-slate-500 leading-relaxed line-clamp-2 flex-1">
                                 {catDesc}
                               </p>
                             )}
-                            <div className="mt-4 flex items-center gap-1.5 text-xs font-semibold text-primary">
+                            <div className="mt-3 flex items-center gap-1.5 text-xs font-semibold text-primary">
                               {lang === 'en' ? 'Browse products' : 'Xem sản phẩm'}
                               <FiArrowRight
                                 size={11}

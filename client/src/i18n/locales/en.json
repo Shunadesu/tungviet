@@ -7,7 +7,8 @@
     "clearSearch": "Clear search",
     "copyLink": "Copy link",
     "maxCompareItems": "Maximum {{max}} products for comparison",
-    "loadMore": "Load more"
+    "loadMore": "Load more",
+    "close": "Close"
   },
   "search": {
     "placeholder": "Search products by name, code or keyword...",
@@ -31,7 +32,8 @@
     "addedToWishlist": "Added to wishlist",
     "removedFromWishlist": "Removed from wishlist",
     "addedToCompare": "Added to compare",
-    "removedFromCompare": "Removed from compare"
+    "removedFromCompare": "Removed from compare",
+    "addedToQuoteBag": "Product added to your quote request"
   },
   "nav": {
     "home": "Home",
@@ -169,17 +171,6 @@
     "ctaTitle": "Need a quote?",
     "ctaSubtitle": "Our technical team will respond within 24 hours"
   },
-  "hero": {
-    "fallback": {
-      "eyebrow": "Tung Viet",
-      "title": "Leading Industrial Rosin Supplier",
-      "description": "Premium rosin, resin, and industrial chemical solutions for construction, road infrastructure, packaging, and more.",
-      "ctaPrimary": "Explore Products",
-      "ctaSecondary": "Request a Quote",
-      "scrollHint": "Scroll down to learn more"
-    },
-    "loading": "Loading..."
-  },
   "mainTree": {
     "title": "Industries",
     "subtitle": "Industrial rosin product lines from Tung Viet",
@@ -208,6 +199,7 @@
     "noDescription": "No description for this product line yet.",
     "noProducts": "No products in this product line yet.",
     "productsInCategory": "Products in this product line",
+    "skuList": "SKU list",
     "viewAll": "View all products"
   },
   "product": {
@@ -215,6 +207,15 @@
     "noDescription": "No description",
     "allProducts": "All products",
     "productsCount": "{{n}} products",
+    "mainProductsCount": "product lines",
+    "skuCount": "{{n}} SKUs",
+    "viewSkus": "View SKUs",
+    "truncatedNotice": "Showing {{shown}} of {{total}} SKUs — the list may be incomplete.",
+    "skuCode": "SKU code",
+    "skuName": "SKU name",
+    "skuActions": "Actions",
+    "otherSkusInLine": "Other SKUs in this product line",
+    "viewProductLine": "View product line",
     "productsSubtitle": "Explore our catalog of premium rosin and industrial materials.",
     "searchResultsSubtitle": "Products matching your keyword.",
     "searchResultsFor": "Results for \"{{q}}\"",
@@ -237,6 +238,8 @@
       "all": "All",
       "mainTree": "Industry",
       "productLine": "Product line",
+      "selectedCount": "{{n}} selected",
+      "apply": "Apply",
       "selectMainTreeFirst": "Select an industry first to filter by product line."
     },
     "sort": {
@@ -415,6 +418,10 @@
     "cardsCount": "{{n}} markets",
     "techsCount": "{{n}} technologies",
     "appsCount": "{{n}} applications",
+    "allMarkets": "All markets",
+    "requestQuote": "Request quote",
+    "featuredBadge": "Featured",
+    "loadMore": "Load more markets",
     "quoteCallout": {
       "title": "Need a tailored solution for this market?",
       "subtitle": "Request a quote — we will recommend the right products for \"{{market}}\" within 24 hours.",
@@ -434,11 +441,20 @@
       "label": "Sort by",
       "default": "Default",
       "newest": "Newest",
-      "nameAsc": "Name: A-Z"
+      "nameAsc": "Name: A-Z",
+      "nameDesc": "Name: Z-A",
+      "mostProducts": "Most products"
     },
     "filter": {
+      "title": "Filters",
       "active": "Active filters",
-      "clearAll": "Clear filters"
+      "clearAll": "Clear filters",
+      "all": "All",
+      "industry": "Industry",
+      "featured": "Featured",
+      "hasProducts": "Has products",
+      "selectedCount": "{{n}} selected",
+      "apply": "Apply"
     },
     "pagination": {
       "previous": "Previous page",

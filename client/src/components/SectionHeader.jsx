@@ -33,7 +33,7 @@ const SectionHeader = ({
           <span className="heading-eyebrow">{eyebrow}</span>
         </div>
       )}
-      <h2 className="heading-section md:heading-display">{title}</h2>
+      <h2 className="heading-section">{title}</h2>
       {subtitle && (
         <p
           className={cn(

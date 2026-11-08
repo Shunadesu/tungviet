@@ -13,11 +13,36 @@ const localizeSlide = (slide, locale) => {
     }
     return vi || '';
   };
+  // CTA giữ nguyên cấu trúc { vi, en } vì client tự chọn theo locale.
+  const pickCta = (cta) => {
+    if (!cta) return null;
+    return {
+      label: {
+        vi: cta?.label?.vi || '',
+        en: cta?.label?.en || '',
+      },
+      href: cta?.href || '',
+      style: cta?.style || 'solid',
+    };
+  };
   return {
     _id: slide._id,
     imageUrl: slide.imageUrl || '',
     title: pick('title'),
     description: pick('description'),
+    eyebrow: {
+      vi: slide?.eyebrow?.vi || '',
+      en: slide?.eyebrow?.en || '',
+    },
+    ctaPrimary: pickCta(slide.ctaPrimary),
+    ctaSecondary: pickCta(slide.ctaSecondary),
+    variant: slide.variant || 'fullscreen',
+    theme: slide.theme || 'auto',
+    height: slide.height || 'fullscreen',
+    animationPreset: slide.animationPreset || 'fade-up',
+    backgroundOverlay:
+      typeof slide.backgroundOverlay === 'number' ? slide.backgroundOverlay : 50,
+    scrollHint: slide.scrollHint !== false,
     order: typeof slide.order === 'number' ? slide.order : 0,
     active: slide.active !== false,
   };
@@ -140,6 +165,27 @@ const localizeHomeSection = (s, locale) => {
   };
 };
 
+const localizeEcovadis = (e, locale) => {
+  if (!e) return null;
+  const pick = (field) => {
+    const vi = e?.[field]?.vi || '';
+    const en = e?.[field]?.en || '';
+    return locale === 'en' && en.trim() ? en : vi;
+  };
+  return {
+    eyebrow: pick('eyebrow'),
+    title: pick('title'),
+    subtitle: pick('subtitle'),
+    imageUrl: e.imageUrl || '',
+    badgeLabel: e.badgeLabel || '',
+    link1Label: pick('link1Label'),
+    link1Href: e.link1Href || '',
+    link2Label: pick('link2Label'),
+    link2Href: e.link2Href || '',
+    active: e.active !== false,
+  };
+};
+
 const normalizeId = (item) => {
   if (!item) return item;
   const raw = item._id;
@@ -193,6 +239,7 @@ const toClient = (doc, locale = 'vi') => {
       .slice()
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
       .map((s) => localizeHomeSection(s, locale)),
+    ecovadis: obj.ecovadis ? localizeEcovadis(obj.ecovadis, locale) : null,
     updatedAt: obj.updatedAt || null,
   };
 };
@@ -221,6 +268,7 @@ const toAdmin = (doc) => {
     certificates: (obj.certificates || []).map(normalizeId),
     testimonials: (obj.testimonials || []).map(normalizeId),
     homeSections: (obj.homeSections || []).map(normalizeId),
+    ecovadis: obj.ecovadis || null,
     footer: obj.footer || null,
     seo: obj.seo || null,
     faviconUrl: obj.faviconUrl || null,
@@ -235,7 +283,34 @@ export const siteConfigService = {
     if (!config) {
       config = await SiteConfig.create({ _id: SITE_CONFIG_ID });
     }
+    await this.cleanLegacyPlaceholders(config);
     return config;
+  },
+
+  /**
+   * Dọn các giá trị placeholder cũ đã được lưu trong DB (SĐT/email/địa chỉ/
+   * copyright mặc định từ trước). Mục đích: không hiển thị dữ liệu giả.
+   * Chỉ chạy khi phát hiện đúng giá trị placeholder cũ.
+   */
+  async cleanLegacyPlaceholders(config) {
+    const footer = config.footer;
+    if (!footer) return;
+    const LEGACY = {
+      about:
+        'Chuyên cung cấp các loại cây cảnh chất lượng cao, từ cây trong nhà đến cây ngoài trời, mang thiên nhiên đến gần bạn hơn.',
+      phone: '0123 456 789',
+      email: 'contact@zuna.vn',
+      address: '123 Đường Cây Xanh, TP.HCM',
+      copyright: '© 2024 Zuna Tungviet. Tất cả quyền được bảo lưu.',
+    };
+    const patch = {};
+    for (const [key, legacyValue] of Object.entries(LEGACY)) {
+      if (footer[key] === legacyValue) patch[`footer.${key}`] = '';
+    }
+    if (Object.keys(patch).length === 0) return;
+    await SiteConfig.updateOne({ _id: SITE_CONFIG_ID }, { $set: patch });
+    Object.assign(footer, Object.fromEntries(Object.keys(patch).map((k) => [k.split('.')[1], ''])));
+    invalidatePublicCache();
   },
 
   async getPublic(locale = 'vi') {
@@ -463,6 +538,17 @@ export const siteConfigService = {
     const config = await SiteConfig.findByIdAndUpdate(
       SITE_CONFIG_ID,
       { $set: { certificates: items || [] } },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    );
+    invalidatePublicCache();
+    invalidateHomeCache();
+    return config;
+  },
+
+  async updateEcovadis(payload) {
+    const config = await SiteConfig.findByIdAndUpdate(
+      SITE_CONFIG_ID,
+      { $set: { ecovadis: payload || {} } },
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
     invalidatePublicCache();
