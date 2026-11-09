@@ -19,6 +19,12 @@ const visitLogSchema = new mongoose.Schema(
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     statusCode: { type: Number, default: 200 },
     visitedAt: { type: Date, default: Date.now, index: true },
+    // TTL index: MongoDB tự xoá document cũ hơn 90 ngày ⇒ collection không
+    // phình vô hạn, các aggregation `$group` không bị nặng dần theo thời gian.
+    expiresAt: {
+      type: Date,
+      default: () => new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+    },
   },
   { versionKey: false }
 );
@@ -26,6 +32,8 @@ const visitLogSchema = new mongoose.Schema(
 visitLogSchema.index({ visitedAt: -1 });
 visitLogSchema.index({ ip: 1, visitedAt: -1 });
 visitLogSchema.index({ path: 1, visitedAt: -1 });
+// TTL index — MongoDB tự dọn sau 90 ngày
+visitLogSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const VisitLog = mongoose.model('VisitLog', visitLogSchema);
 

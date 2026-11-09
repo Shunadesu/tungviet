@@ -38,6 +38,7 @@ const MainTreeDetail = React.lazy(() => import('./pages/MainTreeDetail'));
 const CategoryDetail = React.lazy(() => import('./pages/CategoryDetail'));
 const Wishlist = React.lazy(() => import('./pages/Wishlist'));
 const CompareProducts = React.lazy(() => import('./pages/CompareProducts'));
+const NotFound = React.lazy(() => import('./pages/NotFound'));
 
 function App() {
   return (
@@ -238,6 +239,17 @@ function App() {
                           element={
                             <ReactSuspense fallback={<RouteProgress />}>
                               <CategoryDetail />
+                            </ReactSuspense>
+                          }
+                        />
+                        {/* Splat route bắt mọi đường dẫn chưa được đăng ký
+                            (vd. /vi/khong-ton-tai, /vi/san-pham/abc/xyz) →
+                            hiển thị trang 404 kèm nút quay về trang chủ. */}
+                        <Route
+                          path="*"
+                          element={
+                            <ReactSuspense fallback={<RouteProgress />}>
+                              <NotFound />
                             </ReactSuspense>
                           }
                         />

@@ -433,6 +433,36 @@
       "applications": "Applications",
       "products": "Products"
     },
+    "table": {
+      "index": "No.",
+      "technology": "Technology",
+      "application": "Application",
+      "description": "Description",
+      "specifications": "Specifications",
+      "applicationCount": "Applications",
+      "products": "Products",
+      "action": "Action",
+      "details": "Details"
+    },
+    "modal": {
+      "close": "Close",
+      "specifications": "Specifications",
+      "applications": "Related applications",
+      "linkedIndustries": "Related industries",
+      "linkedCategories": "Related categories",
+      "noDescription": "No detailed description available for this item yet.",
+      "relatedProducts": "View related products"
+    },
+    "techCountLabel": "technologies",
+    "appCountLabel": "applications",
+    "filters": {
+      "technology": "Technology",
+      "technologyAll": "All technologies",
+      "application": "Application",
+      "applicationAll": "All applications",
+      "active": "Filtered by",
+      "clear": "Clear filter"
+    },
     "noTechnologies": "No technologies described for this market yet.",
     "noApplications": "No applications described for this market yet.",
     "breadcrumbHome": "Home",
@@ -542,6 +572,20 @@
     "generic": "Something went wrong, please try again",
     "networkError": "Cannot connect to server",
     "notFound": "Not found"
+  },
+  "notFound": {
+    "code": "404",
+    "title": "Page not found",
+    "description": "Sorry, the page you are looking for does not exist or has been moved. Please check the URL or return to the homepage.",
+    "backHome": "Back to homepage",
+    "popularLinks": "Or explore these popular pages",
+    "links": {
+      "products": "Products",
+      "markets": "Markets",
+      "about": "About",
+      "news": "News",
+      "quote": "Request a quote"
+    }
   },
   "quoteSection": {
     "title": "Get a Quote",

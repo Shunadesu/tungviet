@@ -115,8 +115,8 @@ const FloatingContactSettings = () => {
   const handleIconUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (!['image/png', 'image/jpeg', 'image/webp', 'image/svg+xml'].includes(file.type)) {
-      addNotification('Chỉ chấp nhận file PNG, JPG, WEBP, SVG', 'error');
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      addNotification('Chỉ chấp nhận file PNG, JPG, WEBP', 'error');
       return;
     }
     if (file.size > 2 * 1024 * 1024) {
@@ -316,7 +316,7 @@ const FloatingContactSettings = () => {
                   <input
                     ref={iconInputRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                    accept="image/png,image/jpeg,image/webp"
                     onChange={handleIconUpload}
                     className="hidden"
                   />
@@ -327,7 +327,7 @@ const FloatingContactSettings = () => {
                     className="btn-secondary text-xs flex items-center gap-2"
                   >
                     <FiUpload size={14} />
-                    {iconUploading ? 'Đang upload...' : 'Upload icon riêng (PNG/SVG)'}
+                    {iconUploading ? 'Đang upload...' : 'Upload icon riêng (PNG/JPG/WebP)'}
                   </button>
                   {isIconImageUrl(form.icon) && (
                     <div className="mt-2 flex items-center gap-2 p-2 border rounded bg-white">

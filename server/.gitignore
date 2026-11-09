@@ -35,6 +35,8 @@ build
 .env.development.local
 .env.test.local
 .env.production.local
+# Chứa JWT_SECRET thật — không được commit
+.env.production.template
 
 # Vercel
 .vercel

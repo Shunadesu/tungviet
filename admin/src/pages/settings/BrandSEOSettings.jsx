@@ -15,7 +15,6 @@ const LOGO_ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
 const FAVICON_ACCEPTED = [
   'image/x-icon',
   'image/png',
-  'image/svg+xml',
   'image/vnd.microsoft.icon',
 ];
 const OG_ACCEPTED = ['image/jpeg', 'image/png', 'image/webp'];
@@ -121,7 +120,7 @@ const BrandSEOSettings = () => {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!FAVICON_ACCEPTED.includes(file.type)) {
-      addNotification('Chỉ chấp nhận file ICO, PNG, SVG', 'error');
+      addNotification('Chỉ chấp nhận file ICO, PNG', 'error');
       return;
     }
     if (file.size > MAX_SIZE) {
@@ -299,7 +298,7 @@ const BrandSEOSettings = () => {
             <div className="flex-1">
               <h2 className="text-sm font-semibold text-gray-900">Favicon</h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Favicon hiển thị trên tab trình duyệt. Hỗ trợ ICO, PNG, SVG. Tối đa 5MB. Kích thước khuyến nghị: 32×32 hoặc 16×16.
+                Favicon hiển thị trên tab trình duyệt. Hỗ trợ ICO, PNG. Tối đa 5MB. Kích thước khuyến nghị: 32×32 hoặc 16×16.
               </p>
             </div>
           </div>
@@ -336,7 +335,7 @@ const BrandSEOSettings = () => {
               <input
                 ref={faviconInputRef}
                 type="file"
-                accept=".ico,.png,.svg,image/x-icon,image/png,image/svg+xml"
+                accept=".ico,.png,image/x-icon,image/png"
                 className="hidden"
                 onChange={handleFaviconChange}
               />
@@ -378,7 +377,7 @@ const BrandSEOSettings = () => {
                 <ul className="list-disc list-inside space-y-0.5">
                   <li>Kích thước khuyến nghị: 32×32 hoặc 16×16</li>
                   <li>Dùng ICO để tương thích tốt nhất</li>
-                  <li>Có thể dùng SVG cho icon vector</li>
+                  <li>PNG 32×32 cho tab trình duyệt</li>
                 </ul>
               </div>
             </div>

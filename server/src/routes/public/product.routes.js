@@ -17,6 +17,18 @@ const router = express.Router();
  *         name: sort
  *         schema: { type: string, enum: [name_asc, name_desc, newest] }
  *       - in: query
+ *         name: market
+ *         description: Id/slug cua MarketTree de loc san pham theo thi truong
+ *         schema: { type: string }
+ *       - in: query
+ *         name: technology
+ *         description: Id cua sub-document cong nghe (MarketTree.technologies._id)
+ *         schema: { type: string }
+ *       - in: query
+ *         name: application
+ *         description: Id cua sub-document ung dung (MarketTree.applications._id)
+ *         schema: { type: string }
+ *       - in: query
  *         name: page
  *         schema: { type: integer, default: 1 }
  *       - in: query

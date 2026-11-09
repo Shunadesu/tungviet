@@ -1,28 +1,14 @@
 import { Navigate, useLocation } from 'react-router-dom';
 import { SUPPORTED_LOCALES } from '../i18n';
+import { getPreferredLocale } from '../utils/preferredLocale';
 
-const DEFAULT_LOCALE = SUPPORTED_LOCALES[0];
-
-const detectStoredLocale = () => {
-  try {
-    const stored = localStorage.getItem('locale');
-    return SUPPORTED_LOCALES.includes(stored) ? stored : null;
-  } catch {
-    return null;
-  }
-};
-
-const detectBrowserLocale = () => {
-  try {
-    const navLang = (navigator.language || '').toLowerCase();
-    if (navLang.startsWith('en')) return 'en';
-    if (navLang.startsWith('vi')) return 'vi';
-  } catch {
-    /* ignore */
-  }
-  return null;
-};
-
+/**
+ * Xử lý các URL không có locale ở đầu (ví dụ "/").
+ *
+ * Locale được chèn vào trước, phần path còn lại được giữ nguyên nên
+ * /abc/def → /vi/abc/def (sau đó route splat sẽ hiển thị trang 404 nếu
+ * đường dẫn không tồn tại).
+ */
 const LocaleRedirect = () => {
   const location = useLocation();
   const segments = location.pathname.split('/').filter(Boolean);
@@ -33,8 +19,7 @@ const LocaleRedirect = () => {
     return null;
   }
 
-  const preferred =
-    detectStoredLocale() || detectBrowserLocale() || DEFAULT_LOCALE;
+  const preferred = getPreferredLocale();
 
   const rest = location.pathname === '/' ? '' : location.pathname;
   const search = location.search || '';

@@ -28,6 +28,8 @@ export const getAllProducts = async (req, res, next) => {
       industries: req.query.industries,
       productLine: req.query.productLine || req.query.category,
       market: req.query.market || req.query.marketIds,
+      technology: req.query.technology,
+      application: req.query.application,
       page,
       limit,
     };

@@ -12,19 +12,16 @@ const geoCache = new NodeCache({ stdTTL: GEO_CACHE_TTL_SECONDS, checkperiod: 360
 
 const ONLINE_CACHE_HANDLE = 'analytics:online';
 
-function ensureOnlineSnapshotFresh() {
-  let snap = cacheStore.get(ONLINE_CACHE_HANDLE);
-  if (snap) return snap;
+// Snapshot "người dùng đang online" được dựng lại định kỳ (30s) thay vì
+// quét/sort toàn bộ key cache ở MỖI request — nguyên nhân chính gây CPU 100%.
+const SNAPSHOT_REBUILD_INTERVAL_MS = Number(process.env.ONLINE_SNAPSHOT_INTERVAL_MS) || 30_000;
+let snapshotDirty = false;
+let lastSnapshotAt = 0;
 
-  const items = cacheStore
-    .delByPrefix(ONLINE_KEY_PREFIX) === 0
-    ? []
-    : [];
-
-  snap = { count: 0, items: [] };
-  cacheStore.set(ONLINE_CACHE_HANDLE, snap, ONLINE_TTL_SECONDS);
-  return snap;
-}
+// Giới hạn tần suất gọi ra ip-api.com: tối đa 1 lần mỗi GEO_LOOKUP_MIN_INTERVAL_MS.
+// Lookup KHÔNG xếp hàng và KHÔNG chặn request — xem lookupGeo() bên dưới.
+const GEO_LOOKUP_MIN_INTERVAL_MS = Number(process.env.GEO_LOOKUP_INTERVAL_MS) || 1_000;
+let lastGeoLookupAt = 0;
 
 function rebuildOnlineSnapshot() {
   const cache = cacheStore;
@@ -42,25 +39,33 @@ function rebuildOnlineSnapshot() {
 
   const snap = { count: items.length, items };
   cacheStore.set(ONLINE_CACHE_HANDLE, snap, ONLINE_TTL_SECONDS);
+  lastSnapshotAt = Date.now();
+  snapshotDirty = false;
   return snap;
 }
 
 function getOnlineSnapshot() {
-  const allKeys = cacheStore.keys();
-  const hasOnlineKeys = allKeys.some((k) => k.startsWith(ONLINE_KEY_PREFIX));
-  if (!hasOnlineKeys && cacheStore.get(ONLINE_CACHE_HANDLE)) {
-    return cacheStore.get(ONLINE_CACHE_HANDLE);
-  }
-  return rebuildOnlineSnapshot();
+  // Snapshot còn mới → dùng luôn, không quét cache.
+  const snap = cacheStore.get(ONLINE_CACHE_HANDLE);
+  const stale = !snap || Date.now() - lastSnapshotAt > SNAPSHOT_REBUILD_INTERVAL_MS;
+  if (!stale) return snap;
+  if (snapshotDirty || !snap) return rebuildOnlineSnapshot();
+  lastSnapshotAt = Date.now();
+  return snap;
 }
 
-async function lookupGeo(ip) {
-  if (!ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('::ffff:127.')) {
-    return { country: 'Local', countryCode: 'LO', city: 'Localhost', region: '', isp: 'Local' };
-  }
-  const cached = geoCache.get(ip);
-  if (cached) return cached;
-
+/**
+ * Geo lookup — KHÔNG BAO GIỜ chặn request.
+ *
+ * Vấn đề: nếu xếp hàng các lookup ra ip-api.com, mọi request sẽ phải chờ
+ * (mỗi IP mới 1 giây) ⇒ ghi log visit bị trễ hàng loạt, hàng đợi phình to
+ * khi bot quét site.
+ *
+ * Cách đúng: geo chỉ là dữ liệu bổ trợ. Ghi log visit TRƯỚC, rồi cập nhật
+ * geo sau bằng `updateOne` nếu có lookup. Lookup ra ngoài bị giới hạn tần suất
+ * (tối đa 1 lần/GEO_LOOKUP_INTERVAL_MS) và chỉ chạy cho IP chưa có trong cache.
+ */
+async function fetchGeo(ip) {
   try {
     const ctrl = new AbortController();
     const timeout = setTimeout(() => ctrl.abort(), 2000);
@@ -87,6 +92,64 @@ async function lookupGeo(ip) {
   }
 }
 
+/**
+ * Trả geo đã biết (cache) — không gọi mạng.
+ * Nếu chưa có và đã tới giờ được phép lookup, gọi mạng (không chặn request
+ * chính vì đây là fire-and-forget).
+ */
+function lookupGeo(ip) {
+  if (!ip || ip === '::1' || ip === '127.0.0.1' || ip.startsWith('::ffff:127.')) {
+    return { country: 'Local', countryCode: 'LO', city: 'Localhost', region: '', isp: 'Local' };
+  }
+  const cached = geoCache.get(ip);
+  if (cached) return cached;
+
+  const now = Date.now();
+  if (now - lastGeoLookupAt < GEO_LOOKUP_MIN_INTERVAL_MS) {
+    // Chưa tới giờ được lookup ⇒ trả rỗng ngay, không chặn, không xếp hàng.
+    return { country: '', countryCode: '', city: '', region: '', isp: '' };
+  }
+  lastGeoLookupAt = now;
+  return fetchGeo(ip); // Promise — caller dùng .catch()
+}
+
+// Chỉ ghi log các path nội dung; bỏ qua tài nguyên tĩnh và endpoint kỹ thuật.
+const LOGGABLE_PATH_EXCLUDE = [
+  '/api/health',
+  '/api/docs',
+  '/api/openapi.json',
+  '/uploads',
+  '/favicon.ico',
+  '/robots.txt',
+  '/sitemap.xml',
+];
+
+const isLoggablePath = (url = '') => {
+  const pathOnly = String(url).split('?')[0];
+  if (!LOGGABLE_PATH_EXCLUDE.some((p) => pathOnly.startsWith(p))) return true;
+  return false;
+};
+
+// Mỗi IP chỉ được ghi 1 lần trong VISIT_LOG_MIN_INTERVAL_MS (mặc định 60s).
+const VISIT_LOG_MIN_INTERVAL_MS = Number(process.env.VISIT_LOG_MIN_INTERVAL_MS) || 60_000;
+const lastVisitAtByIp = new Map();
+
+const shouldRecordVisit = (ip) => {
+  if (!ip) return false;
+  const now = Date.now();
+  const last = lastVisitAtByIp.get(ip);
+  if (last && now - last < VISIT_LOG_MIN_INTERVAL_MS) return false;
+  lastVisitAtByIp.set(ip, now);
+
+  // Dọn map khi phình to quá để tránh rò rỉ bộ nhớ.
+  if (lastVisitAtByIp.size > 5000) {
+    for (const [key, ts] of lastVisitAtByIp) {
+      if (now - ts > VISIT_LOG_MIN_INTERVAL_MS * 2) lastVisitAtByIp.delete(key);
+    }
+  }
+  return true;
+};
+
 export const analyticsService = {
   async recordVisit(req, ip) {
     try {
@@ -104,9 +167,20 @@ export const analyticsService = {
         return t;
       })();
 
-      const geo = await lookupGeo(ip);
+      // Bỏ qua bot — bot quét site là nguyên nhân chính làm phình collection
+      // và kéo CPU lên 100%.
+      if (deviceType === 'bot') return;
+      if (!isLoggablePath(req.originalUrl || req.url)) return;
 
-      await VisitLog.create({
+      // Chặn ghi log trùng lặp: mỗi IP chỉ ghi 1 lần mỗi VISIT_LOG_MIN_INTERVAL_MS.
+      if (!shouldRecordVisit(ip)) return;
+
+      // Ghi log NGAY với geo đã cache (nếu có). Không chờ lookup mạng —
+      // nhờ vậy ghi log không bao giờ bị trễ bởi ip-api.com.
+      const geoPromise = lookupGeo(ip);
+      const geo = geoPromise && typeof geoPromise.then === 'function' ? {} : geoPromise;
+
+      const doc = await VisitLog.create({
         ip,
         userAgent: ua,
         browser: uaResult.browser?.name || 'Unknown',
@@ -115,11 +189,11 @@ export const analyticsService = {
           ? `${uaResult.device.vendor} ${uaResult.device.model || ''}`.trim()
           : 'Unknown',
         deviceType,
-        country: geo.country,
-        countryCode: geo.countryCode,
-        city: geo.city,
-        region: geo.region,
-        isp: geo.isp,
+        country: geo.country || '',
+        countryCode: geo.countryCode || '',
+        city: geo.city || '',
+        region: geo.region || '',
+        isp: geo.isp || '',
         path: req.originalUrl || req.url,
         method: req.method,
         referer: req.headers.referer || req.headers.referrer || '',
@@ -127,6 +201,29 @@ export const analyticsService = {
         statusCode: 200,
         visitedAt: new Date(),
       });
+
+      // Nếu geo đến sau (lookup mạng), cập nhật bổ sung cho document vừa tạo.
+      if (typeof geoPromise?.then === 'function') {
+        geoPromise
+          .then((resolved) => {
+            if (!resolved || !resolved.country) return;
+            return VisitLog.updateOne(
+              { _id: doc._id },
+              {
+                $set: {
+                  country: resolved.country,
+                  countryCode: resolved.countryCode,
+                  city: resolved.city,
+                  region: resolved.region,
+                  isp: resolved.isp,
+                },
+              }
+            );
+          })
+          .catch(() => {
+            /* bỏ qua — geo chỉ là dữ liệu bổ trợ */
+          });
+      }
     } catch (err) {
       logger.warn({ err: err.message }, 'Failed to record visit');
     }
@@ -139,13 +236,23 @@ export const analyticsService = {
   markOnline(req) {
     const ip = this.extractIp(req);
     cacheStore.set(`${ONLINE_KEY_PREFIX}${ip}`, { lastSeen: Date.now() }, ONLINE_TTL_SECONDS);
-    getOnlineSnapshot();
+    // Đánh dấu snapshot cần dựng lại; việc dựng thực hiện định kỳ (30s)
+    // thay vì quét toàn bộ key cache ở mỗi request.
+    snapshotDirty = true;
     return ip;
   },
 
   getOnlineCount() {
     const snap = getOnlineSnapshot();
     return snap.count;
+  },
+
+  /**
+   * Dựng lại snapshot online ngay lập tức (dùng cho cron job).
+   * Chỉ quét cache 1 lần mỗi 30s thay vì 1 lần mỗi request.
+   */
+  refreshOnlineSnapshot() {
+    return rebuildOnlineSnapshot();
   },
 
   getOnlineUsers() {

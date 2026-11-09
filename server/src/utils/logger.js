@@ -17,7 +17,11 @@ export const requestLogger = (req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    logger.info({
+    // Ở production, ghi log MỖI request ở mức info sẽ tạo tải I/O rất lớn
+    // (và chính là nguồn gây CPU cao khi bot quét site). Chỉ ghi ở mức debug,
+    // hoặc bỏ qua request lỗi/không thành công khi bật LOG_REQUESTS=false.
+    const level = duration > 1000 ? 'warn' : 'debug';
+    logger[level]({
       method: req.method,
       url: req.originalUrl,
       status: res.statusCode,

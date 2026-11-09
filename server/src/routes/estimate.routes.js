@@ -1,4 +1,5 @@
 import express from 'express';
+import { adminAuth } from '../middlewares/auth.js';
 import {
   saveEstimateBatch,
   getEstimates,
@@ -35,7 +36,7 @@ const router = express.Router();
  *       201: { description: OK }
  */
 router.get('/', getEstimates);
-router.post('/', saveEstimateBatch);
+router.post('/', adminAuth, saveEstimateBatch);
 
 /**
  * @openapi
@@ -52,7 +53,7 @@ router.post('/', saveEstimateBatch);
  *     responses:
  *       201: { description: OK }
  */
-router.post('/item', createEstimate);
+router.post('/item', adminAuth, createEstimate);
 
 /**
  * @openapi
@@ -78,7 +79,7 @@ router.post('/item', createEstimate);
  *     responses:
  *       200: { description: OK }
  */
-router.put('/item/:id', updateEstimate);
-router.delete('/item/:id', deleteEstimate);
+router.put('/item/:id', adminAuth, updateEstimate);
+router.delete('/item/:id', adminAuth, deleteEstimate);
 
 export default router;

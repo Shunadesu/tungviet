@@ -150,6 +150,8 @@ export const productService = {
     industries,
     productLine,
     market,
+    technology,
+    application,
     softeningPoint,
     page = 1,
     limit = 20,
@@ -171,6 +173,21 @@ export const productService = {
     const marketIds = await resolveIdList(market, MarketTree);
     const mktMatch = marketMatch(marketIds);
     if (mktMatch) query.marketIds = mktMatch;
+
+    // Loc san pham theo cong nghe / ung dung (sub-document) cua mot market.
+    // `Product.marketEntries` luu technologyIds / applicationIds tro toi
+    // _id cua sub-document trong MarketTree.
+    const techId = normalizeId(technology);
+    const appId = normalizeId(application);
+    if (techId || appId) {
+      const elemMatch = {};
+      if (marketIds.length === 1) {
+        elemMatch.marketId = new mongoose.Types.ObjectId(marketIds[0]);
+      }
+      if (techId) elemMatch.technologyIds = new mongoose.Types.ObjectId(techId);
+      if (appId) elemMatch.applicationIds = new mongoose.Types.ObjectId(appId);
+      query.marketEntries = { $elemMatch: elemMatch };
+    }
 
     if (softeningPoint && String(softeningPoint).trim()) {
       query.softeningPoint = String(softeningPoint).trim();

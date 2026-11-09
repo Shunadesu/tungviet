@@ -35,13 +35,51 @@ const localizeProductEntries = (entries = [], locale) =>
     })
     .filter(Boolean);
 
+const localizeProductLineEntries = (entries = []) =>
+  (Array.isArray(entries) ? entries : [])
+    .map((entry) => {
+      if (!entry) return null;
+      const line = entry.productLineId;
+      if (!line) return null;
+      return {
+        productLineId: {
+          _id: line._id,
+          name: line.name || '',
+          nameEn: line.nameEn || '',
+          slug: line.slug || '',
+          imageUrl: line.imageUrl || '',
+        },
+      };
+    })
+    .filter(Boolean);
+
+/** Chuẩn hóa linkToMainTree về mảng object đã populate (name/nameEn/slug). */
+const localizeMainTreeLinks = (value) => {
+  const list = Array.isArray(value) ? value : value ? [value] : [];
+  return list
+    .filter(Boolean)
+    .map((mt) => ({
+      _id: mt._id,
+      name: mt.name || '',
+      nameEn: mt.nameEn || '',
+      slug: mt.slug || '',
+    }));
+};
+
 const localizeSubDoc = (doc, locale) => {
   if (!doc) return doc;
   const out = localizeFields(doc, locale, LOCALIZABLE_FIELDS);
   out.productEntries = localizeProductEntries(doc.productEntries, locale);
-  out.linkToMainTree = Array.isArray(doc.linkToMainTree)
-    ? doc.linkToMainTree
-    : doc.linkToMainTree ? [doc.linkToMainTree] : [];
+  out.productLineEntries = localizeProductLineEntries(doc.productLineEntries);
+  out.linkToMainTree = localizeMainTreeLinks(doc.linkToMainTree);
+  out.productCount = Number.isFinite(doc.productCount) ? doc.productCount : 0;
+  if (Array.isArray(doc.applications)) {
+    // Nested applications inside a technology node.
+    out.applications = doc.applications
+      .filter((a) => a && a.isActive !== false)
+      .map((a) => localizeSubDoc(a, locale));
+    out.applicationCount = out.applications.length;
+  }
   return out;
 };
 
@@ -58,6 +96,7 @@ const localizeNode = (node, locale) => {
   } else {
     localized.introductions = { vi: '', en: '' };
   }
+  localized.productLineEntries = localizeProductLineEntries(node.productLineEntries);
   if (Array.isArray(node.technologies)) {
     localized.technologies = node.technologies
       .filter((t) => t && t.isActive !== false)

@@ -430,6 +430,36 @@
       "applications": "Ứng dụng",
       "products": "Sản phẩm"
     },
+    "table": {
+      "index": "STT",
+      "technology": "Công nghệ",
+      "application": "Ứng dụng",
+      "description": "Mô tả",
+      "specifications": "Thông số",
+      "applicationCount": "Ứng dụng",
+      "products": "Sản phẩm",
+      "action": "Hành động",
+      "details": "Chi tiết"
+    },
+    "modal": {
+      "close": "Đóng",
+      "specifications": "Thông số kỹ thuật",
+      "applications": "Ứng dụng liên quan",
+      "linkedIndustries": "Ngành liên quan",
+      "linkedCategories": "Danh mục liên quan",
+      "noDescription": "Chưa có mô tả chi tiết cho mục này.",
+      "relatedProducts": "Xem sản phẩm liên quan"
+    },
+    "techCountLabel": "công nghệ",
+    "appCountLabel": "ứng dụng",
+    "filters": {
+      "technology": "Công nghệ",
+      "technologyAll": "Tất cả công nghệ",
+      "application": "Ứng dụng",
+      "applicationAll": "Tất cả ứng dụng",
+      "active": "Đang lọc theo",
+      "clear": "Xóa bộ lọc"
+    },
     "noTechnologies": "Chưa có công nghệ nào được mô tả cho thị trường này.",
     "noApplications": "Chưa có ứng dụng nào được mô tả cho thị trường này.",
     "breadcrumbHome": "Trang chủ",
@@ -531,6 +561,20 @@
     "generic": "Đã có lỗi xảy ra, vui lòng thử lại",
     "networkError": "Không thể kết nối đến máy chủ",
     "notFound": "Không tìm thấy"
+  },
+  "notFound": {
+    "code": "404",
+    "title": "Không tìm thấy trang",
+    "description": "Rất tiếc, trang bạn đang tìm không tồn tại hoặc đã được chuyển đi. Vui lòng kiểm tra lại đường dẫn hoặc quay về trang chủ.",
+    "backHome": "Về trang chủ",
+    "popularLinks": "Hoặc xem các trang phổ biến",
+    "links": {
+      "products": "Sản phẩm",
+      "markets": "Thị trường",
+      "about": "Giới thiệu",
+      "news": "Tin tức",
+      "quote": "Yêu cầu báo giá"
+    }
   },
   "quoteSection": {
     "title": "Nhận báo giá",

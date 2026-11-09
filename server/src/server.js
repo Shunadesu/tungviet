@@ -1,5 +1,9 @@
 import express from 'express';
 import cors from 'cors';
+import helmet from 'helmet';
+import compression from 'compression';
+import rateLimit from 'express-rate-limit';
+import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -12,6 +16,7 @@ import securityHeaders from './middlewares/securityHeaders.js';
 import { apiResponse } from './utils/apiResponse.js';
 import { swaggerSpec } from './config/swagger.js';
 import { productColumnService } from './services/productColumn.service.js';
+import { startAnalyticsJobs, stopAnalyticsJobs } from './jobs/analyticsCleanup.js';
 
 import publicRoutes from './routes/public/product.routes.js';
 import publicCategoryRoutes from './routes/public/category.routes.js';
@@ -77,12 +82,101 @@ dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const isProduction = process.env.NODE_ENV === 'production';
+
+/**
+ * Whitelist CORS.
+ *
+ * Trước đây API trả `Access-Control-Allow-Origin` cho mọi origin và còn
+ * chấp nhận mọi domain `*.vercel.app` ⇒ bất kỳ app Vercel nào cũng gọi được
+ * API kèm cookie/credentials. Nay chỉ origin nằm trong whitelist mới được phép.
+ */
+const PRODUCTION_ALLOWED_ORIGINS = [
+  'https://tungvietclient.vercel.app',
+  'https://tungviet.com',
+  'https://tungviet.fun',
+  'https://www.tungviet.fun',
+];
+
+const DEV_ALLOWED_ORIGINS = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+];
+
+const parseList = (value) =>
+  String(value || '')
+    .split(',')
+    .map((s) => s.trim().replace(/\/$/, ''))
+    .filter(Boolean);
+
+const allowedOrigins = Array.from(
+  new Set([
+    ...parseList(process.env.CLIENT_URL),
+    ...parseList(process.env.ADMIN_URL),
+    ...parseList(process.env.EXTRA_ORIGINS),
+    ...(isProduction ? PRODUCTION_ALLOWED_ORIGINS : [...PRODUCTION_ALLOWED_ORIGINS, ...DEV_ALLOWED_ORIGINS]),
+  ])
+);
+
+if (isProduction && parseList(process.env.CLIENT_URL).length === 0) {
+  logger.warn(
+    'CLIENT_URL chưa được đặt — đang dùng domain mặc định. Hãy đặt CLIENT_URL/ADMIN_URL/EXTRA_ORIGINS trong .env.'
+  );
+}
+
+const corsOptions = {
+  origin(origin, callback) {
+    // Không có Origin header (curl, server-to-server, mobile app) → cho phép.
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes(origin.replace(/\/$/, ''))) {
+      return callback(null, true);
+    }
+    // Trả `false` thay vì `new Error(...)` — nếu throw, errorHandler sẽ log
+    // "Unhandled error" mỗi lần bị chặn và trả 500, gây ồn log trên VPS.
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  maxAge: 86400,
+};
 
 const app = express();
 app.set('trust proxy', 1);
 
-// Security headers (CSP, HSTS, X-Frame-Options, etc.) — applied first.
+// Security headers — applied first.
+// helmet chạy TRƯỚC securityHeaders để middleware custom ghi đè được các
+// header mà helmet đặt mặc định theo hướng "an toàn hơn nhưng không đúng ý":
+//   - helmet đặt X-Frame-Options: SAMEORIGIN  → securityHeaders đặt DENY (chặn iframe hoàn toàn)
+//   - helmet đặt X-XSS-Protection: 0          → securityHeaders đặt 1; mode=block
+//   - helmet đặt Referrer-Policy: no-referrer  → securityHeaders đặt strict-origin-when-cross-origin
+// Nếu đảo thứ tự, các header cứng nhặt của helmet sẽ đè lên chính sách đã cấu hình.
+// HSTS do securityHeaders tự quản lý (chỉ bật ở production, max-age=1y) → tắt trong helmet.
+app.use(
+  helmet({
+    crossOriginResourcePolicy: false, // Cho phép cross-origin ảnh từ /uploads
+    contentSecurityPolicy: false, // CSP đã được set trong securityHeaders
+    hsts: false, // HSTS do securityHeaders quản lý
+  })
+);
 app.use(securityHeaders);
+app.use(compression());
+app.use(cors(corsOptions));
+
+// Rate limit chung — chặn bot quét dẫn tới tải CPU/DB.
+// Lưu ý: khi mount bằng app.use('/api', ...), Express cắt mount path khỏi
+// req.path (thành '/health'), nên phải dùng originalUrl để so sánh.
+const apiLimiter = rateLimit({
+  windowMs: Number(process.env.RATE_LIMIT_WINDOW_MS) || 60_000,
+  max: Number(process.env.RATE_LIMIT_MAX) || 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => {
+    const p = (req.originalUrl || req.url).split('?')[0];
+    return p === '/api/health' || p === '/health';
+  },
+  message: { success: false, message: 'Bạn gửi quá nhiều request, vui lòng thử lại sau ít phút.' },
+});
 
 connectDB()
   .then(async () => {
@@ -129,50 +223,24 @@ connectDB()
     process.exit(1);
   });
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    process.env.CLIENT_URL,
-    process.env.ADMIN_URL,
-    'http://localhost:3000',
-    'http://localhost:3001',
-    'https://tungvietclient.vercel.app',
-    'https://tungviet.com',
-    'https://tungviet.fun',
-    'https://www.tungviet.fun',
-  ].filter(Boolean);
-
-  if (
-    !origin ||
-    allowedOrigins.includes(origin) ||
-    allowedOrigins.some((o) => o && origin.endsWith('.vercel.app'))
-  ) {
-    res.setHeader('Access-Control-Allow-Origin', origin || '*');
-    res.setHeader('Access-Control-Allow-Credentials', 'true');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-    res.setHeader(
-      'Access-Control-Allow-Headers',
-      'Content-Type, Authorization, X-Requested-With, Accept, Origin'
-    );
-    res.setHeader('Access-Control-Max-Age', '86400');
-  }
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(204);
-  }
-  next();
-});
-
-app.use(
-  cors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-  })
-);
 app.use(express.json({ limit: '5mb' }));
 app.use(express.urlencoded({ limit: '5mb', extended: true }));
 app.use(requestLogger);
+
+// Rate limit đặt TRƯỚC trackVisitor để request bị chặn không bị ghi log analytics.
+app.use('/api', apiLimiter);
+
+// Giới hạn riêng cho đăng nhập/đăng ký (chống brute-force mật khẩu).
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: Number(process.env.AUTH_RATE_LIMIT_MAX) || 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Bạn thử đăng nhập quá nhiều lần, vui lòng thử lại sau.' },
+});
+app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/register', authLimiter);
+
 app.use(trackVisitor);
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
@@ -219,16 +287,73 @@ app.use('/api/project-reports', projectReportRoutes);
 
 app.get('/api/health', (req, res) => apiResponse.ok(res, { status: 'OK', message: 'Server is running' }));
 
-app.get('/api/openapi.json', (req, res) => res.json(swaggerSpec));
-app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// OpenAPI/Swagger UI chỉ được public ở môi trường non-production.
+// Ở production, chỉ admin có token mới xem được.
+const docsEnabled = !isProduction || process.env.ENABLE_API_DOCS === 'true';
+
+app.get('/api/openapi.json', async (req, res) => {
+  if (!docsEnabled) {
+    const token = req.header('Authorization')?.replace('Bearer ', '');
+    if (!token) {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(404).json({ success: false, message: 'Not found' });
+    }
+  }
+  res.json(swaggerSpec);
+});
+
+if (docsEnabled) {
+  app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+}
 
 app.use(notFoundHandler);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   logger.info(`Server running on port ${PORT} (env=${process.env.NODE_ENV || 'development'})`);
+});
+
+// Cron: dọn VisitLog cũ + dựng snapshot online định kỳ.
+startAnalyticsJobs();
+
+// Bắt lỗi listen (EADDRINUSE…) — nếu không bắt, Node ném 'error' event chưa xử lý
+// ⇒ process chết ngay ⇒ pm2/aaPanel restart liên tục ⇒ CPU 100%.
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    logger.error(
+      { port: PORT, err: err.message },
+      `Port ${PORT} đang bị chiếm. Hãy dừng process cũ (pm2 delete <app>) hoặc đổi PORT.`
+    );
+  } else {
+    logger.error({ err: err.message }, 'HTTP server error');
+  }
+  process.exit(1);
+});
+
+const shutdown = (signal) => {
+  logger.info({ signal }, 'Đang tắt server...');
+  stopAnalyticsJobs();
+  server.close(() => process.exit(0));
+  setTimeout(() => process.exit(1), 10_000).unref();
+};
+
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', () => shutdown('SIGINT'));
+
+// Log lỗi rồi thoát có kiểm soát thay vì crash im lặng (pm2 sẽ restart sạch).
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err: err.message, stack: err.stack }, 'uncaughtException — thoát');
+  process.exit(1);
+});
+process.on('unhandledRejection', (reason) => {
+  logger.fatal({ reason: reason?.message || String(reason) }, 'unhandledRejection — thoát');
+  process.exit(1);
 });
 
 export default app;

@@ -17,11 +17,12 @@ fs.mkdir(UPLOAD_DIR, { recursive: true }).catch((err) => {
 });
 
 // Image upload config
+// NOTE: `image/svg+xml` bị loại có chủ đích — SVG là file văn bản có thể chứa
+// <script>, và file được serve lại từ /uploads cùng origin với API ⇒ stored XSS.
 const ALLOWED_IMAGE_MIME = [
   'image/jpeg',
   'image/png',
   'image/webp',
-  'image/svg+xml',
   'image/gif',
   'image/x-icon',
   'image/vnd.microsoft.icon',
@@ -32,7 +33,7 @@ const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_PDF_MIME = ['application/pdf'];
 const MAX_PDF_SIZE = 10 * 1024 * 1024; // 10MB
 
-const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.svg', '.gif', '.ico']);
+const ALLOWED_IMAGE_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.ico']);
 const ALLOWED_PDF_EXT = new Set(['.pdf']);
 
 /**
@@ -42,7 +43,7 @@ const ALLOWED_PDF_EXT = new Set(['.pdf']);
 const buildFilename = (originalName, allowedExts) => {
   const ext = path.extname(originalName || '').toLowerCase();
   const safeExt = allowedExts.has(ext) ? ext : '';
-  // SVG is the only text-ish format; .ico is binary. Default to .jpg when ext unknown.
+  // Default to .jpg when ext unknown.
   const finalExt = safeExt || '.jpg';
   return `${randomUUID()}${finalExt}`;
 };
@@ -67,10 +68,10 @@ const pdfStorage = multer.diskStorage({
 
 export const uploadImage = multer({
   storage: imageStorage,
-  limits: { fileSize: MAX_IMAGE_SIZE },
+  limits: { fileSize: MAX_IMAGE_SIZE, files: 10, fields: 20 },
   fileFilter(req, file, cb) {
     if (!ALLOWED_IMAGE_MIME.includes(file.mimetype)) {
-      return cb(AppError.badRequest('Chỉ chấp nhận file ảnh (jpg, png, webp, gif, svg, ico)', 'INVALID_IMAGE_TYPE'));
+      return cb(AppError.badRequest('Chỉ chấp nhận file ảnh (jpg, png, webp, gif, ico)', 'INVALID_IMAGE_TYPE'));
     }
     cb(null, true);
   },
@@ -78,7 +79,7 @@ export const uploadImage = multer({
 
 export const uploadPDF = multer({
   storage: pdfStorage,
-  limits: { fileSize: MAX_PDF_SIZE },
+  limits: { fileSize: MAX_PDF_SIZE, files: 5, fields: 20 },
   fileFilter(req, file, cb) {
     if (!ALLOWED_PDF_MIME.includes(file.mimetype)) {
       return cb(AppError.badRequest('Chỉ chấp nhận file PDF', 'INVALID_PDF_TYPE'));
@@ -89,6 +90,30 @@ export const uploadPDF = multer({
 
 // Backward compatibility - export as 'upload' for existing code
 export const upload = uploadImage;
+
+/**
+ * Chuyển lỗi của multer 2.x thành AppError gọn gàng.
+ * Multer 2.x dùng busyboy 1.x và báo lỗi với `err.code` dạng chuỗi.
+ */
+const normalizeUploadError = (err, maxSizeMb) => {
+  if (err instanceof AppError) return err;
+  switch (err?.code) {
+    case 'LIMIT_FILE_SIZE':
+      return AppError.badRequest(`File quá lớn (tối đa ${maxSizeMb}MB)`, 'FILE_TOO_LARGE');
+    case 'LIMIT_UNEXPECTED_FILE':
+      return AppError.badRequest('Trường file không mong đợi hoặc upload quá số lượng cho phép.', 'UNEXPECTED_FILE');
+    case 'LIMIT_FILE_COUNT':
+      return AppError.badRequest('Số lượng file vượt quá giới hạn.', 'TOO_MANY_FILES');
+    case 'LIMIT_FIELD_COUNT':
+      return AppError.badRequest('Số lượng field vượt quá giới hạn.', 'TOO_MANY_FIELDS');
+    case 'LIMIT_FIELD_VALUE':
+      return AppError.badRequest('Giá trị field quá lớn.', 'FIELD_TOO_LARGE');
+    case 'LIMIT_PART_COUNT':
+      return AppError.badRequest('Dữ liệu multipart không hợp lệ.', 'INVALID_MULTIPART');
+    default:
+      return null;
+  }
+};
 
 export const uploadSingle = (fieldName = 'file') => (req, res, next) => {
   uploadImage.single(fieldName)(req, res, async (err) => {
@@ -102,10 +127,8 @@ export const uploadSingle = (fieldName = 'file') => (req, res, next) => {
       }
       return next();
     }
-    if (err instanceof AppError) return next(err);
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return next(AppError.badRequest('File quá lớn (tối đa 5MB)', 'FILE_TOO_LARGE'));
-    }
+    const normalized = normalizeUploadError(err, 5);
+    if (normalized) return next(normalized);
     next(err);
   });
 };
@@ -113,10 +136,8 @@ export const uploadSingle = (fieldName = 'file') => (req, res, next) => {
 export const uploadSinglePDF = (fieldName = 'file') => (req, res, next) => {
   uploadPDF.single(fieldName)(req, res, (err) => {
     if (!err) return next();
-    if (err instanceof AppError) return next(err);
-    if (err.code === 'LIMIT_FILE_SIZE') {
-      return next(AppError.badRequest('File PDF quá lớn (tối đa 10MB)', 'PDF_TOO_LARGE'));
-    }
+    const normalized = normalizeUploadError(err, 10);
+    if (normalized) return next(normalized);
     next(err);
   });
 };

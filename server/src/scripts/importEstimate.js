@@ -1,9 +1,15 @@
 import * as XLSX from 'xlsx';
+import fs from 'fs';
 import mongoose from 'mongoose';
 import dotenv from 'dotenv';
 import Estimate from '../models/Estimate.js';
 
 dotenv.config();
+
+// SheetJS 0.20.3 (bản vá CVE-2023-30533 + CVE-2024-22363) không tự gắn
+// binding `fs` trong bản ESM ⇒ `XLSX.readFile` / `XLSX.writeFile` sẽ ném
+// "cannot save file" / "cannot open file" nếu không gọi `set_fs`.
+XLSX.set_fs(fs);
 
 const COLUMN_MAPPING = {
   'STT': 'stt',

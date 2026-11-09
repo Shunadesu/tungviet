@@ -16,6 +16,8 @@ const invalidate = () => {
 const PRODUCT_PREVIEW_FIELDS =
   'name nameEn imageUrl slug productCode applications';
 
+const PRODUCT_LINE_PREVIEW_FIELDS = 'name nameEn slug imageUrl';
+
 const sanitizeProductLineEntries = (entries = []) =>
   (Array.isArray(entries) ? entries : [])
     .map((entry) => {
@@ -33,17 +35,42 @@ const sanitizeProductEntries = (entries = []) =>
         entry && (entry.productId?._id || entry.productId)
           ? String(entry.productId?._id || entry.productId)
           : null;
-      if (!productId) return null;
-      return { productId };
+      return productId ? { productId } : null;
     })
     .filter(Boolean);
 
-const sanitizeSubDocs = (list = [], kind = 'application') =>
+const sanitizeLinkIds = (value) =>
+  (Array.isArray(value) ? value : value ? [value] : [])
+    .map((v) => {
+      const raw = v?._id || v;
+      try { return String(raw) || null; }
+      catch (_) { return null; }
+    })
+    .filter(Boolean);
+
+const sanitizeSpecifications = (list) =>
   (Array.isArray(list) ? list : [])
+    .filter((spec) => spec && typeof spec.key === 'string' && spec.key.trim())
+    .map((spec, idx) => ({
+      _id: spec._id || undefined,
+      key: spec.key.trim(),
+      value: typeof spec.value === 'string' ? spec.value : '',
+      valueEn: typeof spec.valueEn === 'string' ? spec.valueEn : '',
+      unit: typeof spec.unit === 'string' ? spec.unit.trim() : '',
+      order: Number.isFinite(Number(spec.order)) ? Number(spec.order) : idx,
+    }));
+
+/**
+ * Chuẩn hóa một sub-document (technology / application) trước khi lưu.
+ * Giữ lại toàn bộ field đã nhập ở admin: specifications, productLineEntries,
+ * productEntries, linkToMainTree, linkCustomUrl.
+ */
+const sanitizeSubDocs = (list = [], kind = 'application') => {
+  return (Array.isArray(list) ? list : [])
     .filter((s) => s && s.title)
     .map((s) => {
       const base = {
-        _id: s._id,
+        _id: s._id || undefined,
         title: s.title || '',
         titleEn: s.titleEn || '',
         description: s.description || '',
@@ -51,24 +78,19 @@ const sanitizeSubDocs = (list = [], kind = 'application') =>
         imageUrl: s.imageUrl || '',
         order: Number.isFinite(s.order) ? s.order : 0,
         isActive: s.isActive !== false,
+        linkToMainTree: sanitizeLinkIds(s.linkToMainTree),
+        linkCustomUrl: typeof s.linkCustomUrl === 'string' ? s.linkCustomUrl : '',
+        productLineEntries: sanitizeProductLineEntries(s.productLineEntries),
         productEntries: sanitizeProductEntries(s.productEntries),
       };
-      // Only technology-level subdocs have linkToMainTree (array of ObjectIds)
       if (kind === 'technology') {
-        base.linkToMainTree = (Array.isArray(s.linkToMainTree) ? s.linkToMainTree : [])
-          .map((v) => {
-            const raw = v?._id || v;
-            try { return String(raw) || null; }
-            catch (_) { return null; }
-          })
-          .filter(Boolean);
-      }
-      // Preserve nested applications when sanitising a technology node.
-      if (kind === 'technology') {
+        base.specifications = sanitizeSpecifications(s.specifications);
+        // Preserve nested applications when sanitising a technology node.
         base.applications = sanitizeSubDocs(s.applications, 'application');
       }
       return base;
     });
+};
 
 const sortSubDocs = (node) => {
   if (Array.isArray(node.applications)) {
@@ -90,6 +112,95 @@ const sortSubDocs = (node) => {
   return node;
 };
 
+/**
+ * Đếm số sản phẩm gắn với từng công nghệ / ứng dụng của một market.
+ * Nguồn dữ liệu: `Product.marketEntries` — mỗi entry gồm marketId,
+ * technologyIds và applicationIds trỏ tới _id của sub-document.
+ */
+const getSubDocProductCounts = async (marketId) => {
+  const techCounts = new Map();
+  const appCounts = new Map();
+
+  if (!marketId || !mongoose.Types.ObjectId.isValid(String(marketId))) {
+    return { techCounts, appCounts };
+  }
+
+  const mid = new mongoose.Types.ObjectId(String(marketId));
+
+  const [techAgg, appAgg] = await Promise.all([
+    Product.aggregate([
+      { $match: { marketEntries: { $elemMatch: { marketId: mid } } } },
+      { $unwind: '$marketEntries' },
+      { $match: { 'marketEntries.marketId': mid } },
+      // Dedup theo product: gom cac technologyIds trùng nhau ve mot danh sach.
+      {
+        $group: {
+          _id: '$_id',
+          techIds: { $addToSet: '$marketEntries.technologyIds' },
+        },
+      },
+      { $unwind: '$techIds' },
+      { $unwind: '$techIds' },
+      { $group: { _id: '$techIds', count: { $sum: 1 } } },
+    ]),
+    Product.aggregate([
+      { $match: { marketEntries: { $elemMatch: { marketId: mid } } } },
+      { $unwind: '$marketEntries' },
+      { $match: { 'marketEntries.marketId': mid } },
+      {
+        $group: {
+          _id: '$_id',
+          appIds: { $addToSet: '$marketEntries.applicationIds' },
+        },
+      },
+      { $unwind: '$appIds' },
+      { $unwind: '$appIds' },
+      { $group: { _id: '$appIds', count: { $sum: 1 } } },
+    ]),
+  ]);
+
+  for (const row of techAgg) techCounts.set(String(row._id), row.count);
+  for (const row of appAgg) appCounts.set(String(row._id), row.count);
+
+  return { techCounts, appCounts };
+};
+
+/**
+ * Gắn productCount (và applicationCount cho technology) dựa trên
+ * Product.marketEntries của chính market đó.
+ */
+const attachProductCounts = (node, { techCounts, appCounts }) => {
+  const applyApp = (app) => ({
+    ...app,
+    productCount: appCounts.get(String(app._id)) || 0,
+  });
+
+  if (Array.isArray(node.applications)) {
+    node.applications = node.applications.map(applyApp);
+  }
+
+  if (Array.isArray(node.technologies)) {
+    node.technologies = node.technologies.map((tech) => {
+      const nested = Array.isArray(tech.applications)
+        ? tech.applications.map(applyApp)
+        : [];
+      return {
+        ...tech,
+        applications: nested,
+        applicationCount: nested.length,
+        productCount: techCounts.get(String(tech._id)) || 0,
+      };
+    });
+  }
+
+  return node;
+};
+
+const withProductCounts = async (node) => {
+  const { techCounts, appCounts } = await getSubDocProductCounts(node?._id);
+  return attachProductCounts(node, { techCounts, appCounts });
+};
+
 export const marketTreeService = {
   async getPublic({ featuredOnly } = {}) {
     const query = { isActive: true };
@@ -104,7 +215,7 @@ export const marketTreeService = {
       })
       .populate({
         path: 'productLineEntries.productLineId',
-        select: 'name nameEn slug imageUrl description descriptionEn',
+        select: PRODUCT_LINE_PREVIEW_FIELDS,
         strictPopulate: false,
       })
       .populate({
@@ -113,13 +224,33 @@ export const marketTreeService = {
         strictPopulate: false,
       })
       .populate({
+        path: 'applications.productLineEntries.productLineId',
+        select: PRODUCT_LINE_PREVIEW_FIELDS,
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'applications.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
         path: 'technologies.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.applications.linkToMainTree',
         select: '_id name nameEn slug',
         strictPopulate: false,
       })
       .populate({
         path: 'technologies.applications.productEntries.productId',
         select: PRODUCT_PREVIEW_FIELDS,
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.applications.productLineEntries.productLineId',
+        select: PRODUCT_LINE_PREVIEW_FIELDS,
         strictPopulate: false,
       })
       .lean();
@@ -160,7 +291,7 @@ export const marketTreeService = {
   },
 
   async getById(id) {
-    return MarketTree.findById(id)
+    const tree = await MarketTree.findById(id)
       .populate({
         path: 'industry',
         select: '_id name nameEn slug',
@@ -168,7 +299,7 @@ export const marketTreeService = {
       })
       .populate({
         path: 'productLineEntries.productLineId',
-        select: 'name nameEn slug imageUrl description descriptionEn',
+        select: PRODUCT_LINE_PREVIEW_FIELDS,
         strictPopulate: false,
       })
       .populate({
@@ -177,7 +308,22 @@ export const marketTreeService = {
         strictPopulate: false,
       })
       .populate({
+        path: 'applications.productLineEntries.productLineId',
+        select: PRODUCT_LINE_PREVIEW_FIELDS,
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'applications.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
         path: 'technologies.linkToMainTree',
+        select: '_id name nameEn slug',
+        strictPopulate: false,
+      })
+      .populate({
+        path: 'technologies.applications.linkToMainTree',
         select: '_id name nameEn slug',
         strictPopulate: false,
       })
@@ -186,7 +332,15 @@ export const marketTreeService = {
         select: PRODUCT_PREVIEW_FIELDS,
         strictPopulate: false,
       })
+      .populate({
+        path: 'technologies.applications.productLineEntries.productLineId',
+        select: PRODUCT_LINE_PREVIEW_FIELDS,
+        strictPopulate: false,
+      })
       .lean();
+
+    if (!tree) return null;
+    return withProductCounts(sortSubDocs(tree));
   },
 
   async getPublicFeatured({ limit = 6 } = {}) {
@@ -281,8 +435,8 @@ export const marketTreeService = {
 
     if (data.introductions !== undefined) {
       updatePayload.introductions = {
-        vi: data.introductions?.vi || '',
-        en: data.introductions?.en || '',
+        vi: data?.introductions?.vi || '',
+        en: data?.introductions?.en || '',
       };
     }
 
@@ -331,14 +485,11 @@ export const marketTreeService = {
       throw AppError.badRequest('ids phai la mot mang khong rong');
     }
     const idList = ids.map(String).filter(Boolean);
-    if (idList.length === 0) {
-      throw AppError.badRequest('ids phai la mot mang khong rong');
-    }
 
     if (action === 'delete') {
       const res = await MarketTree.deleteMany({ _id: { $in: idList } });
       invalidate();
-      return { deleted: res.deletedCount || 0 };
+      return { modified: res.deletedCount || 0, deleted: res.deletedCount || 0 };
     }
 
     if (action === 'toggleActive') {
