@@ -1,5 +1,14 @@
 import express from 'express';
-import { getAllProducts, getProductById, incrementView } from '../../controllers/public/product.controller.js';
+import {
+  getAllProducts,
+  getProductById,
+  incrementView,
+  getPopularProducts,
+  getNewProducts,
+  getFeaturedProducts,
+  getRelatedProducts,
+  getProductsBulk,
+} from '../../controllers/public/product.controller.js';
 
 const router = express.Router();
 
@@ -41,6 +50,91 @@ const router = express.Router();
  *       200: { description: OK }
  */
 router.get('/', getAllProducts);
+
+/**
+ * @openapi
+ * /api/public/products/popular:
+ *   get:
+ *     tags: [Public]
+ *     summary: Products ordered by viewCount desc
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 4 }
+ *       - in: query
+ *         name: lang
+ *         schema: { type: string, enum: [vi, en] }
+ */
+router.get('/popular', getPopularProducts);
+
+/**
+ * @openapi
+ * /api/public/products/new:
+ *   get:
+ *     tags: [Public]
+ *     summary: Products marked isNew=true
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 4 }
+ *       - in: query
+ *         name: lang
+ *         schema: { type: string, enum: [vi, en] }
+ */
+router.get('/new', getNewProducts);
+
+/**
+ * @openapi
+ * /api/public/products/featured:
+ *   get:
+ *     tags: [Public]
+ *     summary: Products marked isFeatured=true (admin curated)
+ *     parameters:
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 8 }
+ *       - in: query
+ *         name: lang
+ *         schema: { type: string, enum: [vi, en] }
+ */
+router.get('/featured', getFeaturedProducts);
+
+/**
+ * @openapi
+ * /api/public/products/related/{id}:
+ *   get:
+ *     tags: [Public]
+ *     summary: Related products (same industries/markets)
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: limit
+ *         schema: { type: integer, default: 4 }
+ *       - in: query
+ *         name: lang
+ *         schema: { type: string, enum: [vi, en] }
+ */
+router.get('/related/:id', getRelatedProducts);
+
+/**
+ * @openapi
+ * /api/public/products/bulk:
+ *   get:
+ *     tags: [Public]
+ *     summary: Bulk fetch products by ids (for Wishlist/Compare)
+ *     parameters:
+ *       - in: query
+ *         name: ids
+ *         required: true
+ *         schema: { type: string }
+ *       - in: query
+ *         name: lang
+ *         schema: { type: string, enum: [vi, en] }
+ */
+router.get('/bulk', getProductsBulk);
 
 /**
  * @openapi

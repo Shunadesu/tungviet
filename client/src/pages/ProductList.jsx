@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { FiSearch, FiX } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
@@ -18,11 +18,14 @@ import { SUPPORTED_LOCALES } from '../i18n';
 
 /**
  * Số SKU tải về tối đa trong 1 lần gọi API. Khi catalog vượt ngưỡng này,
- * cần bổ sung endpoint `/public/product-lines` phía server (xem docs/PRODUCTS_PAGE_PLAN.md).
+ * client chuyển sang endpoint `/public/product-lines` để gom nhóm ở server.
  */
 const MAX_SKU_FETCH = 500;
 
 const PAGE_SIZE = 12;
+
+/** Trang hiện tại của endpoint product-lines (phân trang theo nhóm). */
+const LINES_PAGE_SIZE = 12;
 
 const ProductList = () => {
   const { t, i18n } = useTranslation();
@@ -37,6 +40,15 @@ const ProductList = () => {
   const [marketTrees, setMarketTrees] = useState([]);
   const [loading, setLoading] = useState(true);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+
+  // Khi catalog vượt MAX_SKU_FETCH, client chuyển sang endpoint
+  // `/public/product-lines` để gom nhóm ở server (xem docs/PRODUCTS_PAGE_PLAN.md).
+  const [serverMode, setServerMode] = useState(false);
+  const [serverGroups, setServerGroups] = useState([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverPage, setServerPage] = useState(1);
+  const [serverLoadingMore, setServerLoadingMore] = useState(false);
+  const serverReqId = useRef(0);
 
   const search = values.search;
   const sort = values.sort;
@@ -105,6 +117,8 @@ const ProductList = () => {
         setSkus(items);
         const pg = skuRes.data?.pagination || skuRes.data?.data?.pagination;
         setTotalSkus(pg?.total ?? items.length);
+        // Catalog vượt giới hạn tải của client → chuyển sang gom nhóm ở server.
+        setServerMode((pg?.total ?? items.length) > MAX_SKU_FETCH);
       }
     }).finally(() => {
       if (!cancelled) setLoading(false);
@@ -116,7 +130,67 @@ const ProductList = () => {
   }, [lang]);
 
   /**
+   * Gom nhóm ở server (chỉ dùng khi catalog lớn hơn MAX_SKU_FETCH).
+   *
+   * Endpoint `/public/product-lines` trả về `{category, skuCount, matchingSkuCount}`
+   * cho từng nhóm. Nếu endpoint chưa được deploy (404) → quay về gom nhóm ở
+   * client như cũ.
+   */
+  useEffect(() => {
+    if (!serverMode) return undefined;
+
+    const reqId = ++serverReqId.current;
+    setLoading(true);
+
+    publicApi
+      .getProductLines({
+        lang,
+        q: search,
+        industries: (values.industries || []).join(','),
+        market: (values.market || []).join(','),
+        softeningPoint: values.softeningPoint,
+        category: values.category,
+        sort,
+        page: 1,
+        limit: LINES_PAGE_SIZE,
+      })
+      .then((res) => {
+        if (serverReqId.current !== reqId) return;
+        const items = res?.data?.data;
+        const list = Array.isArray(items) ? items : items?.items || [];
+        setServerGroups(list);
+        const pg = res?.data?.pagination || res?.data?.data?.pagination;
+        setServerTotal(pg?.total ?? list.length);
+        setServerPage(1);
+      })
+      .catch(() => {
+        // Endpoint chưa có trên server → fallback về gom nhóm ở client.
+        if (serverReqId.current !== reqId) return;
+        setServerMode(false);
+      })
+      .finally(() => {
+        if (serverReqId.current === reqId) setLoading(false);
+      });
+
+    return () => {
+      serverReqId.current += 1;
+    };
+  }, [
+    serverMode,
+    lang,
+    search,
+    sort,
+    values.industries,
+    values.market,
+    values.softeningPoint,
+    values.category,
+  ]);
+
+  /**
    * Gom SKU theo product line, đồng thời áp dụng các bộ lọc ở mức SKU.
+   *
+   * Chỉ dùng khi catalog nhỏ (dưới MAX_SKU_FETCH). Khi catalog lớn, endpoint
+   * `/public/product-lines` gom nhóm ở server thay cho client.
    *
    * - Ngành hàng / Thị trường: lọc ở server (đã hỗ trợ sẵn)? Không — ta tải
    *   toàn bộ SKU rồi lọc tại client để số đếm "sản phẩm chính" luôn khớp với
@@ -124,7 +198,7 @@ const ProductList = () => {
    * - Điểm làm mềm: so khớp theo khoảng số (server so khớp chuỗi chính xác).
    * - Tìm kiếm: khớp theo tên product line, tên SKU hoặc mã SKU.
    */
-  const groups = useMemo(() => {
+  const clientGroups = useMemo(() => {
     const selectedIndustries = values.industries || [];
     const selectedMarkets = values.market || [];
     const q = search.trim().toLowerCase();
@@ -255,15 +329,65 @@ const ProductList = () => {
     lang,
   ]);
 
+  /**
+   * Danh sách nhóm hiển thị.
+   * - Chế độ client (catalog nhỏ): gom tại client, tự lọc theo bộ lọc.
+   * - Chế độ server (catalog lớn): dùng endpoint /public/product-lines.
+   */
+  const groups = useMemo(() => {
+    if (!serverMode) return clientGroups;
+    return serverGroups.map((g) => ({
+      line: g.category,
+      skus: [],
+      skuCount: g.matchingSkuCount ?? g.skuCount ?? 0,
+      totalSkuCount: g.skuCount ?? 0,
+      newestAt: 0,
+      maxViews: 0,
+    }));
+  }, [serverMode, clientGroups, serverGroups]);
+
   // Reset số lượng hiển thị khi danh sách thay đổi
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
   }, [groups.length, search, sort, values.industries, values.market, values.softeningPoint]);
 
-  const visibleGroups = groups.slice(0, visibleCount);
-  const hasMore = visibleCount < groups.length;
+  const visibleGroups = serverMode ? groups : groups.slice(0, visibleCount);
+  const hasMore = serverMode
+    ? serverGroups.length < serverTotal
+    : visibleCount < groups.length;
 
   const loadMore = () => {
+    if (serverMode) {
+      // Phân trang theo nhóm ở server.
+      const nextPage = serverPage + 1;
+      const reqId = ++serverReqId.current;
+      setServerLoadingMore(true);
+      publicApi
+        .getProductLines({
+          lang,
+          q: search,
+          industries: (values.industries || []).join(','),
+          market: (values.market || []).join(','),
+          softeningPoint: values.softeningPoint,
+          category: values.category,
+          sort,
+          page: nextPage,
+          limit: LINES_PAGE_SIZE,
+        })
+        .then((res) => {
+          if (serverReqId.current !== reqId) return;
+          const items = res?.data?.data;
+          const list = Array.isArray(items) ? items : items?.items || [];
+          setServerGroups((prev) => [...prev, ...list]);
+          setServerPage(nextPage);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (serverReqId.current === reqId) setServerLoadingMore(false);
+        });
+      return;
+    }
+
     setVisibleCount((prev) => prev + PAGE_SIZE);
     setTimeout(() => {
       window.scrollBy({ top: 200, behavior: 'smooth' });
@@ -290,8 +414,8 @@ const ProductList = () => {
     ? t('product.searchResultsSubtitle')
     : t('product.productsSubtitle');
 
-  // Cảnh báo khi catalog vượt giới hạn tải
-  const truncated = totalSkus > skus.length && skus.length >= MAX_SKU_FETCH;
+  // Cảnh báo khi catalog vượt giới hạn tải (chỉ ở chế độ client)
+  const truncated = !serverMode && totalSkus > skus.length && skus.length >= MAX_SKU_FETCH;
 
   return (
     <motion.div
@@ -351,7 +475,7 @@ const ProductList = () => {
           sort={sort}
           onSortChange={(v) => setParam('sort', v)}
           activeCount={activeCount}
-          resultCount={groups.length}
+          resultCount={serverMode ? serverTotal : groups.length}
         />
 
         {/* Active filter chips */}
@@ -404,9 +528,9 @@ const ProductList = () => {
             </div>
             <LoadMore
               hasMore={hasMore}
-              loading={false}
+              loading={serverMode ? serverLoadingMore : false}
               onLoad={loadMore}
-              total={groups.length}
+              total={serverMode ? serverTotal : groups.length}
               shown={visibleGroups.length}
               label={t('product.loadMore')}
             />

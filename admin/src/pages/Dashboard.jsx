@@ -18,6 +18,13 @@ import Skeleton from '../components/Skeleton';
 const formatPrice = (price) =>
   new Intl.NumberFormat('vi-VN').format(price || 0) + 'đ';
 
+/**
+ * Base URL của API, dùng chung với axiosClient.
+ * - Dev: '/api' (đi qua Vite proxy tới backend local)
+ * - Prod: 'https://tungviet.fun/api' (gọi thẳng production API)
+ */
+const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+
 const STATUS_LABELS = {
   Pending: 'Chờ xử lý',
   Processing: 'Đang xử lý',
@@ -30,8 +37,8 @@ const Dashboard = () => {
   const [dashboard, setDashboard] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const serverHealthUrl = `${window.location.origin}/api/health`;
-  const publicHealthUrl = `${import.meta.env.VITE_API_URL || ''}/public/stats`;
+  const serverHealthUrl = `${API_BASE_URL}/health`;
+  const publicHealthUrl = `${API_BASE_URL}/public/stats`;
 
   const fetchDashboard = useCallback(async () => {
     try {

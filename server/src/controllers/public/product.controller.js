@@ -6,10 +6,10 @@ import {
   cacheStore,
   invalidateHomeCache,
   invalidateProductsCache,
-  invalidatePublicCache,
   TTL,
 } from '../../utils/cache.js';
 import { localizeFields, resolveLocale } from '../../utils/i18n.js';
+import { localizeProductList } from '../../utils/publicLocalize.js';
 
 const LOCALIZABLE_FIELDS = ['name', 'description'];
 
@@ -30,6 +30,7 @@ export const getAllProducts = async (req, res, next) => {
       market: req.query.market || req.query.marketIds,
       technology: req.query.technology,
       application: req.query.application,
+      softeningPoint: req.query.softeningPoint,
       page,
       limit,
     };
@@ -81,6 +82,159 @@ export const incrementView = async (req, res, next) => {
     invalidateProductsCache();
     invalidateHomeCache();
     return res.status(204).send();
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/product-lines
+ * Gom SKU theo "sản phẩm chính" (product line / Category).
+ *
+ * Mỗi nhóm trả về:
+ *   - category: thông tin product line
+ *   - skuCount: tổng số SKU đang publish thuộc nhóm
+ *   - matchingSkuCount: số SKU khớp bộ lọc hiện tại
+ *
+ * Endpoint này dùng khi catalog lớn hơn giới hạn tải của client.
+ */
+export const getProductLines = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit, 10) || 12));
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const params = {
+      search: req.query.q || req.query.search,
+      sort: req.query.sort,
+      industries: req.query.industries,
+      mainTree: req.query.mainTree,
+      market: req.query.market || req.query.marketIds,
+      technology: req.query.technology,
+      application: req.query.application,
+      softeningPoint: req.query.softeningPoint,
+      productLine: req.query.productLine || req.query.category,
+      page,
+      limit,
+    };
+
+    const result = await productService.listPublicProductLines(params);
+    const items = result.items.map((group) => ({
+      category: localizeFields(group.category, locale, LOCALIZABLE_FIELDS),
+      skuCount: group.skuCount,
+      matchingSkuCount: group.matchingSkuCount,
+    }));
+
+    return apiResponse.paginated(res, items, result.pagination);
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/products/popular?limit=4&lang=
+ */
+export const getPopularProducts = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 4));
+    const cacheKey = cacheKeys.publicProductsPopular(limit, locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await productService.listPublicPopular({ limit });
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_PRODUCTS_PRECOMPUTED);
+    }
+    return apiResponse.ok(res, localizeProductList(items, locale));
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/products/new?limit=4&lang=
+ */
+export const getNewProducts = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 4));
+    const cacheKey = cacheKeys.publicProductsNew(limit, locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await productService.listPublicNew({ limit });
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_PRODUCTS_PRECOMPUTED);
+    }
+    return apiResponse.ok(res, localizeProductList(items, locale));
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/products/featured?limit=8&lang=
+ */
+export const getFeaturedProducts = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 8));
+    const cacheKey = cacheKeys.publicProductsFeatured(limit, locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await productService.listPublicFeatured({ limit });
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_PRODUCTS_PRECOMPUTED);
+    }
+    return apiResponse.ok(res, localizeProductList(items, locale));
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/products/related/:id?limit=4&lang=
+ */
+export const getRelatedProducts = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 4));
+    const cacheKey = cacheKeys.publicProductsRelated(req.params.id, limit, locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await productService.listRelated(req.params.id, { limit });
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_PRODUCTS_PRECOMPUTED);
+    }
+    return apiResponse.ok(res, localizeProductList(items, locale));
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/products/bulk?ids=a,b,c&lang=
+ * Endpoint gộp để hydrate nhiều sản phẩm cùng lúc (Wishlist / Compare).
+ */
+export const getProductsBulk = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const rawIds = req.query.ids || req.query.id || '';
+    const ids = Array.isArray(rawIds)
+      ? rawIds
+      : String(rawIds)
+          .split(',')
+          .map((s) => s.trim())
+          .filter(Boolean);
+
+    if (ids.length === 0) {
+      return apiResponse.ok(res, []);
+    }
+    if (ids.length > 50) {
+      return apiResponse.badRequest(res, 'ids khong duoc vuot qua 50');
+    }
+
+    const cacheKey = cacheKeys.publicProductsBulk(ids, locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await productService.listByIds(ids);
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_PRODUCTS_PRECOMPUTED);
+    }
+    return apiResponse.ok(res, localizeProductList(items, locale));
   } catch (err) {
     next(err);
   }

@@ -33,6 +33,13 @@ export const publicApi = {
   getProduct: (id, lang) => axiosClient.get(`/public/products/${id}`, { params: { lang: resolveLang(lang) } }),
   incrementView: (id) => axiosClient.post(`/public/products/${id}/view`),
   getProductColumns: (lang) => axiosClient.get('/public/product-columns', { params: { lang: resolveLang(lang) } }),
+
+  // Product lines (sản phẩm chính) — gom SKU theo nhóm.
+  // Chỉ dùng khi catalog vượt giới hạn tải của client.
+  getProductLines: (params) => {
+    const { lang, ...rest } = params || {};
+    return axiosClient.get('/public/product-lines', { params: { lang: resolveLang(lang), ...rest } });
+  },
   getFeaturedProducts: (params) => {
     const { lang, ...rest } = params || {};
     return axiosClient.get('/public/products/featured', { params: { lang: resolveLang(lang), ...rest } });

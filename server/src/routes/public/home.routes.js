@@ -1,14 +1,6 @@
 import express from 'express';
-import {
-  getHome,
-  getPopularProducts,
-  getNewProducts,
-  getFeaturedProducts,
-  getRelatedProducts,
-  getProductsBulk,
-  getStats,
-  unifiedSearch,
-} from '../../controllers/public/home.controller.js';
+import { getHome } from '../../controllers/public/home.controller.js';
+import { getStats, unifiedSearch } from '../../controllers/public/common.controller.js';
 
 const router = express.Router();
 
@@ -29,74 +21,28 @@ router.get('/', getHome);
 
 /**
  * @openapi
- * /api/public/products/popular:
+ * /api/public/home/stats:
  *   get:
  *     tags: [Public]
- *     summary: Products ordered by viewCount desc
- */
-router.get('/products/popular', getPopularProducts);
-
-/**
- * @openapi
- * /api/public/products/new:
- *   get:
- *     tags: [Public]
- *     summary: Products marked isNew=true
- */
-router.get('/products/new', getNewProducts);
-
-/**
- * @openapi
- * /api/public/products/featured:
- *   get:
- *     tags: [Public]
- *     summary: Products marked isFeatured=true (admin curated)
- */
-router.get('/products/featured', getFeaturedProducts);
-
-/**
- * @openapi
- * /api/public/products/related/{id}:
- *   get:
- *     tags: [Public]
- *     summary: Related products (same industries/markets)
- */
-router.get('/products/related/:id', getRelatedProducts);
-
-/**
- * @openapi
- * /api/public/products/bulk:
- *   get:
- *     tags: [Public]
- *     summary: Bulk fetch products by ids (for Wishlist/Compare)
- *     parameters:
- *       - in: query
- *         name: ids
- *         required: true
- *         schema: { type: string }
- */
-router.get('/products/bulk', getProductsBulk);
-
-/**
- * @openapi
- * /api/public/stats:
- *   get:
- *     tags: [Public]
- *     summary: Aggregated counts (products, markets, partners, customers)
+ *     summary: Deprecated alias of /api/public/stats (kept for backward compatibility)
+ *     responses:
+ *       200: { description: OK }
  */
 router.get('/stats', getStats);
 
 /**
  * @openapi
- * /api/public/search:
+ * /api/public/home/search:
  *   get:
  *     tags: [Public]
- *     summary: Unified search (products + posts + markets)
+ *     summary: Deprecated alias of /api/public/search (kept for backward compatibility)
  *     parameters:
  *       - in: query
  *         name: q
  *         required: true
  *         schema: { type: string }
+ *     responses:
+ *       200: { description: OK }
  */
 router.get('/search', unifiedSearch);
 

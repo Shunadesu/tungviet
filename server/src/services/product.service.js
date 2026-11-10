@@ -143,6 +143,162 @@ const marketMatch = (ids) => {
   return { $in: ids.map((id) => new mongoose.Types.ObjectId(id)) };
 };
 
+/**
+ * Bộ lọc "Điểm làm mềm".
+ *
+ * `Product.softeningPoint` lưu dưới dạng chuỗi tự do: "127-135", "78", "3-4+".
+ * Vì vậy không thể so khớp chuỗi trực tiếp với một khoảng lọc — phải parse ra
+ * cặp [min, max] rồi kiểm tra khoảng của sản phẩm có giao với khoảng lọc hay không.
+ *
+ * Giá trị khoảng lọc hợp lệ (giống bảng `SOFTENING_RANGES` ở client):
+ *   "<80", "80-100", "100-120", ">120"
+ * Mọi giá trị khác vẫn được hiểu là so khớp chính xác (hành vi cũ).
+ */
+const SOFTENING_RANGES = {
+  '<80': { min: -1e9, max: 80 },
+  '80-100': { min: 80, max: 100 },
+  '100-120': { min: 100, max: 120 },
+  '>120': { min: 120, max: 1e9 },
+};
+
+const SOFTENING_NUMBER_REGEX = '[0-9]+(?:\\.[0-9]+)?';
+
+/**
+ * Tạo điều kiện `$expr` lọc theo khoảng điểm làm mềm.
+ *
+ * MongoDB không có kiểu số cho field này nên phải trích số bằng `$regexFindAll`
+ * rồi so sánh min/max. Dùng `$reduce` để tính min/max nên tương thích mọi
+ * phiên bản MongoDB >= 4.4 (không phụ thuộc toán tử mảng `$min`/`$max`).
+ */
+const softeningRangeFilter = (min, max) => ({
+  $expr: {
+    $let: {
+      vars: {
+        nums: {
+          $map: {
+            input: {
+              $regexFindAll: {
+                input: { $ifNull: ['$softeningPoint', ''] },
+                regex: SOFTENING_NUMBER_REGEX,
+              },
+            },
+            as: 'n',
+            in: { $toDouble: '$$n.match' },
+          },
+        },
+      },
+      in: {
+        $let: {
+          vars: {
+            pMin: {
+              $reduce: {
+                input: '$$nums',
+                initialValue: null,
+                in: {
+                  $cond: [
+                    { $eq: ['$$value', null] },
+                    '$$this',
+                    { $cond: [{ $lt: ['$$this', '$$value'] }, '$$this', '$$value'] },
+                  ],
+                },
+              },
+            },
+            pMax: {
+              $reduce: {
+                input: '$$nums',
+                initialValue: null,
+                in: {
+                  $cond: [
+                    { $eq: ['$$value', null] },
+                    '$$this',
+                    { $cond: [{ $gt: ['$$this', '$$value'] }, '$$this', '$$value'] },
+                  ],
+                },
+              },
+            },
+          },
+          in: {
+            $and: [
+              { $ne: ['$$pMin', null] },
+              { $lte: ['$$pMin', max] },
+              { $gte: ['$$pMax', min] },
+            ],
+          },
+        },
+      },
+    },
+  },
+});
+
+/**
+ * Dựng query lọc cho danh sách SKU public.
+ *
+ * Dùng chung cho `listPublic` (danh sách SKU) và `listPublicProductLines`
+ * (gom nhóm theo product line) để hai endpoint luôn áp dụng cùng bộ lọc.
+ */
+const buildPublicQuery = async ({
+  search,
+  searchFields = ['name'],
+  industries,
+  productLine,
+  market,
+  technology,
+  application,
+  softeningPoint,
+} = {}) => {
+  const query = baseActiveQuery();
+
+  if (search) {
+    const rx = { $regex: search, $options: 'i' };
+    // `searchFields` quy định các field được so khớp từ khoá.
+    query.$or = searchFields.map((field) => ({ [field]: rx }));
+  }
+
+  const industryIds = await resolveIdList(industries, MainTree);
+  const indMatch = industriesMatch(industryIds);
+  if (indMatch) query.industries = indMatch;
+
+  const productLineIds = await resolveIdList(productLine, Category);
+  if (productLineIds.length > 0) {
+    query.productLines = {
+      $in: productLineIds.map((id) => new mongoose.Types.ObjectId(id)),
+    };
+  }
+
+  const marketIds = await resolveIdList(market, MarketTree);
+  const mktMatch = marketMatch(marketIds);
+  if (mktMatch) query.marketIds = mktMatch;
+
+  // Loc san pham theo cong nghe / ung dung (sub-document) cua mot market.
+  // `Product.marketEntries` luu technologyIds / applicationIds tro toi
+  // _id cua sub-document trong MarketTree.
+  const techId = normalizeId(technology);
+  const appId = normalizeId(application);
+  if (techId || appId) {
+    const elemMatch = {};
+    if (marketIds.length === 1) {
+      elemMatch.marketId = new mongoose.Types.ObjectId(marketIds[0]);
+    }
+    if (techId) elemMatch.technologyIds = new mongoose.Types.ObjectId(techId);
+    if (appId) elemMatch.applicationIds = new mongoose.Types.ObjectId(appId);
+    query.marketEntries = { $elemMatch: elemMatch };
+  }
+
+  if (softeningPoint && String(softeningPoint).trim()) {
+    const raw = String(softeningPoint).trim();
+    const range = SOFTENING_RANGES[raw];
+    // Khoảng lọc ("<80", "80-100", ...) → so khớp theo khoảng số.
+    // Giá trị khác → so khớp chính xác (hành vi cũ, vẫn giữ để tương thích).
+    if (range) {
+      Object.assign(query, softeningRangeFilter(range.min, range.max));
+    } else {
+      query.softeningPoint = raw;
+    }
+  }
+
+  return query;
+};
+
 export const productService = {
   async listPublic({
     search,
@@ -156,42 +312,15 @@ export const productService = {
     page = 1,
     limit = 20,
   } = {}) {
-    const query = baseActiveQuery();
-    if (search) query.name = { $regex: search, $options: 'i' };
-
-    const industryIds = await resolveIdList(industries, MainTree);
-    const indMatch = industriesMatch(industryIds);
-    if (indMatch) query.industries = indMatch;
-
-    const productLineIds = await resolveIdList(productLine, Category);
-    if (productLineIds.length > 0) {
-      query.productLines = {
-        $in: productLineIds.map((id) => new mongoose.Types.ObjectId(id)),
-      };
-    }
-
-    const marketIds = await resolveIdList(market, MarketTree);
-    const mktMatch = marketMatch(marketIds);
-    if (mktMatch) query.marketIds = mktMatch;
-
-    // Loc san pham theo cong nghe / ung dung (sub-document) cua mot market.
-    // `Product.marketEntries` luu technologyIds / applicationIds tro toi
-    // _id cua sub-document trong MarketTree.
-    const techId = normalizeId(technology);
-    const appId = normalizeId(application);
-    if (techId || appId) {
-      const elemMatch = {};
-      if (marketIds.length === 1) {
-        elemMatch.marketId = new mongoose.Types.ObjectId(marketIds[0]);
-      }
-      if (techId) elemMatch.technologyIds = new mongoose.Types.ObjectId(techId);
-      if (appId) elemMatch.applicationIds = new mongoose.Types.ObjectId(appId);
-      query.marketEntries = { $elemMatch: elemMatch };
-    }
-
-    if (softeningPoint && String(softeningPoint).trim()) {
-      query.softeningPoint = String(softeningPoint).trim();
-    }
+    const query = await buildPublicQuery({
+      search,
+      industries,
+      productLine,
+      market,
+      technology,
+      application,
+      softeningPoint,
+    });
 
     const sortOption = SORT_MAP[sort] || { createdAt: -1 };
     const skip = (page - 1) * limit;
@@ -206,6 +335,185 @@ export const productService = {
         .lean(),
       Product.countDocuments(query),
     ]);
+    return { items, pagination: buildPagination(page, limit, total) };
+  },
+
+  /**
+   * Gom SKU theo "sản phẩm chính" (product line / Category).
+   *
+   * Mỗi nhóm trả về:
+   *   - category: thông tin product line (đã populate mainTree)
+   *   - skuCount: tổng số SKU đang publish thuộc nhóm (không tính bộ lọc)
+   *   - matchingSkuCount: số SKU khớp bộ lọc hiện tại
+   *
+   * Nhóm chỉ được giữ lại khi `matchingSkuCount > 0` (trừ khi không có bộ lọc
+   * nào thì giữ tất cả nhóm có SKU).
+   */
+  async listPublicProductLines({
+    search,
+    sort,
+    industries,
+    mainTree,
+    market,
+    technology,
+    application,
+    softeningPoint,
+    productLine,
+    page = 1,
+    limit = 12,
+  } = {}) {
+    const filteredQuery = await buildPublicQuery({
+      search,
+      // Từ khoá khớp theo tên SKU (vi/en) hoặc mã SKU (productCode).
+      searchFields: ['name', 'nameEn', 'productCode'],
+      industries,
+      market,
+      technology,
+      application,
+      softeningPoint,
+    });
+
+    // Nhóm nào có SKU khớp bộ lọc (chỉ SKU publish + active).
+    const matchingAgg = await Product.aggregate([
+      { $match: filteredQuery },
+      { $unwind: '$productLines' },
+      {
+        $group: {
+          _id: '$productLines',
+          matchingSkuCount: { $sum: 1 },
+          newestAt: { $max: '$createdAt' },
+          maxViews: { $max: '$viewCount' },
+        },
+      },
+    ]);
+
+    // Tổng số SKU publish của từng nhóm (không áp bộ lọc).
+    const totalAgg = await Product.aggregate([
+      { $match: baseActiveQuery() },
+      { $unwind: '$productLines' },
+      {
+        $group: {
+          _id: '$productLines',
+          skuCount: { $sum: 1 },
+          newestAt: { $max: '$createdAt' },
+          maxViews: { $max: '$viewCount' },
+        },
+      },
+    ]);
+
+    const matchingMap = new Map(
+      matchingAgg.map((g) => [String(g._id), g])
+    );
+    const totalMap = new Map(totalAgg.map((g) => [String(g._id), g]));
+
+    // Tên product line khớp từ khoá → nhóm đó hiển thị toàn bộ SKU của nhóm.
+    let nameMatchedIds = [];
+    if (search && String(search).trim()) {
+      const rx = { $regex: String(search).trim(), $options: 'i' };
+      const cats = await Category.find({
+        isActive: true,
+        $or: [{ name: rx }, { nameEn: rx }],
+      })
+        .select('_id')
+        .lean();
+      nameMatchedIds = cats.map((c) => String(c._id));
+    }
+
+    const lineIds = Array.from(
+      new Set([
+        ...matchingMap.keys(),
+        ...nameMatchedIds,
+      ])
+    ).filter((id) => totalMap.has(id) || matchingMap.has(id));
+
+    if (lineIds.length === 0) {
+      return { items: [], pagination: buildPagination(page, limit, 0) };
+    }
+
+    // mainTree lọc theo ngành hàng của chính product line.
+    const categoryQuery = {
+      _id: { $in: lineIds.map((id) => new mongoose.Types.ObjectId(id)) },
+      isActive: true,
+    };
+    if (mainTree) {
+      const mtId = await resolveIdOrSlug(mainTree, MainTree);
+      if (mtId) categoryQuery.mainTree = mtId;
+    }
+    // Deep-link ?category= → chỉ giữ đúng product line đó.
+    if (productLine) {
+      const catIds = await resolveIdList(productLine, Category);
+      if (catIds.length === 0) {
+        return { items: [], pagination: buildPagination(page, limit, 0) };
+      }
+      categoryQuery._id = {
+        $in: catIds.map((id) => new mongoose.Types.ObjectId(id)),
+      };
+    }
+
+    const categories = await Category.find(categoryQuery)
+      .populate('mainTree', 'name nameEn slug')
+      .lean();
+
+    const hasFilters = Boolean(
+      search ||
+        industries ||
+        market ||
+        technology ||
+        application ||
+        softeningPoint ||
+        mainTree ||
+        productLine
+    );
+
+    const groups = categories
+      .map((cat) => {
+        const id = String(cat._id);
+        const matching = matchingMap.get(id);
+        const total = totalMap.get(id);
+        const matchingSkuCount = matching?.matchingSkuCount ?? 0;
+        const skuCount = total?.skuCount ?? 0;
+        // Nhóm khớp theo *tên product line* thì lấy toàn bộ SKU của nhóm.
+        const effectiveMatching = nameMatchedIds.includes(id)
+          ? skuCount
+          : matchingSkuCount;
+        return {
+          category: cat,
+          skuCount,
+          matchingSkuCount: effectiveMatching,
+          newestAt: matching?.newestAt || total?.newestAt || cat.createdAt || null,
+          maxViews: matching?.maxViews ?? total?.maxViews ?? 0,
+        };
+      })
+      .filter((g) => (hasFilters ? g.matchingSkuCount > 0 : g.skuCount > 0));
+
+    // Sắp xếp theo nhóm.
+    const nameOf = (cat) => `${cat.name || ''} ${cat.nameEn || ''}`.trim().toLowerCase();
+    switch (sort) {
+      case 'name_asc':
+        groups.sort((a, b) => nameOf(a.category).localeCompare(nameOf(b.category)));
+        break;
+      case 'name_desc':
+        groups.sort((a, b) => nameOf(b.category).localeCompare(nameOf(a.category)));
+        break;
+      case 'newest':
+        groups.sort(
+          (a, b) => new Date(b.newestAt || 0).getTime() - new Date(a.newestAt || 0).getTime()
+        );
+        break;
+      case 'popularity':
+        groups.sort((a, b) => b.maxViews - a.maxViews);
+        break;
+      default:
+        groups.sort((a, b) => {
+          const orderDiff = (a.category.order || 0) - (b.category.order || 0);
+          if (orderDiff !== 0) return orderDiff;
+          return nameOf(a.category).localeCompare(nameOf(b.category));
+        });
+    }
+
+    const total = groups.length;
+    const skip = (page - 1) * limit;
+    const items = groups.slice(skip, skip + limit);
     return { items, pagination: buildPagination(page, limit, total) };
   },
 

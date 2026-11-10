@@ -1,5 +1,5 @@
 import express from 'express';
-import { getFeaturedMarkets, getMarketsGrouped } from '../../controllers/public/home.controller.js';
+import { getFeaturedMarkets, getMarketsGrouped } from '../../controllers/public/marketTree.controller.js';
 
 const router = express.Router();
 

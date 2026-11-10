@@ -1,7 +1,8 @@
 import { marketTreeService } from '../../services/marketTree.service.js';
 import { apiResponse } from '../../utils/apiResponse.js';
 import { cacheKeys, cacheStore, TTL } from '../../utils/cache.js';
-import { localizeFields, resolveLocale } from '../../utils/i18n.js';
+import { localizeFields, localizeText, resolveLocale } from '../../utils/i18n.js';
+import { localizeMarket } from '../../utils/publicLocalize.js';
 
 const LOCALIZABLE_FIELDS = ['title', 'description'];
 const PRODUCT_LOCALIZABLE_FIELDS = ['name'];
@@ -133,6 +134,56 @@ export const getMarketTreeById = async (req, res, next) => {
     const tree = await marketTreeService.getById(req.params.id);
     if (!tree) return apiResponse.notFound(res, 'Cây ngành không tồn tại');
     return apiResponse.ok(res, localizeNode(tree, locale));
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/markets/featured?limit=6&lang=
+ * Thị trường được admin gắn cờ isFeatured=true.
+ */
+export const getFeaturedMarkets = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const limit = Math.min(20, Math.max(1, parseInt(req.query.limit, 10) || 6));
+    const cacheKey = cacheKeys.publicMarketsFeatured(limit, locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await marketTreeService.getPublicFeatured({ limit });
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_MARKETS);
+    }
+    return apiResponse.ok(res, (items || []).map((m) => localizeMarket(m, locale)));
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * GET /api/public/markets/grouped?lang=
+ * Thị trường được nhóm theo ngành (MainTree).
+ */
+export const getMarketsGrouped = async (req, res, next) => {
+  try {
+    const locale = resolveLocale(req);
+    const cacheKey = cacheKeys.publicMarketsGrouped(locale);
+    let items = cacheStore.get(cacheKey);
+    if (!items) {
+      items = await marketTreeService.getPublicGrouped();
+      cacheStore.set(cacheKey, items, TTL.PUBLIC_MARKETS_GROUPED);
+    }
+    const localized = (items || []).map((group) => ({
+      industry: group.industry
+        ? {
+            _id: String(group.industry._id),
+            name: localizeText(group.industry.name, locale, ''),
+            nameEn: localizeText(group.industry.nameEn, locale, ''),
+            slug: group.industry.slug || '',
+          }
+        : null,
+      markets: (group.markets || []).map((m) => localizeMarket(m, locale)),
+    }));
+    return apiResponse.ok(res, localized);
   } catch (err) {
     next(err);
   }
