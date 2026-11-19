@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTdsDownload } from '../hooks/useTdsDownload';
 import { useParams, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import {
@@ -36,6 +37,7 @@ const LEGACY_COLUMNS = [
 
 const ProductDetail = () => {
   const { t, i18n } = useTranslation();
+  const { download: downloadTds } = useTdsDownload();
   const { id } = useParams();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
 
@@ -255,7 +257,12 @@ const ProductDetail = () => {
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Gallery - 3 cols */}
           <div className="lg:col-span-3">
-            <ProductGallery images={uniqueGalleryImages} name={product.name} tdsUrl={product.tdsUrl} />
+            <ProductGallery
+              images={uniqueGalleryImages}
+              name={product.name}
+              tdsUrl={product.tdsUrl}
+              productId={product._id}
+            />
           </div>
 
           {/* Info - 2 cols */}
@@ -389,6 +396,7 @@ const ProductDetail = () => {
               {product.tdsUrl && (
                 <a
                   href={product.tdsUrl}
+                  onClick={(e) => downloadTds(e, { productId: product._id, tdsUrl: product.tdsUrl })}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="mt-3 w-full inline-flex items-center justify-center gap-2 text-sm font-medium text-slate-700 hover:text-primary py-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded"

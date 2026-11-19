@@ -1,5 +1,20 @@
+import jwt from 'jsonwebtoken';
 import QuoteSubmission from '../../models/QuoteSubmission.js';
+import User from '../../models/User.js';
 import { apiResponse } from '../../utils/apiResponse.js';
+
+// Đọc token nếu có; token sai/hết hạn thì coi như khách vãng lai, không chặn gửi.
+const optionalUserId = async (req) => {
+  const token = req.header('Authorization')?.replace('Bearer ', '');
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('_id isActive');
+    return user && user.isActive ? user._id : null;
+  } catch {
+    return null;
+  }
+};
 
 const sanitizeItems = (raw) => {
   if (!Array.isArray(raw)) return [];
@@ -41,6 +56,7 @@ export const submitQuote = async (req, res, next) => {
     // gửi productType/market hoặc product text, không có items[].
 
     const submission = new QuoteSubmission({
+      userId: await optionalUserId(req),
       name: String(name).trim().slice(0, 120),
       email: String(email).trim().toLowerCase().slice(0, 160),
       phone: String(phone).trim().slice(0, 30),

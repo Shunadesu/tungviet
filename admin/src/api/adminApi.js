@@ -164,6 +164,8 @@ export const adminApi = {
   updateQuoteSection: (data) => axiosClient.put('/admin/quote-section', data),
   getQuoteSubmissions: (params) => axiosClient.get('/admin/quote-section/submissions', { params }),
   updateQuoteSubmission: (id, data) => axiosClient.put(`/admin/quote-section/submissions/${id}`, data),
+  getUsers: (params) => axiosClient.get('/admin/users', { params }),
+  getUserDetail: (id) => axiosClient.get(`/admin/users/${id}`),
 
   // Partners
   getPartners: (params) => axiosClient.get('/admin/partners', { params }),

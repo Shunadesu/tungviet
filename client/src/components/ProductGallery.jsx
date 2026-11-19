@@ -3,13 +3,15 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FiZoomIn } from 'react-icons/fi';
 import placeholderProduct from '../assets/placeholder-product.svg';
 import LazyImage from './LazyImage';
+import { useTdsDownload } from '../hooks/useTdsDownload';
 
 /**
  * Gallery sản phẩm: ảnh chính lớn + thumbnails bên dưới.
  * Click thumbnail đổi ảnh chính. Hover zoom nhẹ.
  * Nếu chỉ có 1 ảnh thì ẩn thumbnails.
  */
-const ProductGallery = ({ images = [], name = '', tdsUrl }) => {
+const ProductGallery = ({ images = [], name = '', tdsUrl, productId }) => {
+  const { download: downloadTds } = useTdsDownload();
   const safeImages = Array.isArray(images) && images.length > 0 ? images : [null];
   const [activeIdx, setActiveIdx] = useState(0);
   const [zoom, setZoom] = useState(false);
@@ -73,6 +75,7 @@ const ProductGallery = ({ images = [], name = '', tdsUrl }) => {
         {tdsUrl && (
           <a
             href={tdsUrl}
+            onClick={(e) => downloadTds(e, { productId, tdsUrl })}
             target="_blank"
             rel="noopener noreferrer"
             className="absolute bottom-3 right-3 inline-flex items-center gap-1.5 bg-white/95 backdrop-blur-sm hover:bg-accent hover:text-white text-slate-700 text-xs font-semibold px-3 py-2 rounded-lg shadow-soft transition-colors"

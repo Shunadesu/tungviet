@@ -1,44 +1,39 @@
-import React, { Suspense as ReactSuspense } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AnimatePresence } from 'framer-motion';
 import { AuthProvider } from './context/AuthContext';
 import { QuoteBagProvider } from './context/QuoteBagContext';
 import { WishlistProvider } from './context/WishlistContext';
 import { CompareProvider } from './context/CompareContext';
 import { ToastProvider } from './context/ToastContext';
 import { SiteConfigProvider } from './context/SiteConfigContext';
+import { AuthDrawerProvider } from './context/AuthDrawerContext';
+import AuthDrawer from './components/AuthDrawer';
 import LocaleGuard from './components/LocaleGuard';
 import LocaleRedirect from './components/LocaleRedirect';
 import Layout from './components/Layout';
 import ScrollToTop from './components/ScrollToTop';
 import CompareFloatingBar from './components/CompareFloatingBar';
-import RouteProgress from './components/RouteProgress';
 
-// Code-splitting via React.lazy() reduces initial bundle size significantly.
-// Each page becomes its own chunk, loaded only when the user navigates to it.
-// This shrinks the first-paint JS payload and improves LCP/TTI on slow networks.
-const Home = React.lazy(() => import('./pages/Home'));
-const ProductList = React.lazy(() => import('./pages/ProductList'));
-const ProductDetail = React.lazy(() => import('./pages/ProductDetail'));
-const QuoteBag = React.lazy(() => import('./pages/QuoteBag'));
-const QuoteRequest = React.lazy(() => import('./pages/QuoteRequest'));
-const Login = React.lazy(() => import('./pages/Login'));
-const Register = React.lazy(() => import('./pages/Register'));
-const OrderHistory = React.lazy(() => import('./pages/OrderHistory'));
-const About = React.lazy(() => import('./pages/About'));
-const BoardOfDirectors = React.lazy(() => import('./pages/BoardOfDirectors'));
-const Locations = React.lazy(() => import('./pages/Locations'));
-const Leadership = React.lazy(() => import('./pages/Leadership'));
-const News = React.lazy(() => import('./pages/News'));
-const NewsDetail = React.lazy(() => import('./pages/NewsDetail'));
-const Markets = React.lazy(() => import('./pages/Markets'));
-const MarketDetail = React.lazy(() => import('./pages/MarketDetail'));
-const MainTrees = React.lazy(() => import('./pages/MainTrees'));
-const MainTreeDetail = React.lazy(() => import('./pages/MainTreeDetail'));
-const CategoryDetail = React.lazy(() => import('./pages/CategoryDetail'));
-const Wishlist = React.lazy(() => import('./pages/Wishlist'));
-const CompareProducts = React.lazy(() => import('./pages/CompareProducts'));
-const NotFound = React.lazy(() => import('./pages/NotFound'));
+import Home from './pages/Home';
+import ProductList from './pages/ProductList';
+import ProductDetail from './pages/ProductDetail';
+import QuoteBag from './pages/QuoteBag';
+import QuoteRequest from './pages/QuoteRequest';
+import OrderHistory from './pages/OrderHistory';
+import About from './pages/About';
+import BoardOfDirectors from './pages/BoardOfDirectors';
+import Locations from './pages/Locations';
+import Leadership from './pages/Leadership';
+import News from './pages/News';
+import NewsDetail from './pages/NewsDetail';
+import Markets from './pages/Markets';
+import MarketDetail from './pages/MarketDetail';
+import MainTrees from './pages/MainTrees';
+import MainTreeDetail from './pages/MainTreeDetail';
+import CategoryDetail from './pages/CategoryDetail';
+import Wishlist from './pages/Wishlist';
+import CompareProducts from './pages/CompareProducts';
+import NotFound from './pages/NotFound';
 
 function App() {
   return (
@@ -48,10 +43,11 @@ function App() {
           <QuoteBagProvider>
             <WishlistProvider>
               <CompareProvider>
+                <AuthDrawerProvider>
                 <BrowserRouter>
                   <ScrollToTop />
                   <CompareFloatingBar />
-                  <AnimatePresence mode="wait">
+                  <AuthDrawer />
                     <Routes>
                       <Route path="/" element={<LocaleRedirect />} />
                       <Route
@@ -62,202 +58,36 @@ function App() {
                           </LocaleGuard>
                         }
                       >
-                        <Route
-                          index
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <Home />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="products"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <ProductList />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="products/compare"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <CompareProducts />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="products/:id"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <ProductDetail />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="quote"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <QuoteRequest />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="cart"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <QuoteBag />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="checkout"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <QuoteRequest />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="wishlist"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <Wishlist />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="login"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <Login />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="register"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <Register />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="orders"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <OrderHistory />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="about"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <About />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="about/board-of-directors"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <BoardOfDirectors />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="about/locations"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <Locations />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="about/leadership"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <Leadership />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="contact"
-                          element={<Navigate to="about" replace />}
-                        />
-                        <Route
-                          path="news"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <News />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="news/:slug"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <NewsDetail />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="markets"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <Markets />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="markets/:id"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <MarketDetail />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="main-trees"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <MainTrees />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="main-trees/:id"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <MainTreeDetail />
-                            </ReactSuspense>
-                          }
-                        />
-                        <Route
-                          path="categories/:id"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <CategoryDetail />
-                            </ReactSuspense>
-                          }
-                        />
+                        <Route index element={<Home />} />
+                        <Route path="products" element={<ProductList />} />
+                        <Route path="products/compare" element={<CompareProducts />} />
+                        <Route path="products/:id" element={<ProductDetail />} />
+                        <Route path="quote" element={<QuoteRequest />} />
+                        <Route path="cart" element={<QuoteBag />} />
+                        <Route path="checkout" element={<QuoteRequest />} />
+                        <Route path="wishlist" element={<Wishlist />} />
+                        <Route path="orders" element={<OrderHistory />} />
+                        <Route path="about" element={<About />} />
+                        <Route path="about/board-of-directors" element={<BoardOfDirectors />} />
+                        <Route path="about/locations" element={<Locations />} />
+                        <Route path="about/leadership" element={<Leadership />} />
+                        <Route path="contact" element={<Navigate to="about" replace />} />
+                        <Route path="news" element={<News />} />
+                        <Route path="news/:slug" element={<NewsDetail />} />
+                        <Route path="markets" element={<Markets />} />
+                        <Route path="markets/:id" element={<MarketDetail />} />
+                        <Route path="main-trees" element={<MainTrees />} />
+                        <Route path="main-trees/:id" element={<MainTreeDetail />} />
+                        <Route path="categories/:id" element={<CategoryDetail />} />
                         {/* Splat route bắt mọi đường dẫn chưa được đăng ký
                             (vd. /vi/khong-ton-tai, /vi/san-pham/abc/xyz) →
                             hiển thị trang 404 kèm nút quay về trang chủ. */}
-                        <Route
-                          path="*"
-                          element={
-                            <ReactSuspense fallback={<RouteProgress />}>
-                              <NotFound />
-                            </ReactSuspense>
-                          }
-                        />
+                        <Route path="*" element={<NotFound />} />
                       </Route>
                       <Route path="*" element={<LocaleRedirect />} />
                     </Routes>
-                  </AnimatePresence>
                 </BrowserRouter>
+                </AuthDrawerProvider>
               </CompareProvider>
             </WishlistProvider>
           </QuoteBagProvider>

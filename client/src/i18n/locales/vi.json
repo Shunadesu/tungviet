@@ -51,6 +51,7 @@
   },
   "header": {
     "login": "Đăng nhập",
+    "register": "Đăng ký",
     "logout": "Đăng xuất",
     "orders": "Yêu cầu báo giá",
     "openMenu": "Mở menu",
@@ -319,6 +320,10 @@
     "loginWelcome": "Chào mừng bạn quay trở lại",
     "registerTitle": "Đăng ký",
     "registerSubtitle": "Tạo tài khoản để quản lý yêu cầu báo giá",
+    "switchToLogin": "Đăng nhập",
+    "switchToRegister": "Đăng ký",
+    "close": "Đóng",
+    "drawerSubtitle": "Đăng nhập để theo dõi yêu cầu báo giá của bạn",
     "email": "Email",
     "password": "Mật khẩu",
     "confirmPassword": "Xác nhận mật khẩu",
@@ -339,7 +344,11 @@
     "confirmPasswordPlaceholder": "Nhập lại mật khẩu",
     "passwordHint": "Ít nhất 6 ký tự",
     "fullNamePlaceholder": "Nhập họ tên",
-    "phonePlaceholder": "0123 456 789"
+    "phonePlaceholder": "0123 456 789",
+    "company": "Tên công ty",
+    "companyPlaceholder": "Tên công ty (không bắt buộc)",
+    "phone": "Số điện thoại",
+    "phoneInvalid": "Số điện thoại không hợp lệ"
   },
   "history": {
     "title": "Yêu cầu báo giá của tôi",

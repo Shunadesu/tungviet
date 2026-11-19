@@ -22,6 +22,7 @@ const quoteSubmissionSchema = new mongoose.Schema(
     items: { type: [quoteItemSchema], default: [] },
     productType: { type: String, default: '' },
     market: { type: String, default: '' },
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null, index: true },
     status: { type: String, enum: ['new', 'contacted', 'closed'], default: 'new' },
   },
   { timestamps: true }

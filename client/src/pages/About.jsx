@@ -1,19 +1,9 @@
-import { useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Swiper, SwiperSlide } from 'swiper/react';
-import { Navigation, Pagination, Autoplay } from 'swiper/modules';
-import { FiAward, FiShield, FiStar, FiTrendingUp, FiGlobe, FiHeart, FiCheckCircle, FiPhone, FiMail, FiMapPin, FiClock } from 'react-icons/fi';
-import { Link } from 'react-router-dom';
+import { FiAward, FiShield, FiStar, FiTrendingUp, FiGlobe, FiHeart, FiCheckCircle, FiPhone, FiMail, FiMapPin, FiFileText, FiGlobe as FiWeb } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import SEO from '../components/SEO';
-import { useSiteConfig } from '../context/SiteConfigContext';
 import { SUPPORTED_LOCALES } from '../i18n';
-import { sanitizeHtml } from '../utils/sanitize';
-import { htmlToText } from '../utils/html';
-
-import 'swiper/css';
-import 'swiper/css/navigation';
-import 'swiper/css/pagination';
+import { aboutCompany } from '../data/aboutCompany';
 
 const ICON_MAP = {
   FiAward,
@@ -25,166 +15,69 @@ const ICON_MAP = {
   FiCheckCircle,
 };
 
-const absoluteUrl = (url) => {
-  if (!url) return '';
-  if (/^https?:\/\//i.test(url)) return url;
-  if (typeof window !== 'undefined') {
-    return `${window.location.origin}${url.startsWith('/') ? '' : '/'}${url}`;
-  }
-  return url;
+const fadeUp = {
+  initial: { opacity: 0, y: 20 },
+  whileInView: { opacity: 1, y: 0 },
+  viewport: { once: true },
 };
 
-const CounterNumber = ({ value }) => {
-  const ref = useRef(null);
-  const display = value || 0;
-  return (
-    <span ref={ref}>
-      {display.toLocaleString()}
-    </span>
-  );
-};
-
-// ── Section 1: About Hero Swiper ─────────────────────────────────────────────
-function AboutHeroSwiper({ slides, lang }) {
-  if (!slides || slides.length === 0) {
-    return (
-      <section className="relative w-full h-[60vh] bg-primary flex items-center justify-center">
-        <div className="text-center text-white px-6">
-          <h1 className="text-4xl md:text-6xl font-bold mb-4">{lang === 'en' ? 'About Us' : 'Về chúng tôi'}</h1>
-        </div>
-      </section>
-    );
-  }
-
+// ── Section 1: Hero ──────────────────────────────────────────────────────────
+function AboutHero({ hero }) {
   return (
     <section className="relative w-full h-[70vh] overflow-hidden bg-gray-900">
-      <Swiper
-        modules={[Navigation, Pagination, Autoplay]}
-        navigation
-        pagination={{ clickable: true }}
-        autoplay={{ delay: 5000, disableOnInteraction: false }}
-        loop={slides.length > 1}
-        className="h-full about-hero-swiper"
-      >
-        {slides.map((slide) => (
-          <SwiperSlide key={slide._id}>
-            <div
-              className="relative w-full h-full bg-cover bg-center"
-              style={{ backgroundImage: `url(${absoluteUrl(slide.imageUrl)})` }}
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
-              <div className="relative z-10 h-full flex flex-col items-center justify-end pb-20 px-6 text-center text-white">
-                {slide.title && (
-                  <motion.h1
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6 }}
-                    className="text-4xl md:text-6xl font-bold max-w-4xl leading-tight drop-shadow-lg mb-3"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.title) }}
-                  />
-                )}
-                {slide.subtitle && (
-                  <motion.p
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.15 }}
-                    className="text-lg md:text-xl max-w-2xl text-white/90"
-                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(slide.subtitle) }}
-                  />
-                )}
-              </div>
-            </div>
-          </SwiperSlide>
-        ))}
-      </Swiper>
-
-      <style>{`
-        .about-hero-swiper .swiper-button-next,
-        .about-hero-swiper .swiper-button-prev {
-          color: white;
-          width: 44px;
-          height: 44px;
-          background: rgba(0,0,0,0.3);
-          border-radius: 9999px;
-        }
-        .about-hero-swiper .swiper-button-next:hover,
-        .about-hero-swiper .swiper-button-prev:hover {
-          background: rgba(0,0,0,0.6);
-        }
-        .about-hero-swiper .swiper-button-next::after,
-        .about-hero-swiper .swiper-button-prev::after {
-          font-size: 18px;
-          font-weight: 700;
-        }
-        .about-hero-swiper .swiper-pagination-bullet {
-          background: rgba(255,255,255,0.6);
-        }
-        .about-hero-swiper .swiper-pagination-bullet-active {
-          background: white;
-        }
-      `}</style>
+      <div
+        className="absolute inset-0 bg-cover bg-center"
+        style={{ backgroundImage: `url(${hero.image})` }}
+      />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+      <div className="relative z-10 h-full flex flex-col items-center justify-end pb-20 px-6 text-center text-white">
+        <motion.h1
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="text-3xl md:text-5xl font-bold max-w-4xl leading-tight drop-shadow-lg mb-3"
+        >
+          {hero.title}
+        </motion.h1>
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.15 }}
+          className="text-base md:text-xl max-w-2xl text-white/90"
+        >
+          {hero.subtitle}
+        </motion.p>
+      </div>
     </section>
   );
 }
 
-// ── Section 2: Description & History ─────────────────────────────────────────
-function DescriptionSection({ about, lang }) {
-  const { t } = useTranslation();
-
-  const hasContent = about?.intro || about?.history;
-
-  if (!hasContent) {
-    return (
-      <section className="max-w-5xl mx-auto px-4 py-12">
-        <div className="text-center text-gray-400 text-sm">{t('about.noFacts')}</div>
-      </section>
-    );
-  }
-
+// ── Section 2: Introduction & History ────────────────────────────────────────
+function IntroSection({ content }) {
   return (
     <section className="max-w-5xl mx-auto px-4 py-12">
       <div className="grid md:grid-cols-2 gap-8">
-        {/* Intro */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
-        >
-          {about.foundedYear && (
-            <div className="mb-4">
-              <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full">
-                {t('about.founded')} {about.foundedYear}
-              </span>
-            </div>
-          )}
-          <h2 className="text-xl font-semibold text-gray-800 mb-3">{t('about.description')}</h2>
-          {about.intro ? (
-            <div
-              className="text-sm text-gray-600 leading-relaxed space-y-2 [&_p]:mb-2 [&_ul]:pl-5 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(about.intro) }}
-            />
-          ) : (
-            <p className="text-sm text-gray-400">{lang === 'en' ? 'No introduction yet.' : 'Chưa có mô tả.'}</p>
-          )}
+        <motion.div {...fadeUp} transition={{ duration: 0.5 }} className="space-y-3">
+          {content.intro.map((paragraph, idx) => (
+            <p key={idx} className="text-sm text-gray-600 leading-relaxed">
+              {paragraph}
+            </p>
+          ))}
         </motion.div>
 
-        {/* History */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.1 }}
-        >
-          <h2 className="text-xl font-semibold text-gray-800 mb-3">{t('about.history')}</h2>
-          {about.history ? (
-            <div
-              className="text-sm text-gray-600 leading-relaxed space-y-2 [&_p]:mb-2 [&_ul]:pl-5 [&_li]:mb-1 [&_a]:text-primary [&_a]:underline"
-              dangerouslySetInnerHTML={{ __html: sanitizeHtml(about.history) }}
-            />
-          ) : (
-            <p className="text-sm text-gray-400">{lang === 'en' ? 'No history yet.' : 'Chưa có lịch sử.'}</p>
-          )}
+        <motion.div {...fadeUp} transition={{ duration: 0.5, delay: 0.1 }}>
+          <h2 className="text-xl font-semibold text-gray-800 mb-4">{content.historyTitle}</h2>
+          <ol className="relative border-l-2 border-primary/20 ml-2 space-y-5">
+            {content.history.map((item) => (
+              <li key={item.year} className="pl-5">
+                <span className="absolute -left-[7px] mt-1.5 w-3 h-3 rounded-full bg-primary" />
+                <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-1">
+                  {item.year}
+                </span>
+                <p className="text-sm text-gray-600 leading-relaxed">{item.text}</p>
+              </li>
+            ))}
+          </ol>
         </motion.div>
       </div>
     </section>
@@ -192,44 +85,27 @@ function DescriptionSection({ about, lang }) {
 }
 
 // ── Section 3: Fast Facts ────────────────────────────────────────────────────
-function FastFactsSection({ facts, lang }) {
-  const { t } = useTranslation();
-
-  if (!facts || facts.length === 0) {
-    return null;
-  }
-
+function FactsSection({ title, facts, numberLocale }) {
   return (
     <section className="bg-gray-50 py-12">
       <div className="max-w-5xl mx-auto px-4">
         <motion.h2
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
+          {...fadeUp}
           className="text-lg font-semibold text-gray-800 text-center mb-8"
         >
-          {t('about.fastFactsTitle')}
+          {title}
         </motion.h2>
-        <div className={`grid gap-4 ${
-          facts.length === 1 ? 'grid-cols-1 max-w-sm mx-auto'
-            : facts.length === 2 ? 'grid-cols-2 max-w-2xl mx-auto'
-            : facts.length === 3 ? 'grid-cols-3'
-            : 'grid-cols-2 md:grid-cols-4'
-        }`}>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {facts.map((fact, idx) => (
             <motion.div
-              key={fact._id || idx}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              key={fact.label}
+              {...fadeUp}
               transition={{ duration: 0.4, delay: idx * 0.08 }}
               className="bg-white rounded-xl p-5 text-center shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
             >
               <div className="text-3xl font-bold text-primary mb-1">
-                <CounterNumber value={fact.value} />
-                {fact.suffix && (
-                  <span className="text-lg text-primary/70 ml-0.5">{fact.suffix}</span>
-                )}
+                {fact.isYear ? fact.value : fact.value.toLocaleString(numberLocale)}
+                {fact.suffix && <span className="text-lg text-primary/70 ml-0.5">{fact.suffix}</span>}
               </div>
               <p className="text-xs text-gray-500 font-medium">{fact.label}</p>
             </motion.div>
@@ -241,33 +117,20 @@ function FastFactsSection({ facts, lang }) {
 }
 
 // ── Section 4: Core Values ───────────────────────────────────────────────────
-function CoreValuesSection({ values }) {
-  const { t } = useTranslation();
-
-  if (!values || values.length === 0) {
-    return null;
-  }
-
+function ValuesSection({ title, intro, values }) {
   return (
     <section className="max-w-5xl mx-auto px-4 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center mb-8"
-      >
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('about.coreValues')}</h2>
-        <p className="text-sm text-gray-500">{t('about.valuesIntro')}</p>
+      <motion.div {...fadeUp} className="text-center mb-8">
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">{title}</h2>
+        <p className="text-sm text-gray-500">{intro}</p>
       </motion.div>
       <div className="grid sm:grid-cols-2 md:grid-cols-3 gap-4">
         {values.map((value, idx) => {
           const IconComponent = ICON_MAP[value.icon] || FiAward;
           return (
             <motion.div
-              key={value._id || idx}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
+              key={value.title}
+              {...fadeUp}
               transition={{ duration: 0.4, delay: idx * 0.08 }}
               whileHover={{ y: -4, boxShadow: '0 8px 30px rgba(0,0,0,0.08)' }}
               className="bg-white rounded-xl p-5 border border-gray-100 hover:border-primary/20 transition-all cursor-default"
@@ -276,9 +139,7 @@ function CoreValuesSection({ values }) {
                 <IconComponent size={20} />
               </div>
               <h3 className="text-sm font-semibold text-gray-800 mb-1">{value.title}</h3>
-              {value.description && (
-                <p className="text-xs text-gray-500 leading-relaxed">{htmlToText(value.description)}</p>
-              )}
+              <p className="text-xs text-gray-500 leading-relaxed">{value.description}</p>
             </motion.div>
           );
         })}
@@ -287,97 +148,134 @@ function CoreValuesSection({ values }) {
   );
 }
 
-// ── Section 5: Contact Info (merged from former /contact page) ───────────────
-function ContactInfoSection({ lang }) {
-  const { t } = useTranslation();
-  const { footer } = useSiteConfig();
+// ── Section 5: Contact (bento grid) ──────────────────────────────────────────
+// Bố cục trên màn hình md trở lên (4 cột):
+//   [Địa chỉ 2x2]      [Hotline 1] [Hotline 2]
+//   [Địa chỉ 2x2]      [Mã số thuế] [Website]
+//   [Điện thoại & Fax - full width]
+// Trên mobile: một cột, xếp theo thứ tự trên.
+function BentoCard({ dark = false, icon, label, className = '', children }) {
+  return (
+    <div
+      className={`rounded-2xl p-5 flex flex-col gap-3 transition-shadow hover:shadow-md ${
+        dark
+          ? 'bg-primary text-white shadow-sm'
+          : 'bg-white border border-gray-100 shadow-sm'
+      } ${className}`}
+    >
+      <div className="flex items-center gap-2.5">
+        <span
+          className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
+            dark ? 'bg-white/15 text-white' : 'bg-primary/10 text-primary'
+          }`}
+        >
+          {icon}
+        </span>
+        <p className={`text-xs font-semibold uppercase tracking-wide ${dark ? 'text-white/80' : 'text-gray-500'}`}>
+          {label}
+        </p>
+      </div>
+      <div className={`text-sm break-words ${dark ? 'text-white' : 'text-gray-800'}`}>{children}</div>
+    </div>
+  );
+}
 
-  const items = [
-    {
-      icon: <FiPhone size={18} />,
-      labelKey: 'contact.phone',
-      value: footer?.phone,
-      href: footer?.phone ? `tel:${footer.phone.replace(/\s/g, '')}` : null,
-    },
-    {
-      icon: <FiMail size={18} />,
-      labelKey: 'contact.email',
-      value: footer?.email,
-      href: footer?.email ? `mailto:${footer.email}` : null,
-    },
-    {
-      icon: <FiMapPin size={18} />,
-      labelKey: 'contact.address',
-      value: footer?.address,
-      href: null,
-    },
-    {
-      icon: <FiClock size={18} />,
-      labelKey: 'contact.workingHours',
-      value: t('contact.workingHoursText'),
-      href: null,
-    },
-  ];
+const linkClass = (dark) =>
+  `break-all hover:underline ${dark ? 'text-white' : 'text-gray-800 hover:text-primary'}`;
 
-  const hasAnyValue = items.some((i) => i.value);
-
-  if (!hasAnyValue) return null;
+function ContactSection({ content }) {
+  const labels = content.contactLabels;
+  const telHref = (phone) => `tel:${phone.replace(/[\s.]/g, '')}`;
 
   return (
     <section className="max-w-5xl mx-auto px-4 py-12">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        className="text-center mb-8"
-      >
-        <h2 className="text-xl font-semibold text-gray-800 mb-2">{t('contact.title')}</h2>
-        <p className="text-sm text-gray-500">{t('contact.subtitle')}</p>
+      <motion.div {...fadeUp} className="text-center mb-8">
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">{content.contactTitle}</h2>
+        <p className="text-sm text-gray-500">{content.contactSubtitle}</p>
       </motion.div>
-      <div className="grid md:grid-cols-2 gap-4">
-        <div className="space-y-3">
-          {items.map((item) => {
-            if (!item.value) return null;
-            return (
-              <div
-                key={item.labelKey}
-                className="bg-white rounded-lg p-4 border flex items-start gap-3"
-              >
-                <div className="text-primary flex-shrink-0 mt-0.5">{item.icon}</div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs text-gray-500 uppercase">{t(item.labelKey)}</p>
-                  {item.href ? (
-                    <a href={item.href} className="text-sm text-gray-800 hover:text-primary break-all">
-                      {item.value}
-                    </a>
-                  ) : (
-                    <p className="text-sm text-gray-800">{item.value}</p>
-                  )}
-                </div>
-              </div>
-            );
-          })}
-        </div>
 
-        <div className="bg-white rounded-lg p-4 border">
-          <h2 className="text-sm font-semibold mb-3">{t('home.ctaTitle')}</h2>
-          <p className="text-xs text-gray-600 mb-3">{t('home.ctaSubtitle')}</p>
-          <Link to={`/${lang}/quote`} className="btn-primary inline-block text-sm">
-            {t('contact.sendMessage')}
-          </Link>
-        </div>
-      </div>
+      <motion.div
+        {...fadeUp}
+        transition={{ duration: 0.5 }}
+        className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4"
+      >
+        {/* Địa chỉ - ô lớn, nổi bật */}
+        <BentoCard
+          dark
+          icon={<FiMapPin size={18} />}
+          label={labels.address}
+          className="sm:col-span-2 md:col-span-2 md:row-span-2 justify-between"
+        >
+          <p className="text-base leading-relaxed">{content.address}</p>
+        </BentoCard>
+
+        {/* Hotline 1 */}
+        <BentoCard icon={<FiPhone size={18} />} label={`${labels.hotline} 1`}>
+          <a href={telHref(content.hotlines[0].phone)} className={`text-base font-semibold ${linkClass(false)}`}>
+            {content.hotlines[0].phone}
+          </a>
+          <a href={`mailto:${content.hotlines[0].email}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary break-all">
+            <FiMail size={12} />
+            {content.hotlines[0].email}
+          </a>
+        </BentoCard>
+
+        {/* Hotline 2 */}
+        <BentoCard icon={<FiPhone size={18} />} label={`${labels.hotline} 2`}>
+          <a href={telHref(content.hotlines[1].phone)} className={`text-base font-semibold ${linkClass(false)}`}>
+            {content.hotlines[1].phone}
+          </a>
+          <a href={`mailto:${content.hotlines[1].email}`} className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-primary break-all">
+            <FiMail size={12} />
+            {content.hotlines[1].email}
+          </a>
+        </BentoCard>
+
+        {/* Mã số thuế */}
+        <BentoCard icon={<FiFileText size={18} />} label={labels.taxCode}>
+          <p className="text-base font-semibold tracking-wider">{content.taxCode}</p>
+        </BentoCard>
+
+        {/* Website */}
+        <BentoCard icon={<FiWeb size={18} />} label={labels.website}>
+          <a
+            href={`https://${content.website}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`text-base font-semibold ${linkClass(false)}`}
+          >
+            {content.website}
+          </a>
+        </BentoCard>
+
+        {/* Điện thoại & Fax - full width */}
+        <BentoCard
+          icon={<FiPhone size={18} />}
+          label={`${labels.phone} / ${labels.fax}`}
+          className="sm:col-span-2 md:col-span-4"
+        >
+          <div className="flex flex-wrap gap-x-10 gap-y-2">
+            <a href={telHref(content.phone)} className={`text-base font-semibold ${linkClass(false)}`}>
+              <span className="text-xs font-normal text-gray-500 mr-2">{labels.phone}</span>
+              {content.phone}
+            </a>
+            <p className="text-base font-semibold">
+              <span className="text-xs font-normal text-gray-500 mr-2">{labels.fax}</span>
+              {content.fax}
+            </p>
+          </div>
+        </BentoCard>
+      </motion.div>
     </section>
   );
 }
 
-// ── Main About Page ────────────────────────────────────────────────────────────
+// ── Main About Page ──────────────────────────────────────────────────────────
 const About = () => {
-  const { t, i18n } = useTranslation();
+  const { i18n } = useTranslation();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
-  const { aboutSlides, about, fastFacts, coreValues } = useSiteConfig();
-
-  const activeSlides = (aboutSlides || []).filter((s) => s.active !== false && s.imageUrl);
+  const content = aboutCompany[lang] || aboutCompany.vi;
+  const numberLocale = lang === 'en' ? 'en-US' : 'vi-VN';
 
   return (
     <motion.div
@@ -387,27 +285,16 @@ const About = () => {
       className="min-h-screen pb-16"
     >
       <SEO
-        title={t('about.title')}
-        description={t('about.companyIntro')}
+        title={content.seoTitle}
+        description={content.seoDescription}
         url={`/${lang}/about`}
       />
 
-      {/* Section 1: Hero Swiper */}
-      <AboutHeroSwiper slides={activeSlides} lang={lang} />
-
-      {/* Section 2: Description & History */}
-      <DescriptionSection about={about} lang={lang} />
-
-      {/* Section 3: Fast Facts */}
-      <FastFactsSection facts={fastFacts} lang={lang} />
-
-      {/* Section 4: Core Values */}
-      <CoreValuesSection values={coreValues} />
-
-      {/* Section 5: Contact Info (merged from former /contact page) */}
-      <ContactInfoSection lang={lang} />
-
-      
+      <AboutHero hero={content.hero} />
+      <IntroSection content={content} />
+      <FactsSection title={content.factsTitle} facts={content.facts} numberLocale={numberLocale} />
+      <ValuesSection title={content.valuesTitle} intro={content.valuesIntro} values={content.values} />
+      <ContactSection content={content} />
     </motion.div>
   );
 };

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { FiFileText } from 'react-icons/fi';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useAuthDrawer } from '../context/AuthDrawerContext';
 import SEO from '../components/SEO';
 import clientApi from '../api/clientApi';
 import { formatDate } from '../utils/format';
@@ -20,6 +21,7 @@ const STATUS_COLORS = {
 const OrderHistory = () => {
   const { t, i18n } = useTranslation();
   const { user } = useAuth();
+  const { openAuthDrawer } = useAuthDrawer();
   const lang = SUPPORTED_LOCALES.includes(i18n.language) ? i18n.language : 'vi';
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -56,7 +58,7 @@ const OrderHistory = () => {
         <SEO title={t('history.title')} description={t('history.loginRequired')} url={`/${lang}/orders`} noindex />
         <div className="text-center">
           <p className="text-sm text-gray-600 mb-4">{t('history.loginRequired')}</p>
-          <Link to={`/${lang}/login`} className="btn-primary inline-block">{t('auth.login')}</Link>
+          <button type="button" onClick={() => openAuthDrawer('login')} className="btn-primary inline-block">{t('auth.login')}</button>
         </div>
       </div>
     );

@@ -118,6 +118,36 @@ Skeleton.Markets = ({ cards = 6 }) => (
 );
 
 /**
+ * Skeleton for the Products listing page (product line cards).
+ * Mirrors the layout of ProductLineCard so the grid does not jump on load.
+ */
+Skeleton.Products = ({ cards = 6 }) => (
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4" aria-busy="true">
+    {Array.from({ length: cards }).map((_, idx) => (
+      <div
+        key={idx}
+        className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden flex flex-col h-full"
+      >
+        <div className="aspect-[16/9] bg-gray-100 animate-pulse flex-shrink-0" />
+        <div className="flex-1 flex flex-col p-4">
+          <Skeleton variant="text" width="75%" height={14} />
+          <Skeleton variant="text" width="45%" height={14} className="mt-2" />
+          <div className="mt-3 space-y-2">
+            <Skeleton variant="text" width="100%" height={10} />
+            <Skeleton variant="text" width="88%" height={10} />
+          </div>
+          <div className="flex-1" />
+          <div className="mt-5 pt-3.5 border-t border-gray-100 flex items-center gap-2.5">
+            <Skeleton variant="rect" width="100%" height={36} className="rounded-lg" />
+            <Skeleton variant="rect" width="100%" height={36} className="rounded-lg" />
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+/**
  * Skeleton for MarketDetail page (hero + tabs + content).
  */
 Skeleton.MarketDetail = () => (

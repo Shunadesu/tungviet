@@ -51,6 +51,7 @@
   },
   "header": {
     "login": "Sign in",
+    "register": "Sign up",
     "logout": "Sign out",
     "orders": "Quote requests",
     "openMenu": "Open menu",
@@ -320,6 +321,10 @@
     "loginWelcome": "Welcome back",
     "registerTitle": "Create account",
     "registerSubtitle": "Create an account to manage your quote requests",
+    "switchToLogin": "Sign in",
+    "switchToRegister": "Sign up",
+    "close": "Close",
+    "drawerSubtitle": "Sign in to track your quote requests",
     "email": "Email",
     "password": "Password",
     "confirmPassword": "Confirm password",
@@ -340,7 +345,11 @@
     "confirmPasswordPlaceholder": "Re-enter your password",
     "passwordHint": "At least 6 characters",
     "fullNamePlaceholder": "Enter your name",
-    "phonePlaceholder": "0123 456 789"
+    "phonePlaceholder": "0123 456 789",
+    "company": "Company",
+    "companyPlaceholder": "Company name (optional)",
+    "phone": "Phone number",
+    "phoneInvalid": "Invalid phone number"
   },
   "history": {
     "title": "My quote requests",

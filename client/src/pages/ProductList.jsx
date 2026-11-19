@@ -8,6 +8,7 @@ import ProductFilterTopBar from '../components/ProductFilterTopBar';
 import ActiveFilterChips from '../components/ActiveFilterChips';
 import EmptyState from '../components/EmptyState';
 import LoadMore from '../components/LoadMore';
+import Skeleton from '../components/Skeleton';
 import SEO from '../components/SEO';
 import publicApi from '../api/publicApi';
 import useProductFilters from '../hooks/useProductFilters';
@@ -497,11 +498,7 @@ const ProductList = () => {
         )}
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="aspect-[4/5] skeleton rounded-xl" />
-            ))}
-          </div>
+          <Skeleton.Products />
         ) : groups.length === 0 ? (
           <EmptyState
             icon={FiSearch}

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useQuoteBag } from '../context/QuoteBagContext';
 import { useToast } from '../context/ToastContext';
 import placeholderProduct from '../assets/placeholder-product.svg';
+import { useTdsDownload } from '../hooks/useTdsDownload';
 
 /**
  * Bảng danh sách SKU của một "sản phẩm chính" (product line).
@@ -24,6 +25,7 @@ const formatPrice = (product, lang) => {
 
 const SkuTable = ({ skus = [], lang = 'vi' }) => {
   const { t } = useTranslation();
+  const { download: downloadTds } = useTdsDownload();
   const { addToQuoteBag, isInBag } = useQuoteBag();
   const toast = useToast();
 
@@ -126,6 +128,7 @@ const SkuTable = ({ skus = [], lang = 'vi' }) => {
                       {sku.tdsUrl && (
                         <a
                           href={sku.tdsUrl}
+                          onClick={(e) => downloadTds(e, { productId: sku._id, tdsUrl: sku.tdsUrl })}
                           target="_blank"
                           rel="noopener noreferrer"
                           title={t('product.downloadTds')}
@@ -235,6 +238,7 @@ const SkuTable = ({ skus = [], lang = 'vi' }) => {
                   {sku.tdsUrl && (
                     <a
                       href={sku.tdsUrl}
+                      onClick={(e) => downloadTds(e, { productId: sku._id, tdsUrl: sku.tdsUrl })}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-accent/10 text-accent"

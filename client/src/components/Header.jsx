@@ -17,6 +17,7 @@ import {
 import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '../context/AuthContext';
+import { useAuthDrawer } from '../context/AuthDrawerContext';
 import { useQuoteBag } from '../context/QuoteBagContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useCompare } from '../context/CompareContext';
@@ -220,6 +221,7 @@ const MarketsDropdown = ({ onClose, lang, markets, marketsLoading }) => {
 const Header = () => {
   const { t, i18n } = useTranslation();
   const { user, logout } = useAuth();
+  const { openAuthDrawer } = useAuthDrawer();
   const { count } = useQuoteBag();
   const { count: wishlistCount } = useWishlist();
   const { count: compareCount } = useCompare();
@@ -500,18 +502,20 @@ const Header = () => {
               <FiSearch size={18} />
             </button>
 
-            <Link
-              to={`/${currentLang}/wishlist`}
-              className={`${iconClass} relative hidden sm:inline-flex`}
-              aria-label={t('nav.wishlist')}
-            >
-              <FiHeart size={18} />
-              {wishlistCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-medium">
-                  {wishlistCount}
-                </span>
-              )}
-            </Link>
+            {user && (
+              <Link
+                to={`/${currentLang}/wishlist`}
+                className={`${iconClass} relative hidden sm:inline-flex`}
+                aria-label={t('nav.wishlist')}
+              >
+                <FiHeart size={18} />
+                {wishlistCount > 0 && (
+                  <span className="absolute -top-0.5 -right-0.5 bg-rose-500 text-white text-[10px] min-w-[16px] h-4 px-1 rounded-full flex items-center justify-center font-medium">
+                    {wishlistCount}
+                  </span>
+                )}
+              </Link>
+            )}
 
             <Link
               to={`/${currentLang}/products/compare`}
@@ -568,9 +572,9 @@ const Header = () => {
                 </div>
               </div>
             ) : (
-              <Link to={`/${currentLang}/login`} className={loginClass}>
+              <button type="button" onClick={() => openAuthDrawer('login')} className={loginClass}>
                 {t('header.login')}
-              </Link>
+              </button>
             )}
 
             <button onClick={() => setMenuOpen(!menuOpen)} className={`md:hidden ${iconClass}`} aria-label={t('header.openMenu')}>
@@ -678,9 +682,22 @@ const Header = () => {
                   ))}
                 </div>
                 {!user && (
-                  <Link to={`/${currentLang}/login`} onClick={() => setMenuOpen(false)} className={`py-2 px-1 text-sm font-medium ${transparent ? 'text-white' : 'text-primary'}`}>
-                    {t('header.login')}
-                  </Link>
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => { openAuthDrawer('login'); setMenuOpen(false); }}
+                      className={`py-2 px-1 text-sm font-medium text-left ${transparent ? 'text-white' : 'text-primary'}`}
+                    >
+                      {t('header.login')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { openAuthDrawer('register'); setMenuOpen(false); }}
+                      className={`py-2 px-1 text-sm font-medium text-left ${transparent ? 'text-white' : 'text-primary'}`}
+                    >
+                      {t('header.register')}
+                    </button>
+                  </>
                 )}
               </div>
             </motion.nav>

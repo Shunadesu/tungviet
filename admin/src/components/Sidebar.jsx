@@ -11,6 +11,7 @@ import {
   FiMapPin,
   FiAward,
   FiMessageSquare,
+  FiUsers,
   FiFileText,
   FiActivity,
   FiLayout,
@@ -139,6 +140,7 @@ const interfaceMenu = {
         { type: 'item', key: 'hero', label: 'Hero slider', path: '/settings/appearance/hero', icon: <FiSliders size={14} /> },
         { type: 'item', key: 'partners', label: 'Đối tác / Khách hàng', path: '/partners', icon: <FiFileText size={14} /> },
         { type: 'item', key: 'quote', label: 'Báo giá (hiển thị)', path: '/quote-section', icon: <FiMessageSquare size={14} /> },
+        { type: 'item', key: 'users', label: 'Người dùng', path: '/users', icon: <FiUsers size={14} /> },
       ],
     },
     {

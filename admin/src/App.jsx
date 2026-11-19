@@ -30,6 +30,7 @@ import LeadershipList from './pages/leadership/LeadershipList';
 import LeadershipForm from './pages/leadership/LeadershipForm';
 import QuoteSectionForm from './pages/quoteSection/QuoteSectionForm';
 import QuoteSubmissionList from './pages/quoteSection/QuoteSubmissionList';
+import UserList from './pages/users/UserList';
 import PartnerList from './pages/partners/PartnerList';
 import PostList from './pages/posts/PostList';
 import PostForm from './pages/posts/PostForm';
@@ -87,7 +88,7 @@ function App() {
     <AuthProvider>
       <NotificationProvider>
         <BrowserRouter>
-          <AnimatePresence mode="wait">
+          <AnimatePresence mode="sync">
             <Routes>
               <Route path="/login" element={<Login />} />
               <Route path="/" element={
@@ -228,6 +229,11 @@ function App() {
               <Route path="/quote-section/submissions" element={
                 <ProtectedRoute>
                   <QuoteSubmissionList />
+                </ProtectedRoute>
+              } />
+              <Route path="/users" element={
+                <ProtectedRoute>
+                  <UserList />
                 </ProtectedRoute>
               } />
               <Route path="/partners" element={
