@@ -1,6 +1,7 @@
 import express from 'express';
 import {
   getAllCategories,
+  getCategoryStats,
   getCategoryById,
   createCategory,
   updateCategory,
@@ -31,6 +32,18 @@ const router = express.Router();
  */
 router.get('/', adminAuth, getAllCategories);
 router.post('/', adminAuth, createCategory);
+
+/**
+ * @openapi
+ * /api/admin/categories/stats:
+ *   get:
+ *     tags: [Admin - Categories]
+ *     summary: Số liệu tổng quan danh mục (tổng / active / inactive / tổng SKU)
+ *     security: [{ bearerAuth: [] }]
+ *     responses:
+ *       200: { description: OK }
+ */
+router.get('/stats', adminAuth, getCategoryStats);
 
 /**
  * @openapi

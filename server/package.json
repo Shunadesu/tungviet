@@ -8,8 +8,7 @@
     "start": "node src/server.js",
     "dev": "node --watch src/server.js",
     "seed": "node src/seed.js",
-    "import:estimate": "node src/scripts/importEstimate.js",
-    "seed:estimate:vn": "node src/seedEstimateVN.js"
+    "import:estimate": "node src/scripts/importEstimate.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

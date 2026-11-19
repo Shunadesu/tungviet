@@ -15,7 +15,6 @@ import { trackVisitor } from './middlewares/trackVisitor.js';
 import securityHeaders from './middlewares/securityHeaders.js';
 import { apiResponse } from './utils/apiResponse.js';
 import { swaggerSpec } from './config/swagger.js';
-import { productColumnService } from './services/productColumn.service.js';
 import { startAnalyticsJobs, stopAnalyticsJobs } from './jobs/analyticsCleanup.js';
 
 import publicRoutes from './routes/public/product.routes.js';
@@ -207,17 +206,10 @@ connectDB()
       ]);
       logger.info('MongoDB indexes synced');
 
-      const seed = await productColumnService.seedDefaults();
-      logger.info({ skipped: seed.skipped, total: seed.total }, 'ProductColumn seed done');
-
-      const { postCategoryService } = await import('./services/postCategory.service.js');
-      const pcSeed = await postCategoryService.seedDefaults();
-      logger.info({ skipped: pcSeed.skipped, total: pcSeed.total }, 'PostCategory seed done');
-
       const { migrationService } = await import('./services/migration.service.js');
       await migrationService.runHierarchyMigration();
     } catch (err) {
-      logger.warn({ err: err.message }, 'Index sync / seed failed (continuing)');
+      logger.warn({ err: err.message }, 'Index sync failed (continuing)');
     }
   })
   .catch((err) => {

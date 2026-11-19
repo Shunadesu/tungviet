@@ -16,6 +16,7 @@ import {
 import Header from '../../components/Header';
 import SEO from '../../components/SEO';
 import DataTable from '../../components/DataTable';
+import RichText from '../../components/RichText';
 import Skeleton from '../../components/Skeleton';
 import {
   useAdminStore,
@@ -260,24 +261,9 @@ const MainTreeList = () => {
       {
         header: 'Mô tả',
         accessor: 'description',
-        render: (val) => {
-          if (!val) return <span className="text-gray-300">—</span>;
-          const temp = document.createElement('div');
-          temp.innerHTML = val;
-          const plainText = temp.textContent || temp.innerText || '';
-          const truncated =
-            plainText.length > 80 ? plainText.slice(0, 80) + '...' : plainText;
-          return (
-            <div className="max-w-xs">
-              <span
-                className="text-gray-600 text-xs leading-relaxed line-clamp-2"
-                title={plainText}
-              >
-                {truncated}
-              </span>
-            </div>
-          );
-        },
+        render: (val) => (
+          <RichText html={val} clamp={4} className="max-w-xs" />
+        ),
       },
       {
         header: 'Thứ tự',

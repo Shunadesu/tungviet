@@ -25,6 +25,7 @@ import { SUPPORTED_LOCALES } from '../i18n';
 import { sanitizeHtml } from '../utils/sanitize';
 import { htmlToText } from '../utils/html';
 import { getLocalizedField } from '../utils/i18nField';
+import { getApplicationLabels } from '../utils/productApplications';
 import { buildProductJsonLd } from '../utils/jsonLd';
 
 const LEGACY_COLUMNS = [
@@ -161,6 +162,9 @@ const ProductDetail = () => {
   }
 
   const safeDescription = product.description ? sanitizeHtml(product.description) : '';
+  // `applications` là mảng sub-document { title, titleEn, ... } — không thể
+  // render trực tiếp, phải chuẩn hóa về danh sách chuỗi đã bản địa hoá.
+  const applicationLabels = getApplicationLabels(product.applications, lang);
   const dynamicAttributes = columns
     .filter((column) => column.isActive !== false)
     .map((column) => {
@@ -327,16 +331,16 @@ const ProductDetail = () => {
             )}
 
             {/* Applications */}
-            {product.applications && product.applications.length > 0 && (
+            {applicationLabels.length > 0 && (
               <div className="card p-5">
                 <h3 className="heading-eyebrow mb-4">{t('product.applications')}</h3>
                 <div className="flex flex-wrap gap-2">
-                  {product.applications.map((app, i) => (
+                  {applicationLabels.map((label, i) => (
                     <span
-                      key={i}
+                      key={`${label}-${i}`}
                       className="badge-primary !text-xs"
                     >
-                      {app}
+                      {label}
                     </span>
                   ))}
                 </div>

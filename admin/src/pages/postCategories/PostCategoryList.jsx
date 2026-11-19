@@ -14,6 +14,7 @@ import Modal from '../../components/Modal';
 import RichEditor from '../../components/RichEditor';
 import SEO from '../../components/SEO';
 import DataTable from '../../components/DataTable';
+import RichText from '../../components/RichText';
 import adminApi from '../../api/adminApi';
 import { useAdminStore, useAdminStoreEntity, useNotification } from '../../hooks/useAdminStore';
 
@@ -115,9 +116,7 @@ const PostCategoryList = () => {
         header: 'Mô tả',
         accessor: 'description',
         render: (val) => (
-          <span className="text-gray-500 line-clamp-2 max-w-xs" title={val}>
-            {val || '—'}
-          </span>
+          <RichText html={val} clamp={4} className="max-w-xs" />
         ),
       },
       {

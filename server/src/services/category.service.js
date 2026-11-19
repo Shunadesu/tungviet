@@ -10,6 +10,33 @@ const SORT_MAP = {
   name_asc: { name: 1 },
   name_desc: { name: -1 },
   order_asc: { order: 1, name: 1 },
+  newest: { createdAt: -1 },
+};
+
+/**
+ * Đếm số SKU thuộc mỗi product line.
+ *
+ * Quản trị cần thấy TẤT CẢ SKU đang hoạt động (kể cả nháp / lưu trữ),
+ * nên không lọc `webStatus` — chỉ loại sản phẩm đã xoá mềm.
+ * Một SKU thuộc nhiều product line sẽ được đếm trong từng nhóm.
+ */
+const countSkusByProductLine = async (categoryIds) => {
+  if (categoryIds.length === 0) return new Map();
+
+  const counts = await Product.aggregate([
+    {
+      $match: {
+        productLines: { $in: categoryIds },
+        isActive: true,
+        isDeleted: { $ne: true },
+      },
+    },
+    { $unwind: '$productLines' },
+    { $match: { productLines: { $in: categoryIds } } },
+    { $group: { _id: '$productLines', count: { $sum: 1 } } },
+  ]);
+
+  return new Map(counts.map((c) => [String(c._id), c.count]));
 };
 
 const invalidate = () => invalidatePublicCache();
@@ -75,30 +102,101 @@ export const categoryService = {
     return categories.map((c) => ({ ...c, skuCount: countMap.get(String(c._id)) || 0 }));
   },
 
+  /**
+   * Danh sách product line phân trang (dùng cho trang quản trị).
+   *
+   * Hỗ trợ bộ lọc / sắp xếp:
+   *   - `search`      : khớp name / nameEn / slug / description
+   *   - `status`      : 'all' | 'active' | 'inactive'
+   *   - `mainTree`    : lọc theo ngành hàng
+   *   - `hasProducts` : '1' (có SKU) | '0' (chưa có SKU)
+   *   - `sort`        : order_asc | name_asc | name_desc | newest | sku_desc
+   *
+   * Mỗi item kèm `skuCount` = số SKU đang hoạt động thuộc product line đó
+   * (tính cả SKU nháp/lưu trữ, chỉ loại sản phẩm đã xoá mềm).
+   *
+   * Vì `skuCount` và bộ lọc `hasProducts` phụ thuộc vào kết quả aggregation,
+   * toàn bộ bước lọc/sắp xếp được thực hiện trong bộ nhớ rồi mới cắt trang.
+   * Số lượng product line nhỏ nên cách này hoàn toàn ổn.
+   */
   async listPaginated({
     includeInactive = false,
     sort = 'order_asc',
     mainTree,
+    search,
+    status = 'all',
+    hasProducts,
     page = 1,
     limit = 20,
   } = {}) {
-    const query = includeInactive ? {} : { isActive: true };
+    const query = {};
+
+    if (status === 'active') {
+      query.isActive = true;
+    } else if (status === 'inactive') {
+      query.isActive = false;
+    } else if (!includeInactive) {
+      query.isActive = true;
+    }
+
     if (mainTree) {
       const mtId = await resolveMainTreeId(mainTree);
       if (mtId) query.mainTree = mtId;
     }
-    const sortOption = SORT_MAP[sort] || SORT_MAP.order_asc;
-    const skip = (page - 1) * limit;
-    const [items, total] = await Promise.all([
-      Category.find(query)
-        .populate('mainTree', 'name nameEn slug')
-        .sort(sortOption)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Category.countDocuments(query),
-    ]);
-    return { items, pagination: buildPagination(page, limit, total) };
+
+    if (search && String(search).trim()) {
+      const rx = { $regex: String(search).trim(), $options: 'i' };
+      query.$or = [{ name: rx }, { nameEn: rx }, { slug: rx }, { description: rx }];
+    }
+
+    const candidates = await Category.find(query)
+      .populate('mainTree', 'name nameEn slug')
+      .lean();
+
+    const skuCountMap = await countSkusByProductLine(candidates.map((c) => c._id));
+
+    let list = candidates.map((c) => ({
+      ...c,
+      skuCount: skuCountMap.get(String(c._id)) || 0,
+    }));
+
+    if (hasProducts === '1' || hasProducts === '0') {
+      const wantProducts = hasProducts === '1';
+      list = list.filter((c) => (c.skuCount > 0) === wantProducts);
+    }
+
+    const nameOf = (c) => `${c.name || ''} ${c.nameEn || ''}`.trim().toLowerCase();
+    switch (sort) {
+      case 'name_asc':
+        list.sort((a, b) => nameOf(a).localeCompare(nameOf(b)));
+        break;
+      case 'name_desc':
+        list.sort((a, b) => nameOf(b).localeCompare(nameOf(a)));
+        break;
+      case 'newest':
+        list.sort(
+          (a, b) =>
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        break;
+      case 'sku_desc':
+        list.sort(
+          (a, b) => b.skuCount - a.skuCount || nameOf(a).localeCompare(nameOf(b))
+        );
+        break;
+      default:
+        list.sort(
+          (a, b) => (a.order ?? 0) - (b.order ?? 0) || nameOf(a).localeCompare(nameOf(b))
+        );
+    }
+
+    const total = list.length;
+    const safePage = Math.max(1, parseInt(page, 10) || 1);
+    const safeLimit = Math.max(1, parseInt(limit, 10) || 20);
+    const skip = (safePage - 1) * safeLimit;
+    const items = list.slice(skip, skip + safeLimit);
+
+    return { items, pagination: buildPagination(safePage, safeLimit, total) };
   },
 
   async getById(id, { onlyActive = false } = {}) {
@@ -175,6 +273,39 @@ export const categoryService = {
     const results = await Category.delete({ _id: { $in: ids } });
     invalidate();
     return results;
+  },
+
+  /**
+   * Số liệu tổng quan cho trang quản trị.
+   *
+   * `totalSku` = tổng số SKU đang hoạt động (kể cả nháp/lưu trữ) đã được
+   * gán vào ít nhất một product line.
+   */
+  async getStats() {
+    const [total, active, inactive] = await Promise.all([
+      Category.countDocuments({}),
+      Category.countDocuments({ isActive: true }),
+      Category.countDocuments({ isActive: false }),
+    ]);
+
+    // Đếm SKU DUY NHẤT đang hoạt động và đã được gán vào ít nhất một
+    // product line — group theo chính product để không đếm trùng khi một
+    // SKU thuộc nhiều product line.
+    const skuRows = await Product.aggregate([
+      {
+        $match: {
+          isActive: true,
+          isDeleted: { $ne: true },
+          productLines: { $exists: true, $ne: [] },
+        },
+      },
+      { $group: { _id: '$_id' } },
+      { $count: 'total' },
+    ]);
+
+    const totalSku = skuRows[0]?.total || 0;
+
+    return { total, active, inactive, totalSku };
   },
 
   async reorder(orderList) {

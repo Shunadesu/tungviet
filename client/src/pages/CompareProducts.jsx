@@ -10,6 +10,7 @@ import SEO from '../components/SEO';
 import EmptyState from '../components/EmptyState';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { getLocalizedField } from '../utils/i18nField';
+import { getApplicationLabels } from '../utils/productApplications';
 import placeholderProduct from '../assets/placeholder-product.svg';
 
 const CompareProducts = () => {
@@ -81,7 +82,7 @@ const CompareProducts = () => {
     { key: 'softeningPoint', type: 'text', label: t('compare.fields.softeningPoint') },
     { key: 'acidValue', type: 'text', label: t('compare.fields.acidValue') },
     { key: 'color', type: 'text', label: t('compare.fields.color') },
-    { key: 'applications', type: 'list', label: t('compare.fields.applications') },
+    { key: 'applications', type: 'applications', label: t('compare.fields.applications') },
     { key: 'benefits', type: 'list', label: t('compare.fields.benefits') },
     { key: 'targetAudience', type: 'text', label: t('compare.fields.targetAudience') },
   ];
@@ -120,6 +121,20 @@ const CompareProducts = () => {
       if (!obj) return <span className="text-gray-400">—</span>;
       const name = getLocalizedField(obj, lang, 'name', 'nameEn');
       return name || <span className="text-gray-400">—</span>;
+    }
+    if (field.type === 'applications') {
+      const labels = getApplicationLabels(v, lang);
+      if (labels.length === 0) return <span className="text-gray-400">—</span>;
+      return (
+        <ul className="space-y-1 text-sm text-slate-700">
+          {labels.map((label, i) => (
+            <li key={`${label}-${i}`} className="flex gap-1.5">
+              <span className="text-primary">•</span>
+              <span>{label}</span>
+            </li>
+          ))}
+        </ul>
+      );
     }
     if (field.type === 'list') {
       if (!Array.isArray(v) || v.length === 0) return <span className="text-gray-400">—</span>;

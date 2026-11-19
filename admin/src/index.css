@@ -47,3 +47,54 @@ body {
     @apply border-b border-gray-100 hover:bg-gray-50 transition-colors;
   }
 }
+
+/* Nội dung rich text (React Quill) khi hiển thị dạng read-only (table, tooltip, card) */
+/* line-height = 1.5em để RichText tính max-height theo số dòng chính xác */
+.rich-text-content {
+  @apply text-xs leading-normal text-gray-600 break-words;
+}
+
+.rich-text-content p {
+  @apply mb-1 last:mb-0;
+}
+
+.rich-text-content ul,
+.rich-text-content ol {
+  @apply pl-4 my-1;
+}
+
+.rich-text-content ul {
+  @apply list-disc;
+}
+
+.rich-text-content ol {
+  @apply list-decimal;
+}
+
+.rich-text-content li {
+  @apply mb-0.5;
+}
+
+.rich-text-content h1,
+.rich-text-content h2,
+.rich-text-content h3,
+.rich-text-content h4 {
+  @apply font-semibold text-gray-800 mt-1 mb-0.5;
+}
+
+.rich-text-content a {
+  @apply text-blue-600 underline;
+}
+
+.rich-text-content strong,
+.rich-text-content b {
+  @apply font-semibold text-gray-800;
+}
+
+.rich-text-content blockquote {
+  @apply border-l-2 border-gray-200 pl-2 italic text-gray-500;
+}
+
+.rich-text-content pre {
+  @apply bg-gray-50 rounded p-2 overflow-x-auto text-[11px];
+}

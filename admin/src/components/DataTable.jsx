@@ -1,3 +1,5 @@
+import RichText from './RichText';
+
 const DataTable = ({ columns, data, actions, selectable, selected, onSelectChange }) => {
   // Strip Quill-generated empty HTML tags so cells show blank instead of <p></p>
   const stripEmptyHtml = (val) => {
@@ -43,7 +45,12 @@ const DataTable = ({ columns, data, actions, selectable, selected, onSelectChang
               </th>
             )}
             {columns.map((col, index) => (
-              <th key={index} className="px-3 py-2 text-left">{col.header}</th>
+              <th
+                key={index}
+                className={`px-3 py-2 text-left ${col.headerClassName || ''}`}
+              >
+                {col.header}
+              </th>
             ))}
             {actions && <th className="px-3 py-2 text-right">Thao tác</th>}
           </tr>
@@ -66,11 +73,18 @@ const DataTable = ({ columns, data, actions, selectable, selected, onSelectChang
               )}
               {columns.map((col, colIndex) => {
                 const raw = col.render ? col.render(row[col.accessor], row, rowIndex) : row[col.accessor];
-                const display = typeof raw === 'string' && /<[a-z]/i.test(raw)
-                  ? <span dangerouslySetInnerHTML={{ __html: stripEmptyHtml(raw) }} />
+                // Ô chứa HTML (rich text) -> render qua RichText (sanitize + chuẩn hoá &nbsp;)
+                const isHtml =
+                  typeof raw === 'string' &&
+                  (/<[a-z]/i.test(raw) || /&(nbsp|amp|lt|gt|quot|apos|#\d+|#x[0-9a-f]+);/i.test(raw));
+                const display = isHtml
+                  ? <RichText html={raw} fallback="" />
                   : stripEmptyHtml(raw);
                 return (
-                  <td key={colIndex} className="px-3 py-2 text-xs">
+                  <td
+                    key={colIndex}
+                    className={`px-3 py-2 text-xs ${col.className || ''}`}
+                  >
                     {display}
                   </td>
                 );

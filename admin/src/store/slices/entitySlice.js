@@ -24,6 +24,7 @@ export const createEntitySlice = (entityName, api) => (set, get) => ({
   list: [],
   loading: false,
   error: null,
+  pagination: null,
 
   /** Fetch a single item by id — uses cache if already loaded */
   fetch: async (id) => {
@@ -102,6 +103,53 @@ export const createEntitySlice = (entityName, api) => (set, get) => ({
     }
   },
 
+  /**
+   * Fetch một trang kết quả từ server (dùng khi bảng có phân trang).
+   *
+   * Khác với `fetchAll`:
+   *   - luôn gọi API (không dùng cache)
+   *   - THAY THẾ danh sách hiện tại thay vì merge (merge là sai khi phân trang)
+   *   - lưu metadata `pagination` từ response để component dùng
+   */
+  fetchPage: async (params) => {
+    set((s) => ({
+      [entityName]: { ...s[entityName], loading: true, error: null },
+    }), false, `${entityName}/fetchPage/start`);
+
+    try {
+      const res = await api.getAll(params);
+      const items = Array.isArray(res.data?.data)
+        ? res.data.data
+        : Array.isArray(res.data) ? res.data : [];
+
+      const newItems = new Map();
+      const newList = [];
+      items.forEach((item) => {
+        newItems.set(item._id, item);
+        newList.push(item._id);
+      });
+
+      const pagination = res.data?.pagination || null;
+
+      set(() => ({
+        [entityName]: {
+          ...get()[entityName],
+          items: newItems,
+          list: newList,
+          pagination,
+          loading: false,
+        },
+      }), false, `${entityName}/fetchPage/success`);
+
+      return { items, pagination };
+    } catch (err) {
+      set((s) => ({
+        [entityName]: { ...s[entityName], error: err.message, loading: false },
+      }), false, `${entityName}/fetchPage/error`);
+      throw err;
+    }
+  },
+
   /** Force refetch all items (bust cache) */
   invalidateList: () => {
     set((s) => ({
@@ -110,6 +158,7 @@ export const createEntitySlice = (entityName, api) => (set, get) => ({
         list: [],
         loading: false,
         error: null,
+        pagination: null,
       },
     }), false, `${entityName}/invalidateList`);
   },

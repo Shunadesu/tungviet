@@ -201,7 +201,7 @@ const CategoryForm = () => {
     <>
       <SEO
         title={isEditing ? 'Sửa product line' : 'Thêm product line'}
-        description="Quản lý product line"
+        description="Quản lý Danh mục Sản phẩm"
         url="/categories"
       />
       <HeaderWithBreadcrumb

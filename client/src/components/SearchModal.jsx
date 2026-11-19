@@ -17,6 +17,7 @@ import publicApi from '../api/publicApi';
 import { useRecentSearches } from '../hooks/useRecentSearches';
 import { SUPPORTED_LOCALES } from '../i18n';
 import { getLocalizedField } from '../utils/i18nField';
+import { lockBodyScroll } from '../utils/scrollLock';
 import placeholderProduct from '../assets/placeholder-product.svg';
 
 const MAX_SUGGESTIONS = 6;
@@ -26,19 +27,6 @@ const MIN_QUERY = 2;
 // Using a six-digit z-index guarantees we win against any third-party widget that
 // uses z-9999 or z-[1000] etc.
 const MODAL_Z = 2147483000; // near max safe 32-bit int; not Int32 max to avoid paranoia
-
-const lockBodyScroll = () => {
-  if (typeof document === 'undefined') return () => {};
-  const prevOverflow = document.body.style.overflow;
-  const prevPaddingRight = document.body.style.paddingRight;
-  const scrollbar = window.innerWidth - document.documentElement.clientWidth;
-  document.body.style.overflow = 'hidden';
-  if (scrollbar > 0) document.body.style.paddingRight = `${scrollbar}px`;
-  return () => {
-    document.body.style.overflow = prevOverflow;
-    document.body.style.paddingRight = prevPaddingRight;
-  };
-};
 
 /**
  * Full-screen search modal. Triggered by header search icon and the Cmd+K / Ctrl+K

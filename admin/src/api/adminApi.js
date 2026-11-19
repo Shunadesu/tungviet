@@ -58,6 +58,7 @@ export const adminApi = {
 
   // Categories (Product Line)
   getCategories: (params) => axiosClient.get('/admin/categories', { params }),
+  getCategoryStats: () => axiosClient.get('/admin/categories/stats'),
   getCategory: (id) => axiosClient.get(`/admin/categories/${id}`),
   createCategory: (data) => axiosClient.post('/admin/categories', data),
   updateCategory: (id, data) => axiosClient.put(`/admin/categories/${id}`, data),

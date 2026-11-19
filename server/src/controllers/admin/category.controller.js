@@ -3,15 +3,35 @@ import { apiResponse } from '../../utils/apiResponse.js';
 
 export const getAllCategories = async (req, res, next) => {
   try {
-    const { sort, page, limit, mainTree } = req.query;
+    const {
+      sort,
+      page,
+      limit,
+      mainTree,
+      search,
+      status = 'all',
+      hasProducts,
+    } = req.query;
     const { items, pagination } = await categoryService.listPaginated({
       includeInactive: true,
       sort,
       mainTree,
+      search,
+      status,
+      hasProducts,
       page,
       limit,
     });
     return apiResponse.paginated(res, items, pagination);
+  } catch (err) {
+    next(err);
+  }
+};
+
+export const getCategoryStats = async (req, res, next) => {
+  try {
+    const stats = await categoryService.getStats();
+    return apiResponse.ok(res, stats);
   } catch (err) {
     next(err);
   }
